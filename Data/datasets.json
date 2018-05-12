@@ -1,0 +1,129 @@
+{
+  "BSD100": {
+    "name": "BSD 100",
+    "train": {
+      "url": "d:/Datasets/BSD100_SR/image_SRF_3",
+      "filter": "*HR.*"
+    },
+    "val": {
+      "url": "d:/Datasets/BSD100_SR/image_SRF_3",
+      "filter": "*HR.*"
+    },
+    "test": {
+      "url": "d:/Datasets/BSD100_SR/image_SRF_3",
+      "filter": "*LR.*"
+    },
+    "file_type": "image"
+  },
+  "BSD500": {
+    "name": "BSD 500",
+    "train": {
+      "url": "d:/Datasets/BSR_bsds500/BSR/BSDS500/data/images/train",
+      "filter": "*"
+    },
+    "val": {
+      "url": "d:/Datasets/BSR_bsds500/BSR/BSDS500/data/images/val",
+      "filter": "*"
+    },
+    "test": {
+      "url": "d:/Datasets/BSR_bsds500/BSR/BSDS500/data/images/test",
+      "filter": "*"
+    },
+    "file_type": "image"
+  },
+  "URBAN100": {
+    "name": "Urban 100",
+    "train": {
+      "url": "d:/Datasets/Urban100_SR/image_SRF_2",
+      "filter": "*"
+    },
+    "val": {
+      "url": "d:/Datasets/Urban100_SR/image_SRF_2",
+      "filter": "*"
+    },
+    "test": {
+      "url": "d:/Datasets/Urban100_SR/image_SRF_4",
+      "filter": "*"
+    },
+    "file_type": "image"
+  },
+  "SUNHAYS80": {
+    "name": "Sunhays 80",
+    "train": {
+      "url": "d:/Datasets/SunHays80_SR/image_SRF_8",
+      "filter": "*HR.*"
+    },
+    "val": {
+      "url": "d:/Datasets/SunHays80_SR/image_SRF_8",
+      "filter": "*HR.*"
+    },
+    "test": {
+      "url": "d:/Datasets/SunHays80_SR/image_SRF_8",
+      "filter": "*LR.*"
+    },
+    "file_type": "image"
+  },
+  "91-IMAGE": {
+    "name": "Yang's 91",
+    "train": {
+      "url": "d:/Datasets/91-image",
+      "filter": "*"
+    },
+    "val": {
+      "url": "d:/Datasets/Set5_SR/Set5/image_SRF_3",
+      "filter": "*HR.*"
+    },
+    "test": {
+      "url": "d:/Datasets/Set5_SR/Set5/image_SRF_3",
+      "filter": "*LR.*"
+    },
+    "file_type": "image"
+  },
+  "SET5": {
+    "name": "Set5",
+    "val": {
+      "url": "d:/Datasets/Set5_SR/Set5/image_SRF_3",
+      "filter": "*HR.*"
+    },
+    "test": {
+      "url": "d:/Datasets/Set5_SR/Set5/image_SRF_3",
+      "filter": "*LR.*"
+    },
+    "file_type": "image"
+  },
+  "SET14": {
+    "name": "Set14",
+    "val": {
+      "url": "d:/Datasets/Set14_SR/Set14/image_SRF_3",
+      "filter": "*HR.*"
+    },
+    "test": {
+      "url": "d:/Datasets/Set14_SR/Set14/image_SRF_3",
+      "filter": "*LR.*"
+    },
+    "file_type": "image"
+  },
+  "IMAGENET": {
+    "name": "Imagenet",
+    "train": {
+      "url": "d:/Datasets/Imagenet/20180122",
+      "filter": "*.jpg"
+    },
+    "file_type": "image"
+  },
+  "MCL-V": {
+    "name": "MCL-V",
+    "train": {
+      "url": "d:/Datasets/MCL-V/train",
+      "filter": "*.yuv"
+    },
+    "test": {
+      "url": "d:/Datasets/MCL-V/test",
+      "filter": "*.yuv"
+    },
+    "file_type": "raw",
+    "mode": "yv12",
+    "width": 1920,
+    "height": 1080
+  }
+}

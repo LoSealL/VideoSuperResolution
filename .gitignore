@@ -1,0 +1,10 @@
+seafile-ignore.txt
+.idea/
+__pycache__/
+
+.png
+.jpg
+.yuv
+.rgb
+.nv12
+.pyc
