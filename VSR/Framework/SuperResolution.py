@@ -32,6 +32,7 @@ class SuperResolution:
 
     def _init_session(self):
         self.training_phase = tf.placeholder(tf.bool, name='is_training')
+        self.learning_rate = tf.placeholder(tf.float32, name='learning_rate')
         return tf.InteractiveSession()
 
     def compile(self):
@@ -45,12 +46,6 @@ class SuperResolution:
     def summary(self):
         pass
 
-    def build_conv2d(self, filters, kernel_size, stride, **kwargs):
-        conv = tf.layers.Conv2D
-        nn = conv(filters, kernel_size, stride, **kwargs)
-        self.trainable_weights += nn.trainable_weights
-        return nn
-
     def build_graph(self):
         raise NotImplementedError('DO NOT use base SuperResolution directly! Use inheritive models instead.')
 
@@ -63,10 +58,11 @@ class SuperResolution:
     def train_batch(self, feature, label, **kwargs):
         feature = to_list(feature)
         label = to_list(label)
-        feed_dict = {self.training_phase: True}
-        for i in range(len(feature)):
+        lr = kwargs['learning_rate'] if 'learning_rate' in kwargs else 1e-4
+        feed_dict = {self.training_phase: True, self.learning_rate: lr}
+        for i in range(len(self.inputs)):
             feed_dict[self.inputs[i]] = feature[i]
-        for i in range(len(label)):
+        for i in range(len(self.label)):
             feed_dict[self.label[i]] = label[i]
         return self.sess.run(self.loss, feed_dict=feed_dict)
 
@@ -74,9 +70,9 @@ class SuperResolution:
         feature = to_list(feature)
         label = to_list(label)
         feed_dict = {self.training_phase: False}
-        for i in range(len(feature)):
+        for i in range(len(self.inputs)):
             feed_dict[self.inputs[i]] = feature[i]
-        for i in range(len(label)):
+        for i in range(len(self.label)):
             feed_dict[self.label[i]] = label[i]
         metrics = self.sess.run(list(self.metrics.values()) + [self.summary_op], feed_dict=feed_dict)
         ret = {}
@@ -84,12 +80,18 @@ class SuperResolution:
             ret[k] = v
         return ret, metrics[-1]
 
-    def test_batch(self, inputs, **kwargs):
+    def test_batch(self, inputs, label=None, **kwargs):
         feature = to_list(inputs)
+        label = to_list(label)
         feed_dict = {self.training_phase: False}
-        for i in range(len(feature)):
+        for i in range(len(self.inputs)):
             feed_dict[self.inputs[i]] = feature[i]
-        return self.sess.run(self.outputs, feed_dict=feed_dict)
+        if label:
+            for i in range(len(self.label)):
+                feed_dict[self.label[i]] = label[i]
+            return self.sess.run(self.outputs + list(self.metrics.values()), feed_dict=feed_dict)
+        else:
+            return self.sess.run(self.outputs, feed_dict=feed_dict)
 
     def export_model_pb(self, export_dir='.', export_name='model.pb', **kwargs):
 

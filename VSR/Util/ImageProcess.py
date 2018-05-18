@@ -115,6 +115,7 @@ def bicubic_rescale(image, scale, mode=None):
 
 
 def shrink_to_multiple_scale(image, scale):
-    size = np.array(image.size)
+    size = np.asarray(image.size, dtype='int32')
+    scale = np.asarray(scale, dtype='int32')
     size -= size % scale
     return image.crop([0, 0, *size])

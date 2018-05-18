@@ -12,5 +12,6 @@ setup(
     name='VSR',
     version=version,
     packages=find_packages(),
-    install_requires=REQUIRED_PACKAGES
+    install_requires=REQUIRED_PACKAGES,
+    author='Wenyi Tang'
 )

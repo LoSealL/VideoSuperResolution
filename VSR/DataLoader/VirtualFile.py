@@ -122,6 +122,16 @@ class File:
         return self.length.get(name)
 
 
+_ALLOWED_RAW_FORMAT = [
+    'YV12',
+    'YV21',
+    'NV12',
+    'NV21',
+    'RGB4',
+    'BGR4'
+]
+
+
 class RawFile(File):
 
     def __init__(self, path, mode, size, rewind=False):
@@ -139,15 +149,7 @@ class RawFile(File):
             TypeError
         """
 
-        _allowed_mode = [
-            'YV12',
-            'YV21',
-            'NV12',
-            'NV21',
-            'RGB4',
-            'BGR4'
-        ]
-        if not mode.upper() in _allowed_mode:
+        if not mode.upper() in _ALLOWED_RAW_FORMAT:
             raise TypeError('unknown mode: ' + mode)
         self.mode = mode.upper()
         self.size = to_list(size)
