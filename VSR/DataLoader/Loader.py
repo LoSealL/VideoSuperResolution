@@ -3,7 +3,7 @@ Copyright: Intel Corp. 2018
 Author: Wenyi Tang
 Email: wenyi.tang@intel.com
 Created Date: May 8th 2018
-Updated Date: May 10th 2018
+Updated Date: May 24th 2018
 
 Load files with specified filter in given directories,
 and provide inheritable API for specific loaders.
@@ -40,6 +40,8 @@ class Loader(object):
         self.depth = dataset.depth
         self.batch_iterator = None
         self.loop = loop
+        self.random = dataset.random and not (method == 'test')
+        self.max_patches = dataset.max_patches
         self.built = False
 
     def __next__(self):
@@ -52,6 +54,7 @@ class Loader(object):
         return self.batch_iterator
 
     def _build_iter(self):
+        patch_counter = 0
         while True:
             for vf in self.dataset:
                 for _ in range(vf.frames // self.depth):
@@ -66,16 +69,28 @@ class Loader(object):
                         strides = [width, height]
                     if not patch_size:
                         patch_size = [width, height]
-                    for w in range(0, width, strides[0]):
-                        for h in range(0, height, strides[1]):
-                            if w + patch_size[0] > width or h + patch_size[1] > height:
-                                continue
-                            box = np.array([w, h, w + patch_size[0], h + patch_size[1]])
+                    if self.random:
+                        for _ in range(self.max_patches):
+                            if patch_counter > self.max_patches:
+                                raise StopIteration()
+                            x = np.random.randint(0, width - patch_size[0] + 1)
+                            y = np.random.randint(0, height - patch_size[1] + 1)
+                            box = np.array([x, y, x + patch_size[0], y + patch_size[1]])
                             crop_hr = [img.crop(box) for img in frames_hr]
                             crop_lr = [img.crop(box // [*self.scale, *self.scale]) for img in frames_lr]
+                            patch_counter += 1
                             yield crop_hr, crop_lr
+                    else:
+                        for w in range(0, width, strides[0]):
+                            for h in range(0, height, strides[1]):
+                                if w + patch_size[0] > width or h + patch_size[1] > height:
+                                    continue
+                                box = np.array([w, h, w + patch_size[0], h + patch_size[1]])
+                                crop_hr = [img.crop(box) for img in frames_hr]
+                                crop_lr = [img.crop(box // [*self.scale, *self.scale]) for img in frames_lr]
+                                yield crop_hr, crop_lr
                 vf.read_frame(vf.frames)
-            if not self.loop:
+            if not self.random and not self.loop:
                 # StopIterator
                 raise StopIteration('Dataset iterates over')
 
@@ -102,7 +117,8 @@ class Loader(object):
         self.strides = Utility.to_list(self.strides, 2)
         self.patch_size = Utility.shrink_mod_scale(self.patch_size, self.scale) if crop else None
         self.strides = Utility.shrink_mod_scale(self.strides, self.scale) if crop else None
-        if shuffle:
+        if shuffle or self.random:
+            # this will evaluate the generator
             self.dataset = list(self.dataset)
             np.random.shuffle(self.dataset)
         self.batch_iterator = self._build_iter()

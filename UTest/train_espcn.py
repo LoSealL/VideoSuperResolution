@@ -1,7 +1,7 @@
 from VSR.Framework.Envrionment import Environment
 from VSR.DataLoader.Dataset import load_datasets
 from VSR.Framework.Callbacks import *
-from Models.Espcn import Espcn
+from VSR.Models.Espcn import Espcn
 
 
 def add_noise(sigma=10):

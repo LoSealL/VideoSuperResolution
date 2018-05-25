@@ -3,9 +3,10 @@ Copyright: Intel.Corp 2017-2018
 Author: Wenyi Tang
 Email: wenyi.tang@intel.com
 Created Date: Jan. 11th 2018
-Updated Date: May 8th 2018
+Updated Date: May 24th 2018
 
 offline dataset collector
+support random crop
 """
 import json
 from pathlib import Path
@@ -83,6 +84,7 @@ def load_datasets(json_file):
     return datasets
 
 
+# @deprecated
 class Dataset1(object):
     """globs all images in the data path"""
 
@@ -143,6 +145,7 @@ class Dataset1(object):
             return None
 
 
+# @deprecated
 def load_datasets1(json_file='datasets.json'):
     DATASET = dict()
     with open(json_file, 'r') as fd:

@@ -18,6 +18,7 @@ from ..Util.ImageProcess import array_to_img, img_to_array, bicubic_rescale
 def _sub_residual(**kwargs):
     img = kwargs['input'] if 'input' in kwargs else None
     res = kwargs['output'] if 'output' in kwargs else np.zeros_like(img)
+    res = res[0] if isinstance(res, list) else res
     return img - res
 
 
@@ -33,15 +34,16 @@ def _save_model_predicted_images(**kwargs):
         img.convert('RGB').save(str(path))
 
 
-def _colored_grayscale_image(output, input, **kwargs):
-    img = output[0][0] if isinstance(output, list) else output[0]
+def _colored_grayscale_image(output, input, label, **kwargs):
+    img = output[0] if isinstance(output, list) else output
     assert img.shape[-1] == 1
+    scale = np.array(img.shape[1:3]) // np.array(input.shape[1:3])
     uv = array_to_img(input[0], 'YCbCr')
-    scale = img.shape[1:3] // uv.shape[1:3]
     uv = bicubic_rescale(uv, scale)
-    uv = img_to_array(uv)
-    img = np.concatenate([img.uv[..., 1:]], axis=-1)
-    img = array_to_img(img, 'YCbCr').convert('RGB')
+    uv = img_to_array(uv)[..., 1:]
+    img = np.concatenate([img[0], uv], axis=-1)
+    img = np.clip(img, 0, 255)
+    img = array_to_img(img, 'YCbCr')
     return img
 
 
@@ -64,6 +66,10 @@ def _to_normalized_image(img):
         raise ValueError('Invalid img data, must be an array of 2D image with channel less than 3')
 
 
+def _add_noise(feature, stddev, mean):
+    return feature + np.random.normal(mean, stddev, feature.shape)
+
+
 def save_image(save_dir='.'):
     return partial(_save_model_predicted_images, save_dir=save_dir)
 
@@ -74,3 +80,21 @@ def reduce_residual(**kwargs):
 
 def to_rgb(**kwargs):
     return partial(_colored_grayscale_image, **kwargs)
+
+
+def to_gray():
+    def _gray_colored_image(input):
+        return input[..., 0:1]
+
+    return _gray_colored_image
+
+
+def to_uv():
+    def _uv_colored_image(input):
+        return input[..., 1:]
+
+    return _uv_colored_image
+
+
+def add_noise(sigma, mean=0):
+    return partial(_add_noise, stddev=sigma, mean=mean)

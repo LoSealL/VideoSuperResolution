@@ -1,0 +1,6 @@
+{
+  "rdb_blocks": 10,
+  "rdb_conv": 6,
+  "global_filters": 64,
+  "rdb_filters": 64
+}

@@ -28,8 +28,8 @@ class Environment:
                  feature_callbacks=None,
                  label_callbacks=None,
                  output_callbacks=None,
-                 feature_index=1,
-                 label_index=0,
+                 feature_index=None,
+                 label_index=None,
                  **kwargs):
         """Initiate the object
 
@@ -56,8 +56,8 @@ class Environment:
         self.feature_callbacks = feature_callbacks or []
         self.label_callbacks = label_callbacks or []
         self.output_callbacks = output_callbacks or []
-        self.fi = feature_index
-        self.li = label_index
+        self.fi = feature_index if feature_index is not None else 1
+        self.li = label_index if feature_index is not None else 0
 
         self.saver = tf.train.Saver()
         self.summary_writer = tf.summary.FileWriter(str(self.logdir), graph=tf.get_default_graph())
@@ -91,7 +91,9 @@ class Environment:
         self.model.summary()
         global_step = 0
         lr = learning_rate
+        max_patches = dataset.max_patches
         for epoch in range(init_epoch, epochs + 1):
+            dataset.setattr(max_patches=max_patches)
             loader = BatchLoader(batch, dataset, 'train', scale=self.model.scale, **kwargs)
             step_in_epoch = 0
             start_time = time.time()
@@ -112,6 +114,7 @@ class Environment:
             consumed_time = time.time() - start_time
             print(f'| Time: {consumed_time:.4f}s, time per batch: {consumed_time * 1000 / step_in_epoch:.4f}ms/b |',
                   flush=True)
+            dataset.setattr(max_patches=batch * 10)
             loader = BatchLoader(batch, dataset, 'val', scale=self.model.scale, **kwargs)
             val_metrics = {}
             for img in loader:
@@ -136,6 +139,7 @@ class Environment:
                 break
         # flush all pending summaries to disk
         self.summary_writer.close()
+        dataset.setattr(max_patches=max_patches)
 
     def test(self, dataset, **kwargs):
         ckpt_last = self._find_last_ckpt()
@@ -150,7 +154,7 @@ class Environment:
                 label = fn(label)
             outputs = self.model.test_batch(feature, label)
             for fn in self.output_callbacks:
-                outputs = fn(output=outputs, input=feature, label=label, step=step)
+                outputs = fn(output=outputs, input=img[self.fi], label=img[self.li], step=step)
             step += 1
 
     def predict(self, files, mode='pil-image', depth=1, **kwargs):
@@ -171,10 +175,10 @@ class Environment:
                 outputs = fn(output=outputs, input=feature, label=label, step=step)
             step += 1
 
-    def export(self):
+    def export(self, export_dir='.'):
         ckpt_last = self._find_last_ckpt()
         self.saver.restore(self.model.sess, str(self.savedir / ckpt_last))
-        self.model.export_model_pb()
+        self.model.export_model_pb(export_dir)
 
     def _make_ckpt_name(self, epoch):
         return f'{self.model.name}-sc{self.model.scale[0]}-ep{epoch:04d}.ckpt'

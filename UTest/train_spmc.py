@@ -1,6 +1,6 @@
 from VSR.Framework.Envrionment import Environment
 from VSR.DataLoader.Dataset import load_datasets
-from Models.Vespcn import VESPCN
+from VSR.Models.Vespcn import VESPCN
 
 if __name__ == '__main__':
     model = VESPCN(scale=3, depth=3)

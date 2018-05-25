@@ -14,51 +14,25 @@
   },
   "Dataset": {
     "BSD": {
-      "train": [
-        "BSD500"
-      ],
-      "val": [
-        "SET5"
-      ],
-      "test": [
-        "SET5",
-        "SET14"
-      ]
+      "train": ["BSD500"],
+      "val": ["SET5"],
+      "test": ["SET5", "SET14"]
     },
     "91-IMAGE": {
       "train": "91-IMAGE",
-      "val": [
-        "SET5"
-      ],
-      "test": [
-        "SET5",
-        "SET14"
-      ]
+      "val": ["SET5"],
+      "test": ["SET5", "SET14"]
     },
     "MCL-VIDEO": {
       "train": "MCL-V",
       "val": "d:/Datasets/MCL-V/test/*.yuv",
       "test": [],
-      "param": {
-        "mode": "YV12",
-        "width": 1920,
-        "height": 1080
-      }
+      "param": {"mode": "YV12", "width": 1920, "height": 1080}
     },
     "MIXED-PICTURE": {
-      "train": [
-        "91-IMAGE",
-        "BSD500",
-        "WATERLOO"
-      ],
-      "val": [
-        "SET5"
-      ],
-      "test": [
-        "SET5",
-        "SET14",
-        "URBAN100"
-      ]
+      "train": ["BSD500", "WATERLOO"],
+      "val": ["SET5"],
+      "test": ["SET5", "SET14", "URBAN100"]
     }
   }
 }

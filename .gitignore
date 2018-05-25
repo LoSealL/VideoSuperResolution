@@ -1,7 +1,8 @@
 seafile-ignore.txt
 .idea/
 __pycache__/
-
+Exp/
+Results/
 .png
 .jpg
 .yuv

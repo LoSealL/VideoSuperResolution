@@ -16,19 +16,25 @@ from ..Util.Utility import to_list
 
 class SuperResolution:
 
-    def __init__(self, scale, **kwargs):
+    def __init__(self, scale, rgb_input=False, **kwargs):
         self.scale = to_list(scale, repeat=2)
+        self.rgba = rgb_input
 
         self.trainable_weights = []
         self.bias = []
         self.inputs = []
+        self.inputs_preproc = []
         self.label = []
         self.outputs = []
         self.loss = []
         self.metrics = {}
         self.summary_op = None
         self.summary_writer = None
+        self.unknown_args = kwargs
         self.sess = self._init_session()
+
+    def __getattr__(self, item):
+        return self.unknown_args.get(item)
 
     def _init_session(self):
         self.training_phase = tf.placeholder(tf.bool, name='is_training')
@@ -47,7 +53,15 @@ class SuperResolution:
         pass
 
     def build_graph(self):
-        raise NotImplementedError('DO NOT use base SuperResolution directly! Use inheritive models instead.')
+        if not self.rgba:
+            self.inputs.append(tf.placeholder(tf.uint8, shape=[None, None, None, 1], name='input/lr/gray'))
+            self.inputs_preproc.append(tf.cast(self.inputs[-1], tf.float32, name='cast/lr/gray_float'))
+        else:
+            self.inputs.append(tf.placeholder(tf.uint8, shape=[None, None, None, 4], name='input/lr/rgba'))
+            yuv = tf.cast(self.inputs[-1], tf.float32) / 255.0
+            yuv = tf.image.rgb_to_yuv(yuv[..., :-1])  # discard alpha channel
+            self.inputs_preproc.append(yuv[..., 1:])  # unscaled UV channel
+            self.inputs_preproc.append(yuv[..., 0:1] * 255)  # scaled Y channel
 
     def build_loss(self):
         raise NotImplementedError('DO NOT use base SuperResolution directly! Use inheritive models instead.')
