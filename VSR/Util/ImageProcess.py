@@ -35,7 +35,7 @@ def img_to_array(img, data_format=None):
     # Numpy array x has format (height, width, channel)
     # or (channel, height, width)
     # but original PIL image has format (width, height, channel)
-    x = np.asarray(img, dtype=np.float32)
+    x = np.asarray(img, dtype=np.uint8)
     if len(x.shape) == 3:
         if data_format == 'channels_first':
             x = x.transpose([2, 0, 1])

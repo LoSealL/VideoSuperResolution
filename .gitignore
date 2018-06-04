@@ -3,6 +3,7 @@ seafile-ignore.txt
 __pycache__/
 *.egg-info/
 Results/
+UTest/**/
 .png
 .jpg
 .yuv
