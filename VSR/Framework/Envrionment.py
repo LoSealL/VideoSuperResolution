@@ -60,7 +60,10 @@ class Environment:
         self.li = label_index if feature_index is not None else 0
 
         self.saver = tf.train.Saver()
-        self.summary_writer = tf.summary.FileWriter(str(self.logdir), graph=tf.get_default_graph())
+
+    def reset(self, model):
+        self.model = model
+        self.saver = tf.train.Saver()
 
     def fit(self,
             batch,
@@ -89,6 +92,7 @@ class Environment:
             print(f'Restoring from last epoch {ckpt_last}')
             self.saver.restore(self.model.sess, str(self.savedir / ckpt_last))
         self.model.summary()
+        summary_writer = tf.summary.FileWriter(str(self.logdir), graph=tf.get_default_graph())
         lr = learning_rate
         max_patches = dataset.max_patches
         step_in_epoch = 0
@@ -130,7 +134,7 @@ class Environment:
                     if k not in val_metrics:
                         val_metrics[k] = []
                     val_metrics[k] += [v]
-                self.summary_writer.add_summary(summary_op, global_step)
+                summary_writer.add_summary(summary_op, global_step)
 
             for k, v in val_metrics.items():
                 print(f'{k}: {np.asarray(v).mean():.4f}', end=', ')
@@ -140,7 +144,7 @@ class Environment:
             if self._early_exit():
                 break
         # flush all pending summaries to disk
-        self.summary_writer.close()
+        summary_writer.close()
         dataset.setattr(max_patches=max_patches)
 
     def test(self, dataset, **kwargs):

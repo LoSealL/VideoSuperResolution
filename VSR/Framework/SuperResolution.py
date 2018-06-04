@@ -71,6 +71,10 @@ class SuperResolution:
     def build_summary(self):
         raise NotImplementedError('DO NOT use base SuperResolution directly! Use inheritive models instead.')
 
+    def reset(self, **kwargs):
+        self.sess.close()
+        tf.reset_default_graph()
+
     def train_batch(self, feature, label, **kwargs):
         feature = to_list(feature)
         label = to_list(label)

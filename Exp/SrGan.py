@@ -128,10 +128,11 @@ if __name__ == '__main__':
     dataset = load_datasets('../Data/datasets.json')['BSD']
     dataset.setattr(patch_size=96, strides=96, random=True, max_patches=64 * 100)
     env = Environment(model, f'../Results/{model.name}/save', f'../Results/{model.name}/log')
-    env.fit(64, 1, dataset, learning_rate_schedule=learning_rate_decay, learning_rate=1e-2)
+    env.fit(64, 100, dataset, learning_rate_schedule=learning_rate_decay, learning_rate=1e-2)
+    model.reset()
     gan = SRGAN(scale=4, glayers=16, dlayers=8, vgg_layer=[2, 2], init=False).compile()
-    env.model = gan
-    env.fit(64, 2, dataset, learning_rate_schedule=learning_rate_decay, learning_rate=1e-2)
+    env.reset(gan)
+    env.fit(64, 200, dataset, learning_rate_schedule=learning_rate_decay, learning_rate=1e-2)
     env.feature_callbacks = [to_gray()]
     env.label_callbacks = [to_gray()]
     env.output_callbacks += [lambda output, **kwargs: output[0]]
