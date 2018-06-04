@@ -1,0 +1,12 @@
+seafile-ignore.txt
+.idea/
+__pycache__/
+*.egg-info/
+Exp/
+Results/
+.png
+.jpg
+.yuv
+.rgb
+.nv12
+.pyc

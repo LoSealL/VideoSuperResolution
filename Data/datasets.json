@@ -1,0 +1,38 @@
+{
+  "Path": {
+    "BSD100": "d:/Datasets/BSD100_SR/image_SRF_2/*HR.*",
+    "BSD500": "d:/Datasets/BSR_bsds500/BSR/BSDS500/data/images/**/*.jpg",
+    "URBAN100": "d:/Datasets/Urban100_SR/image_SRF_2/*HR.*",
+    "SUNHAY80": "d:/Datasets/SunHays80_SR/image_SRF_8/*HR.*",
+    "91-IMAGE": "d:/Datasets/91-image/",
+    "SET5": "d:/Datasets/Set5_SR/Set5/image_SRF_2/*HR.*",
+    "SET14": "d:/Datasets/Set14_SR/Set14/image_SRF_2/*HR.*",
+    "IMAGENET": "d:/Datasets/Imagenet/20180122/*.jpg",
+    "GOPRO": "d:/Datasets/GOPRO_Large_all/train",
+    "MCL-V": "d:/Datasets/MCL-V/train/*.yuv",
+    "WATERLOO": "d:/Datasets/exploration_database_and_code/pristine_images/"
+  },
+  "Dataset": {
+    "BSD": {
+      "train": ["BSD500"],
+      "val": ["SET5"],
+      "test": ["SET5", "SET14"]
+    },
+    "91-IMAGE": {
+      "train": "91-IMAGE",
+      "val": ["SET5"],
+      "test": ["SET5", "SET14"]
+    },
+    "MCL-VIDEO": {
+      "train": "MCL-V",
+      "val": "d:/Datasets/MCL-V/test/*.yuv",
+      "test": [],
+      "param": {"mode": "YV12", "width": 1920, "height": 1080}
+    },
+    "MIXED-PICTURE": {
+      "train": ["BSD500", "WATERLOO"],
+      "val": ["SET5"],
+      "test": ["SET5", "SET14", "URBAN100"]
+    }
+  }
+}
