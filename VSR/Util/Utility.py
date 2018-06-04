@@ -90,13 +90,17 @@ class Vgg:
     to obtain outputs of specific layers
     """
 
-    def __init__(self, include_top=False, input_shape=None):
+    def __init__(self, include_top=False, input_shape=None, type='vgg16'):
         if np.size(input_shape) > 3:
             input_shape = input_shape[-3:]
         elif np.size(input_shape) < 3:
             raise ValueError('input shape must be [H, W, 3]')
-        self._m = tf.keras.applications.vgg16.VGG16(
-            include_top=include_top, input_shape=input_shape)
+        if type == 'vgg16':
+            self._m = tf.keras.applications.vgg16.VGG16(
+                include_top=include_top, input_shape=input_shape)
+        elif type == 'vgg19':
+            self._m = tf.keras.applications.vgg19.VGG19(
+                include_top=include_top, input_shape=input_shape)
         self._vgg_mean = [103.939, 116.779, 123.68]
         self.include_top = include_top
 

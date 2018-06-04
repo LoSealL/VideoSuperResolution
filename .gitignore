@@ -2,7 +2,6 @@ seafile-ignore.txt
 .idea/
 __pycache__/
 *.egg-info/
-Exp/
 Results/
 .png
 .jpg
