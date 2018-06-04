@@ -32,6 +32,7 @@ def main(*args, **kwargs):
     args.add_argument('--lr', type=float, default=1e-4, help='initial learning rate')
     args.add_argument('--add_noise', type=float, default=None, help='if not None, add noise with given stddev to input features')
     args.add_argument('--test', type=bool, default=True, help='test model and save tested images')
+    args.add_argument('--savedir', type=str, default='../Results', help='directory to save model checkpoints')
     args.add_argument('--export_pb', type=str, default=None, help='if not None, specify the path that export trained model into pb format')
 
     args = args.parse_args()
@@ -43,7 +44,7 @@ def main(*args, **kwargs):
     dataset.setattr(patch_size=args.patch_size, strides=args.stride, depth=args.depth)
     if args.random_patches:
         dataset.setattr(random=True, max_patches=args.batch * args.random_patches)
-    env = Environment(model, f'../Results/{model.name}/save', f'../Results/{model.name}/log',
+    env = Environment(model, f'{args.savedir}/{model.name}/save', f'{args.savedir}/{model.name}/log',
                       feature_index=model.feature_index, label_index=model.label_index)
     if args.add_noise:
         env.feature_callbacks = [add_noise(args.add_noise)]

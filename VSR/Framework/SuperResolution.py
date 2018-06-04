@@ -36,12 +36,6 @@ class SuperResolution:
         self.sess = self._init_session()
 
     def __getattr__(self, item):
-        if item == 'sess':
-            return self.sess
-        if item == 'inputs':
-            return self.inputs
-        if item == 'outputs':
-            return self.outputs
         return self.unknown_args.get(item)
 
     def _init_session(self):

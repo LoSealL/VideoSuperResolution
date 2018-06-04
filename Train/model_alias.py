@@ -1,11 +1,11 @@
 from VSR.Models import *
 
-dncnn = DnCnn.DnCNN
-espcn = Espcn.Espcn
+
 srcnn = Srcnn.SRCNN
+espcn = Espcn.Espcn
+dncnn = DnCnn.DnCNN
 idn = Idn.InformationDistillationNetwork
 rdn = Rdn.ResidualDenseNetwork
-vespcn = Vespcn.VESPCN
 dcscn = Dcscn.DCSCN
 
 
