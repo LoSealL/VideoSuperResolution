@@ -82,66 +82,67 @@ class Environment:
             restart: if True, start training from scratch, regardless of saved checkpoints
         """
 
-        ckpt_last = self._find_last_ckpt() if not restart else None
-        init_epoch = self._parse_ckpt_name(ckpt_last) + 1
+        with self.model.sess.as_default():
+            ckpt_last = self._find_last_ckpt() if not restart else None
+            init_epoch = self._parse_ckpt_name(ckpt_last) + 1
 
-        if ckpt_last:
-            print(f'Restoring from last epoch {ckpt_last}')
-            self.saver.restore(self.model.sess, str(self.savedir / ckpt_last))
-        self.model.summary()
-        lr = learning_rate
-        max_patches = dataset.max_patches
-        step_in_epoch = 0
-        global_step = self.model.global_steps.eval(session=self.model.sess)
-        for epoch in range(init_epoch, epochs + 1):
+            if ckpt_last:
+                print(f'Restoring from last epoch {ckpt_last}')
+                self.saver.restore(self.model.sess, str(self.savedir / ckpt_last))
+            self.model.summary()
+            lr = learning_rate
+            max_patches = dataset.max_patches
+            step_in_epoch = 0
+            global_step = self.model.global_steps.eval()
+            for epoch in range(init_epoch, epochs + 1):
+                dataset.setattr(max_patches=max_patches)
+                loader = BatchLoader(batch, dataset, 'train', scale=self.model.scale, **kwargs)
+                equal_length_mod = step_in_epoch // 20 or 10
+                step_in_epoch -= step_in_epoch
+                start_time = time.time()
+                print(f'| Epoch: {epoch}/{epochs} |', end='')
+                for img in loader:
+                    feature, label = img[self.fi], img[self.li]
+                    for fn in self.feature_callbacks:
+                        feature = fn(feature)
+                    for fn in self.label_callbacks:
+                        label = fn(label)
+                    self.model.train_batch(feature=feature, label=label, learning_rate=lr)
+                    step_in_epoch += 1
+                    global_step = self.model.global_steps.eval()
+                    if learning_rate_schedule and callable(learning_rate_schedule):
+                        lr = learning_rate_schedule(lr, epochs=epoch, steps=global_step)
+                    if step_in_epoch % equal_length_mod == 0:
+                        print(f'=', end='', flush=True)
+                consumed_time = time.time() - start_time
+                print(f'| Time: {consumed_time:.4f}s, time per batch: {consumed_time * 1000 / step_in_epoch:.4f}ms/b |',
+                      flush=True)
+                dataset.setattr(max_patches=batch * 10)
+                loader = BatchLoader(batch, dataset, 'val', scale=self.model.scale, **kwargs)
+                val_metrics = {}
+                for img in loader:
+                    feature, label = img[self.fi], img[self.li]
+                    for fn in self.feature_callbacks:
+                        feature = fn(feature)
+                    for fn in self.label_callbacks:
+                        label = fn(label)
+                    metrics, summary_op = self.model.validate_batch(feature=feature, label=label)
+                    for k, v in metrics.items():
+                        if k not in val_metrics:
+                            val_metrics[k] = []
+                        val_metrics[k] += [v]
+                    self.summary_writer.add_summary(summary_op, global_step)
+
+                for k, v in val_metrics.items():
+                    print(f'{k}: {np.asarray(v).mean():.4f}', end=', ')
+                print('')
+                ckpt_last = self._make_ckpt_name(epoch)
+                self.saver.save(self.model.sess, str(self.savedir / ckpt_last))
+                if self._early_exit():
+                    break
+            # flush all pending summaries to disk
+            self.summary_writer.close()
             dataset.setattr(max_patches=max_patches)
-            loader = BatchLoader(batch, dataset, 'train', scale=self.model.scale, **kwargs)
-            equal_length_mod = step_in_epoch // 20 or 10
-            step_in_epoch -= step_in_epoch
-            start_time = time.time()
-            print(f'| Epoch: {epoch}/{epochs} |', end='')
-            for img in loader:
-                feature, label = img[self.fi], img[self.li]
-                for fn in self.feature_callbacks:
-                    feature = fn(feature)
-                for fn in self.label_callbacks:
-                    label = fn(label)
-                self.model.train_batch(feature=feature, label=label, learning_rate=lr)
-                step_in_epoch += 1
-                global_step = self.model.global_steps.eval(session=self.model.sess)
-                if learning_rate_schedule and callable(learning_rate_schedule):
-                    lr = learning_rate_schedule(lr, epochs=epoch, steps=global_step)
-                if step_in_epoch % equal_length_mod == 0:
-                    print(f'=', end='', flush=True)
-            consumed_time = time.time() - start_time
-            print(f'| Time: {consumed_time:.4f}s, time per batch: {consumed_time * 1000 / step_in_epoch:.4f}ms/b |',
-                  flush=True)
-            dataset.setattr(max_patches=batch * 10)
-            loader = BatchLoader(batch, dataset, 'val', scale=self.model.scale, **kwargs)
-            val_metrics = {}
-            for img in loader:
-                feature, label = img[self.fi], img[self.li]
-                for fn in self.feature_callbacks:
-                    feature = fn(feature)
-                for fn in self.label_callbacks:
-                    label = fn(label)
-                metrics, summary_op = self.model.validate_batch(feature=feature, label=label)
-                for k, v in metrics.items():
-                    if k not in val_metrics:
-                        val_metrics[k] = []
-                    val_metrics[k] += [v]
-                self.summary_writer.add_summary(summary_op, global_step)
-
-            for k, v in val_metrics.items():
-                print(f'{k}: {np.asarray(v).mean():.4f}', end=', ')
-            print('')
-            ckpt_last = self._make_ckpt_name(epoch)
-            self.saver.save(self.model.sess, str(self.savedir / ckpt_last))
-            if self._early_exit():
-                break
-        # flush all pending summaries to disk
-        self.summary_writer.close()
-        dataset.setattr(max_patches=max_patches)
 
     def test(self, dataset, **kwargs):
         ckpt_last = self._find_last_ckpt()

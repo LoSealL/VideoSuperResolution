@@ -29,7 +29,7 @@ class SuperResolution:
         self.outputs = []
         self.loss = []
         self.metrics = {}
-        self.global_steps = tf.Variable(0, trainable=False)
+        self.global_steps = None
         self.summary_op = None
         self.summary_writer = None
         self.unknown_args = kwargs
@@ -39,6 +39,7 @@ class SuperResolution:
         return self.unknown_args.get(item)
 
     def _init_session(self):
+        self.global_steps = tf.Variable(0, trainable=False)
         self.training_phase = tf.placeholder(tf.bool, name='is_training')
         self.learning_rate = tf.placeholder(tf.float32, name='learning_rate')
         return tf.Session()
@@ -71,11 +72,10 @@ class SuperResolution:
     def build_summary(self):
         raise NotImplementedError('DO NOT use base SuperResolution directly! Use inheritive models instead.')
 
-    def train_batch(self, feature, label, **kwargs):
+    def train_batch(self, feature, label, learning_rate=1e-4, **kwargs):
         feature = to_list(feature)
         label = to_list(label)
-        lr = kwargs['learning_rate'] if 'learning_rate' in kwargs else 1e-4
-        feed_dict = {self.training_phase: True, self.learning_rate: lr}
+        feed_dict = {self.training_phase: True, self.learning_rate: learning_rate}
         for i in range(len(self.inputs)):
             feed_dict[self.inputs[i]] = feature[i]
         for i in range(len(self.label)):

@@ -91,18 +91,19 @@ class Vgg:
     """
 
     def __init__(self, include_top=False, input_shape=None, type='vgg16'):
-        if np.size(input_shape) > 3:
-            input_shape = input_shape[-3:]
-        elif np.size(input_shape) < 3:
-            raise ValueError('input shape must be [H, W, 3]')
-        if type == 'vgg16':
-            self._m = tf.keras.applications.vgg16.VGG16(
-                include_top=include_top, input_shape=input_shape)
-        elif type == 'vgg19':
-            self._m = tf.keras.applications.vgg19.VGG19(
-                include_top=include_top, input_shape=input_shape)
-        self._vgg_mean = [103.939, 116.779, 123.68]
-        self.include_top = include_top
+        with tf.name_scope('VGG'):
+            if np.size(input_shape) > 3:
+                input_shape = input_shape[-3:]
+            elif np.size(input_shape) < 3:
+                raise ValueError('input shape must be [H, W, 3]')
+            if type == 'vgg16':
+                self._m = tf.keras.applications.vgg16.VGG16(
+                    include_top=include_top, input_shape=input_shape)
+            elif type == 'vgg19':
+                self._m = tf.keras.applications.vgg19.VGG19(
+                    include_top=include_top, input_shape=input_shape)
+            self._vgg_mean = [103.939, 116.779, 123.68]
+            self.include_top = include_top
 
     def __call__(self, x, *args, **kwargs):
         return self.call(x, *args, **kwargs)
@@ -121,7 +122,6 @@ class Vgg:
             Note:
                 if `conv` and `block` is lists, return a list of outputs
             """
-
         x = self._normalize(x, yuv_to_rgb_convert)
         block = to_list(block)
         conv = to_list(conv)
@@ -130,7 +130,7 @@ class Vgg:
             layer_name = f'block{b}_conv{c}'
             layer = self._m.get_layer(layer_name)
             outputs.append(layer.output)
-        m = tf.keras.Model(self._m.input, outputs)
+        m = tf.keras.Model(self._m.input, outputs, name='VGG')
         return m(x)
 
     def _normalize(self, x, yuv_to_rgb_convert):
