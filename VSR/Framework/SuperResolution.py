@@ -16,8 +16,9 @@ from ..Util.Utility import to_list
 
 class SuperResolution:
 
-    def __init__(self, scale, rgb_input=False, **kwargs):
+    def __init__(self, scale, weight_decay=1e-4, rgb_input=False, **kwargs):
         self.scale = to_list(scale, repeat=2)
+        self.weight_decay = weight_decay
         self.rgba = rgb_input
 
         self.trainable_weights = []
@@ -28,18 +29,25 @@ class SuperResolution:
         self.outputs = []
         self.loss = []
         self.metrics = {}
+        self.global_steps = tf.Variable(0, trainable=False)
         self.summary_op = None
         self.summary_writer = None
         self.unknown_args = kwargs
         self.sess = self._init_session()
 
     def __getattr__(self, item):
+        if item == 'sess':
+            return self.sess
+        if item == 'inputs':
+            return self.inputs
+        if item == 'outputs':
+            return self.outputs
         return self.unknown_args.get(item)
 
     def _init_session(self):
         self.training_phase = tf.placeholder(tf.bool, name='is_training')
         self.learning_rate = tf.placeholder(tf.float32, name='learning_rate')
-        return tf.InteractiveSession()
+        return tf.Session()
 
     def compile(self):
         self.build_graph()
@@ -115,3 +123,53 @@ class SuperResolution:
             self.sess, graph, [outp.name.split(':')[0] for outp in self.outputs])
         tf.train.write_graph(graph, export_dir, export_name, as_text=False)
         print(f"Model exported to [ {Path(export_dir).resolve() / export_name} ].")
+
+    def conv2d(self, x,
+               filters,
+               kernel_size,
+               strides=(1, 1),
+               padding='same',
+               data_format='channels_last',
+               dilation_rate=(1, 1),
+               activation=None,
+               use_bias=True,
+               use_batchnorm=False,
+               kernel_initializer=None,
+               kernel_regularizer=None,
+               **kwargs):
+        ki = None
+        if isinstance(kernel_initializer, str):
+            if kernel_initializer == 'he_normal':
+                ki = tf.keras.initializers.he_normal()
+        elif callable(kernel_initializer):
+            ki = kernel_initializer
+        elif kernel_initializer:
+            raise ValueError('invalid kernel initializer!')
+        kr = None
+        if isinstance(kernel_regularizer, str):
+            if kernel_regularizer == 'l1':
+                kr = tf.keras.regularizers.l1(self.weight_decay)
+            elif kernel_regularizer == 'l2':
+                kr = tf.keras.regularizers.l2(self.weight_decay)
+        elif callable(kernel_regularizer):
+            kr = kernel_regularizer
+        elif kernel_regularizer:
+            raise ValueError('invalid kernel regularizer!')
+        x = tf.layers.conv2d(x, filters, kernel_size, strides=strides, padding=padding, data_format=data_format,
+                             dilation_rate=dilation_rate, use_bias=use_bias, kernel_initializer=ki,
+                             kernel_regularizer=kr, **kwargs)
+        if use_batchnorm:
+            x = tf.layers.batch_normalization(x, training=self.training_phase)
+        activator = None
+        if activation:
+            if isinstance(activation, str):
+                if activation == 'relu':
+                    activator = tf.nn.relu
+                elif activator == 'tanh':
+                    activator = tf.nn.tanh
+            elif callable(activation):
+                activator = activation
+            else:
+                raise ValueError('invalid activation!')
+            x = activator(x)
+        return x

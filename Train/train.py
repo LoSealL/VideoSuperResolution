@@ -18,7 +18,6 @@ from VSR.Framework.Callbacks import *
 def main(*args, **kwargs):
     args = argparse.ArgumentParser()
     args.add_argument('name', type=str, help='the model name can be found in model_alias.py')
-    args.add_argument('param', type=str, help='path to the directory, which contains individual args to each model, in json format')
     args.add_argument('--scale', type=int, default=3, help='scale factor')
     args.add_argument('--dataconfig', type=str, default='../Data/datasets.json', help='the path to dataset config json file')
     args.add_argument('--dataset', type=str, default='BSD', help='specified dataset name(as described in config file')
@@ -30,13 +29,13 @@ def main(*args, **kwargs):
     args.add_argument('--shuffle', type=bool, default=False, help='shuffle files in dataset, this operation will open all files and may be slow')
     args.add_argument('--random_patches', type=int, default=0, help='if set more than 0, use random crop to generate `random_patches` sub-image batches')
     args.add_argument('--retrain', type=bool, default=False, help='retrain the model from scratch')
-    args.add_argument('--lr', type=float, default=1e-4, help='learning rate')
+    args.add_argument('--lr', type=float, default=1e-4, help='initial learning rate')
     args.add_argument('--add_noise', type=float, default=None, help='if not None, add noise with given stddev to input features')
     args.add_argument('--test', type=bool, default=True, help='test model and save tested images')
     args.add_argument('--export_pb', type=str, default=None, help='if not None, specify the path that export trained model into pb format')
 
     args = args.parse_args()
-    model_args = json.load(open(f'{args.param}/{args.name}.json', mode='r'))
+    model_args = json.load(open(f'parameters/{args.name}.json', mode='r'))
 
     model = get_model(args.name)(scale=args.scale, **model_args)
     model.compile()
@@ -48,15 +47,18 @@ def main(*args, **kwargs):
                       feature_index=model.feature_index, label_index=model.label_index)
     if args.add_noise:
         env.feature_callbacks = [add_noise(args.add_noise)]
-    env.fit(args.batch, args.epochs, dataset, restart=args.retrain, learning_rate=args.lr)
+
+    env.fit(args.batch, args.epochs, dataset, restart=args.retrain,
+            learning_rate=args.lr,
+            learning_rate_schedule=lambda lr, epochs, steps, **kwargs:
+                tf.train.exponential_decay(args.lr, steps, 100, 0.96).eval(session=model.sess))
     if args.test:
         # use callback to generate colored images from grayscale ones
         # all models inputs is gray image however
-        env.feature_callbacks = [to_gray()]
+        if args.add_noise:
+            env.feature_callbacks = [add_noise(args.add_noise)]
+        env.feature_callbacks += [to_gray()]
         env.label_callbacks = [to_gray()]
-        # TODO: for those model whose output is residual
-        if model.name in ('dncnn'):
-            env.output_callbacks = [reduce_residual()]
         env.output_callbacks += [to_rgb()]
         env.output_callbacks += [save_image(f'../Results/{model.name}/test')]
         env.test(dataset, convert_to_gray=False)  # load image with 3 channels

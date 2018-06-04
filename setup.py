@@ -1,7 +1,7 @@
 from setuptools import find_packages
 from setuptools import setup
 
-version = '0.1.6'
+VERSION = '0.1.6'
 
 REQUIRED_PACKAGES = [
     'numpy',
@@ -10,7 +10,7 @@ REQUIRED_PACKAGES = [
 
 setup(
     name='VSR',
-    version=version,
+    version=VERSION,
     packages=find_packages(),
     install_requires=REQUIRED_PACKAGES,
     author='Wenyi Tang'

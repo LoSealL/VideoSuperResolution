@@ -67,6 +67,13 @@ def _to_normalized_image(img):
 
 
 def _add_noise(feature, stddev, mean):
+    return feature + np.random.randn(feature.shape) * stddev + mean
+
+
+def _add_random_noise(feature, low, high, step, mean):
+    n = list(range(low, high, step))
+    i = np.random.randint(len(n))
+    stddev = n[i]
     return feature + np.random.normal(mean, stddev, feature.shape)
 
 
@@ -98,3 +105,7 @@ def to_uv():
 
 def add_noise(sigma, mean=0):
     return partial(_add_noise, stddev=sigma, mean=mean)
+
+
+def add_random_noise(low, high, step=1, mean=0):
+    return partial(_add_random_noise, low=low, high=high, step=step, mean=mean)

@@ -75,27 +75,67 @@ def pixel_shift(t, scale, c):
         return t
 
 
-def xavier_cnn_initializer(shape, uniform=True, **kwargs):
-    fan_in = shape[0] * shape[1] * shape[2]
-    fan_out = shape[0] * shape[1] * shape[3]
-    n = fan_in + fan_out
-    if uniform:
-        init_range = np.sqrt(6.0 / n)
-        return tf.random_uniform(shape, minval=-init_range, maxval=init_range)
-    else:
-        stddev = np.sqrt(3.0 / n)
-        return tf.truncated_normal(shape=shape, stddev=stddev)
+def guassian_kernel(kernel_size, width):
+    """generate a guassian kernel"""
+
+    kernel_size = np.asarray(to_list(kernel_size, 2), np.int32)
+    kernel_size = kernel_size - kernel_size % 2
+    half_ksize = kernel_size // 2
+    x, y = np.mgrid[-half_ksize[0]:half_ksize[0] + 1, -half_ksize[1]:half_ksize[1] + 1]
+    return np.exp(-(x ** 2 + y ** 2) / 2 * width) / (2 * np.pi * width ** 2)
 
 
-def he_initializer(shape, **kwargs):
-    n = shape[0] * shape[1] * shape[2]
-    stddev = np.sqrt(2.0 / n)
-    return tf.truncated_normal(shape=shape, stddev=stddev)
+class Vgg:
+    """use pre-trained VGG network from keras.application.vgg16
+    to obtain outputs of specific layers
+    """
 
+    def __init__(self, include_top=False, input_shape=None):
+        if np.size(input_shape) > 3:
+            input_shape = input_shape[-3:]
+        elif np.size(input_shape) < 3:
+            raise ValueError('input shape must be [H, W, 3]')
+        self._m = tf.keras.applications.vgg16.VGG16(
+            include_top=include_top, input_shape=input_shape)
+        self._vgg_mean = [103.939, 116.779, 123.68]
+        self.include_top = include_top
 
-def bias(shape, initial_value=0.0, name=None):
-    initial = tf.constant(initial_value, shape=shape)
-    if name is None:
-        return tf.Variable(initial)
-    else:
-        return tf.Variable(initial, name=name)
+    def __call__(self, x, *args, **kwargs):
+        return self.call(x, *args, **kwargs)
+
+    def call(self, x, conv, block, yuv_to_rgb_convert=False):
+        """get the output of a pre-trained VGG16 network
+
+            Args:
+                conv: the convolution layer in block, start by 0 in each block
+                block: the block number, range from [1, 5]
+                yuv_to_rgb_convert: need to convert from yuv to rgb
+
+            Return:
+                the output of given layer
+
+            Note:
+                if `conv` and `block` is lists, return a list of outputs
+            """
+
+        x = self._normalize(x, yuv_to_rgb_convert)
+        block = to_list(block)
+        conv = to_list(conv)
+        outputs = []
+        for b, c in zip(block, conv):
+            layer_name = f'block{b}_conv{c}'
+            layer = self._m.get_layer(layer_name)
+            outputs.append(layer.output)
+        m = tf.keras.Model(self._m.input, outputs)
+        return m(x)
+
+    def _normalize(self, x, yuv_to_rgb_convert):
+        if yuv_to_rgb_convert:
+            x = tf.image.yuv_to_rgb(x)
+        if x.shape[-1] == 1:
+            x = tf.image.grayscale_to_rgb(x)
+        if self.include_top:
+            x = tf.image.resize_bicubic(x, (224, 224))
+        # RGB->BGR
+        x = x[..., ::-1] - self._vgg_mean
+        return x

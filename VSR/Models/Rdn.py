@@ -42,8 +42,10 @@ class ResidualDenseNetwork(SuperResolution):
             # NOTE: no activation
             with tf.name_scope('sfe'):
                 sf0 = tf.layers.conv2d(self.inputs_preproc[-1], self.gfilter, 3, padding='same',
+                                       kernel_regularizer=tf.keras.regularizers.l2(self.weight_decay),
                                        kernel_initializer=tf.keras.initializers.he_normal())
                 sf1 = tf.layers.conv2d(sf0, self.gfilter, 3, padding='same',
+                                       kernel_regularizer=tf.keras.regularizers.l2(self.weight_decay),
                                        kernel_initializer=tf.keras.initializers.he_normal())
             with tf.name_scope('blocks'):
                 F = [sf1]
@@ -51,12 +53,15 @@ class ResidualDenseNetwork(SuperResolution):
                     F += [self._make_rdb(F[-1])]
             with tf.name_scope('gf'):
                 gf0 = tf.layers.conv2d(tf.concat(F[1:], axis=-1), self.gfilter, 1, padding='same',
+                                       kernel_regularizer=tf.keras.regularizers.l2(self.weight_decay),
                                        kernel_initializer=tf.keras.initializers.he_normal())
                 gf1 = tf.layers.conv2d(gf0, self.gfilter, 3, padding='same',
+                                       kernel_regularizer=tf.keras.regularizers.l2(self.weight_decay),
                                        kernel_initializer=tf.keras.initializers.he_normal())
             dense_feature = sf0 + gf1
             # use pixel shift in ESPCN to upscale
             upscaled = tf.layers.conv2d(dense_feature, self.scale[0] * self.scale[1], 3, padding='same',
+                                        kernel_regularizer=tf.keras.regularizers.l2(self.weight_decay),
                                         kernel_initializer=tf.keras.initializers.he_normal())
             upscaled = Utility.pixel_shift(upscaled, self.scale, 1)
             hr = tf.layers.conv2d(upscaled, 1, 3, padding='same', kernel_initializer=tf.keras.initializers.he_normal())
@@ -71,8 +76,9 @@ class ResidualDenseNetwork(SuperResolution):
             mae = tf.losses.absolute_difference(y_true, self.outputs[-1])
             mse = tf.losses.mean_squared_error(y_true, y_pred)
             opt = tf.train.AdamOptimizer(self.learning_rate)
-            loss = mae
-            self.loss.append(opt.minimize(loss))
+            regularization = tf.add_n(tf.losses.get_regularization_losses())
+            loss = mae + regularization
+            self.loss.append(opt.minimize(loss, self.global_steps))
             self.metrics['mse'] = mse
             self.metrics['mae'] = mae
             self.metrics['psnr'] = tf.image.psnr(y_true, self.outputs[-1], 255)
@@ -95,12 +101,15 @@ class ResidualDenseNetwork(SuperResolution):
         x = [inputs]
         with tf.name_scope('rdb'):
             x += [tf.layers.conv2d(x[-1], filters, 3, padding='same', activation=tf.nn.relu,
+                                   kernel_regularizer=tf.keras.regularizers.l2(self.weight_decay),
                                    kernel_initializer=tf.keras.initializers.he_normal())]
             for i in range(1, conv):
                 x += [tf.layers.conv2d(tf.concat(x, axis=-1), filters, 3, padding='same', activation=tf.nn.relu,
+                                       kernel_regularizer=tf.keras.regularizers.l2(self.weight_decay),
                                        kernel_initializer=tf.keras.initializers.he_normal())]
             # 1x1 conv
             local_fusion = tf.layers.conv2d(tf.concat(x, axis=-1), filters, 1, padding='same',
+                                            kernel_regularizer=tf.keras.regularizers.l2(self.weight_decay),
                                             kernel_initializer=tf.keras.initializers.he_normal())
             # local residual learning
             outputs = inputs + local_fusion

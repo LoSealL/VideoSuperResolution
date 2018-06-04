@@ -24,7 +24,6 @@ class InformationDistillationNetwork(SuperResolution):
                  delta=16,
                  slice_factor=4,
                  leaky_slope=0.05,
-                 weight_decay=1e-4,
                  fine_tune=False,
                  name='idn',
                  **kwargs):
@@ -33,7 +32,6 @@ class InformationDistillationNetwork(SuperResolution):
         self.d = delta
         self.s = slice_factor
         self.leaky_slope = leaky_slope
-        self.weight_decay = weight_decay
         self.fine_tune = fine_tune
         self.name = name
         super(InformationDistillationNetwork, self).__init__(scale=scale, **kwargs)
@@ -74,7 +72,7 @@ class InformationDistillationNetwork(SuperResolution):
             regular_loss = tf.add_n(tf.losses.get_regularization_losses())
             loss = mae + regular_loss if self.fine_tune else mse + regular_loss
             optimizer = tf.train.AdamOptimizer(self.learning_rate)
-            self.loss.append(optimizer.minimize(loss))
+            self.loss.append(optimizer.minimize(loss, self.global_steps))
             self.metrics['mse'] = mse
             self.metrics['mae'] = mae
             self.metrics['regularization'] = regular_loss

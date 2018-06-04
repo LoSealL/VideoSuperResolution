@@ -89,13 +89,15 @@ class Environment:
             print(f'Restoring from last epoch {ckpt_last}')
             self.saver.restore(self.model.sess, str(self.savedir / ckpt_last))
         self.model.summary()
-        global_step = 0
         lr = learning_rate
         max_patches = dataset.max_patches
+        step_in_epoch = 0
+        global_step = self.model.global_steps.eval(session=self.model.sess)
         for epoch in range(init_epoch, epochs + 1):
             dataset.setattr(max_patches=max_patches)
             loader = BatchLoader(batch, dataset, 'train', scale=self.model.scale, **kwargs)
-            step_in_epoch = 0
+            equal_length_mod = step_in_epoch // 20 or 10
+            step_in_epoch -= step_in_epoch
             start_time = time.time()
             print(f'| Epoch: {epoch}/{epochs} |', end='')
             for img in loader:
@@ -104,12 +106,12 @@ class Environment:
                     feature = fn(feature)
                 for fn in self.label_callbacks:
                     label = fn(label)
-                loss = self.model.train_batch(feature=feature, label=label, learning_rate=lr)
+                self.model.train_batch(feature=feature, label=label, learning_rate=lr)
                 step_in_epoch += 1
-                global_step += 1
+                global_step = self.model.global_steps.eval(session=self.model.sess)
                 if learning_rate_schedule and callable(learning_rate_schedule):
-                    lr = learning_rate_schedule(lr, epochs=epoch - init_epoch, steps=global_step, loss=loss)
-                if step_in_epoch % 10 == 0:
+                    lr = learning_rate_schedule(lr, epochs=epoch, steps=global_step)
+                if step_in_epoch % equal_length_mod == 0:
                     print(f'=', end='', flush=True)
             consumed_time = time.time() - start_time
             print(f'| Time: {consumed_time:.4f}s, time per batch: {consumed_time * 1000 / step_in_epoch:.4f}ms/b |',

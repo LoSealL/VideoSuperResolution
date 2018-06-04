@@ -52,7 +52,7 @@ class SRCNN(SuperResolution):
             regular_loss = tf.add_n(tf.losses.get_regularization_losses()) + tv_loss
             loss = mse + regular_loss
             optimizer = tf.train.AdamOptimizer(self.learning_rate)
-            self.loss.append(optimizer.minimize(loss))
+            self.loss.append(optimizer.minimize(loss, self.global_steps))
             self.metrics['mse'] = mse
             self.metrics['regularization'] = regular_loss
             self.metrics['psnr'] = tf.image.psnr(y_true, y_pred, max_val=255)

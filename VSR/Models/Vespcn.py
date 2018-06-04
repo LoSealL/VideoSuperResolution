@@ -196,8 +196,8 @@ class VESPCN(SuperResolution):
         spmc_mse = tf.add_n(spmc_mse)
 
         loss = mse + spmc_mse
-        optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
-        self.loss.append(optimizer.minimize(loss))
+        optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+        self.loss.append(optimizer.minimize(loss, self.global_steps))
         self.metrics['mse'] = mse
         self.metrics['spmc/mse'] = spmc_mse
 
