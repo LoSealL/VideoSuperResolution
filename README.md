@@ -1,7 +1,8 @@
-A collection of state-of-the-art video or single-image super-resolution architectures, reimplemented in tensorflow
+A collection of state-of-the-art video or single-image super-resolution architectures, reimplemented in tensorflow.
+(currently no video models...)
 
 ## Network list and reference
-The hyperlink directs to paper site, follows the official codes if the author open sources.
+The hyperlink directs to paper site, follows the official codes if the authors open sources.
 1. [**SRCNN**](https://arxiv.org/abs/1501.00092)
 2. [**ESPCN**](https://arxiv.org/abs/1501.00092)
 3. [**VDSR**](https://arxiv.org/abs/1511.04587)
@@ -14,10 +15,11 @@ The hyperlink directs to paper site, follows the official codes if the author op
 10. [**DNCNN**](http://ieeexplore.ieee.org/document/7839189/) (*This is for denoise*) *https://github.com/cszn/DnCNN*
 11. [**SRMD**](https://arxiv.org/abs/1712.06116) *https://github.com/cszn/SRMD*
 12. [**DCSCN**](https://arxiv.org/abs/1707.05425) *https://github.com/jiny2001/dcscn-super-resolution*
-13. TBD...
+
+All these models are implemented in **ONE** framework.
 
 ## VSR package
-This package offers a training and data processing framework based on TF.
+This package offers a training and data processing framework based on [TF](https://www.tensorflow.org).
 What I made is a simple, easy-to-use framework without lots of encapulations and abstractions.
 Moreover, VSR can handle raw NV12/YUV as well as a sequence of images as inputs.
 
@@ -49,7 +51,7 @@ To avoid storing a mess of images in codebase, I offer you links to widely used 
 describe your own datasets.
 For config file, see [here](./Data/datasets.json) as a sample, and [here](./Data/README.md) for details.
 
-### Well-known datasets
+### list of datasets
 - [SET 5]()
 - [SET 14]()
 - [BSD100]()
@@ -65,3 +67,6 @@ For config file, see [here](./Data/datasets.json) as a sample, and [here](./Data
 You can either train via `Environment` object or via your own script.
 You can also use [pre-made](./Train/train.py) script to train the models in VSR package.
 See [readme](./Train/README.md) for details.
+
+
+## Todo
