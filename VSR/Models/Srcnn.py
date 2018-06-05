@@ -8,11 +8,9 @@ Updated Date: May 25th 2018
 SRCNN mainly for framework tests
 Ref https://arxiv.org/abs/1501.00092
 """
-from VSR.Framework.SuperResolution import SuperResolution
-from VSR.Util.Utility import *
+from ..Framework.SuperResolution import SuperResolution
 
 import tensorflow as tf
-import numpy as np
 
 
 class SRCNN(SuperResolution):

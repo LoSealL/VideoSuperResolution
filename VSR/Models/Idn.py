@@ -9,8 +9,8 @@ Architecture of Information Distillation Network (CVPR 2018)
 See https://arxiv.org/abs/1803.09454
 """
 
-from VSR.Framework.SuperResolution import SuperResolution
-from VSR.Util import *
+from ..Framework.SuperResolution import SuperResolution
+from ..Util import *
 
 import tensorflow as tf
 import numpy as np
@@ -104,7 +104,7 @@ class InformationDistillationNetwork(SuperResolution):
         D5 = D4 - d
         D6 = D4 + d
         D = [D1, D2, D3, D4, D5, D6]
-        with tf.variable_scope('enhancement'):
+        with tf.name_scope('enhancement'):
             x = inputs
             for _D in D[:3]:
                 x = tf.layers.conv2d(x, _D, 3, padding='same',
@@ -119,7 +119,7 @@ class InformationDistillationNetwork(SuperResolution):
                                      kernel_initializer=tf.keras.initializers.he_normal())
                 x = tf.nn.leaky_relu(x, self.leaky_slope)
             x += tf.concat([inputs, R], axis=-1)
-        with tf.variable_scope('compression'):
+        with tf.name_scope('compression'):
             outputs = tf.layers.conv2d(x, D3, 1, padding='same',
                                        kernel_regularizer=tf.keras.regularizers.l2(self.weight_decay),
                                        kernel_initializer=tf.keras.initializers.he_normal())

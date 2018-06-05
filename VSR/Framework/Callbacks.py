@@ -67,14 +67,28 @@ def _to_normalized_image(img):
 
 
 def _add_noise(feature, stddev, mean):
-    return feature + np.random.randn(feature.shape) * stddev + mean
+    x = feature.astype('int32') + np.random.normal(mean, stddev, feature.shape)
+    return np.clip(x, 0, 255).astype('uint8')
 
 
 def _add_random_noise(feature, low, high, step, mean):
     n = list(range(low, high, step))
     i = np.random.randint(len(n))
     stddev = n[i]
-    return feature + np.random.normal(mean, stddev, feature.shape)
+    x = feature.astype('int32') + np.random.normal(mean, stddev, feature.shape)
+    return np.clip(x, 0, 255).astype('uint8')
+
+
+def _exponential_decay(lr, start_lr, epochs, steps, decay_step, decay_rate):
+    return start_lr * decay_rate ** (steps / decay_step)
+
+
+def _poly_decay(lr, start_lr, end_lr, epochs, steps, decay_step, power):
+    return (start_lr - end_lr) * (1 - steps / decay_step) ** power + end_lr
+
+
+def _stair_decay(lr, start_lr, epochs, steps, decay_step, decay_rate):
+    return start_lr * decay_rate ** (steps // decay_step)
 
 
 def save_image(save_dir='.'):
@@ -109,3 +123,14 @@ def add_noise(sigma, mean=0):
 
 def add_random_noise(low, high, step=1, mean=0):
     return partial(_add_random_noise, low=low, high=high, step=step, mean=mean)
+
+
+def lr_decay(method, lr, **kwargs):
+    if method == 'exp':
+        return partial(_exponential_decay, start_lr=lr, **kwargs)
+    elif method == 'poly':
+        return partial(_poly_decay, start_lr=lr, **kwargs)
+    elif method == 'stair':
+        return partial(_stair_decay, start_lr=lr, **kwargs)
+    else:
+        raise ValueError('invalid decay method!')

@@ -9,11 +9,10 @@ Architecture of Residual Dense Network (CVPR 2018)
 See https://arxiv.org/abs/1802.08797
 """
 
-from VSR.Framework.SuperResolution import SuperResolution
-from VSR.Util import *
+from ..Framework.SuperResolution import SuperResolution
+from ..Util import *
 
 import tensorflow as tf
-import numpy as np
 
 
 class ResidualDenseNetwork(SuperResolution):
@@ -47,7 +46,7 @@ class ResidualDenseNetwork(SuperResolution):
                 sf1 = tf.layers.conv2d(sf0, self.gfilter, 3, padding='same',
                                        kernel_regularizer=tf.keras.regularizers.l2(self.weight_decay),
                                        kernel_initializer=tf.keras.initializers.he_normal())
-            with tf.variable_scope('blocks'):
+            with tf.variable_scope('rbs'):
                 F = [sf1]
                 for i in range(self.block):
                     F += [self._make_rdb(F[-1])]
@@ -99,18 +98,17 @@ class ResidualDenseNetwork(SuperResolution):
 
         filters, conv = self.growth_rate, self.conv
         x = [inputs]
-        with tf.variable_scope('rdb'):
-            x += [tf.layers.conv2d(x[-1], filters, 3, padding='same', activation=tf.nn.relu,
+        x += [tf.layers.conv2d(x[-1], filters, 3, padding='same', activation=tf.nn.relu,
+                               kernel_regularizer=tf.keras.regularizers.l2(self.weight_decay),
+                               kernel_initializer=tf.keras.initializers.he_normal())]
+        for i in range(1, conv):
+            x += [tf.layers.conv2d(tf.concat(x, axis=-1), filters, 3, padding='same', activation=tf.nn.relu,
                                    kernel_regularizer=tf.keras.regularizers.l2(self.weight_decay),
                                    kernel_initializer=tf.keras.initializers.he_normal())]
-            for i in range(1, conv):
-                x += [tf.layers.conv2d(tf.concat(x, axis=-1), filters, 3, padding='same', activation=tf.nn.relu,
-                                       kernel_regularizer=tf.keras.regularizers.l2(self.weight_decay),
-                                       kernel_initializer=tf.keras.initializers.he_normal())]
-            # 1x1 conv
-            local_fusion = tf.layers.conv2d(tf.concat(x, axis=-1), filters, 1, padding='same',
-                                            kernel_regularizer=tf.keras.regularizers.l2(self.weight_decay),
-                                            kernel_initializer=tf.keras.initializers.he_normal())
-            # local residual learning
-            outputs = inputs + local_fusion
-            return outputs
+        # 1x1 conv
+        local_fusion = tf.layers.conv2d(tf.concat(x, axis=-1), filters, 1, padding='same',
+                                        kernel_regularizer=tf.keras.regularizers.l2(self.weight_decay),
+                                        kernel_initializer=tf.keras.initializers.he_normal())
+        # local residual learning
+        outputs = inputs + local_fusion
+        return outputs

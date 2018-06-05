@@ -1,0 +1,89 @@
+"""
+Copyright: Intel Corp. 2018
+Author: Wenyi Tang
+Email: wenyi.tang@intel.com
+Created Date: June 5th 2018
+Updated Date: June 5th 2018
+
+Deeply-Recursive Convolutional Network for Image Super-Resolution
+See https://arxiv.org/abs/1511.04491
+"""
+
+from ..Framework.SuperResolution import SuperResolution
+from ..Util.Utility import *
+import tensorflow as tf
+import numpy as np
+
+
+class DRCN(SuperResolution):
+
+    def __init__(self, recur=16, filters=256, alpha=0.9, name='drcn', **kwargs):
+        self.recur = recur
+        self.filters = filters
+        self.alpha = alpha
+        self.name = name
+        super(DRCN, self).__init__(**kwargs)
+
+    def build_graph(self):
+        with tf.variable_scope(self.name):
+            super(DRCN, self).build_graph()
+            x = self._build_embedding(self.inputs_preproc[-1])
+            y = [self._build_reconstruction(self.inputs_preproc[-1])]
+            for _ in range(self.recur):
+                x = self._build_inference(x)
+                y += [self._build_reconstruction(x)]
+            self.outputs = y
+            layer_weights = tf.Variable(np.ones_like(y, 'float'), name="LayerWeights")
+            self.outputs.insert(0, tf.reduce_sum(y * layer_weights) / tf.reduce_sum(layer_weights))
+
+    def build_loss(self):
+        with tf.variable_scope('loss'):
+            self.label.append(tf.placeholder(tf.uint8, [None, None, None, 1]))
+            y_true = tf.cast(self.label[-1], tf.float32)
+            mse_n = []
+            for y_pred in self.outputs[1:]:
+                mse_n.append(tf.losses.mean_squared_error(y_true, y_pred))
+            loss1 = tf.reduce_mean(mse_n)
+            loss2 = tf.losses.mean_squared_error(y_true, self.outputs[0])
+            regularization = tf.add_n(tf.losses.get_regularization_losses())
+            alpha = self.alpha
+            loss = alpha * loss1 + (1.0 - alpha) * loss2 + regularization
+            optimizer = tf.train.AdamOptimizer(self.learning_rate)
+            self.loss.append(optimizer.minimize(loss, self.global_steps))
+            self.metrics['alpha'] = alpha
+            self.metrics['local_mse'] = loss1
+            self.metrics['final_mse'] = loss2
+            self.metrics['regularization'] = regularization
+            self.metrics['psnr'] = tf.image.psnr(y_true, self.outputs[-1], max_val=255)
+            self.metrics['ssim'] = tf.image.ssim(y_true, self.outputs[-1], max_val=255)
+
+    def build_summary(self):
+        tf.summary.scalar('alpha', self.metrics['alpha'])
+        tf.summary.scalar('loss/local_mse', self.metrics['local_mse'])
+        tf.summary.scalar('loss/final_mse', self.metrics['final_mse'])
+        tf.summary.scalar('loss/regularization', self.metrics['regularization'])
+        tf.summary.scalar('psnr', tf.reduce_mean(self.metrics['psnr']))
+        tf.summary.scalar('ssim', tf.reduce_mean(self.metrics['ssim']))
+
+    def _build_embedding(self, inputs):
+        with tf.variable_scope('embedding'):
+            x = self.conv2d(inputs, self.filters, 3, activation='relu',
+                            kernel_initializer='he_normal', kernel_regularizer='l2')
+            x = self.conv2d(x, self.filters, 3, activation='relu',
+                            kernel_initializer='he_normal', kernel_regularizer='l2')
+            return x
+
+    def _build_inference(self, inputs):
+        with tf.variable_scope('inference', reuse=tf.AUTO_REUSE):
+            x = self.conv2d(inputs, self.filters, 3, activation='relu',
+                            kernel_initializer='he_normal', kernel_regularizer='l2')
+            return x
+
+    def _build_reconstruction(self, inputs):
+        with tf.variable_scope('reconstruct', reuse=tf.AUTO_REUSE):
+            x = self.conv2d(inputs, self.filters, 3, activation='relu',
+                            kernel_initializer='he_normal', kernel_regularizer='l2')
+            x = self.conv2d(x, self.scale[0] * self.scale[1], 3,
+                            kernel_initializer='he_normal', kernel_regularizer='l2')
+            x = pixel_shift(x, self.scale, 1)
+            return x

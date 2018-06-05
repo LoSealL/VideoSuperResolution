@@ -1,0 +1,6 @@
+{
+  "recur": 16,
+  "filters": 256,
+  "alpha": 0.9,
+  "weight_decay": 1e-5
+}

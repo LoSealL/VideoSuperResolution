@@ -9,7 +9,7 @@ Implementing Feed-forward Denoising Convolutional Neural Network
 See http://ieeexplore.ieee.org/document/7839189/
 **Beyond a Gaussian Denoiser: Residual Learning of Deep CNN for Image Denoising**
 """
-from VSR.Framework.SuperResolution import SuperResolution
+from ..Framework.SuperResolution import SuperResolution
 
 import tensorflow as tf
 

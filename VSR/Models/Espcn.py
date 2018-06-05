@@ -8,8 +8,8 @@ Updated Date: May 25th 2018
 Spatial transformer motion compensation model
 Ref https://arxiv.org/abs/1501.00092
 """
-from VSR.Framework.SuperResolution import SuperResolution
-from VSR.Util import Utility
+from ..Framework.SuperResolution import SuperResolution
+from ..Util import Utility
 
 import tensorflow as tf
 import numpy as np

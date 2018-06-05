@@ -123,7 +123,7 @@ class Environment:
                     feature = fn(feature)
                 for fn in self.label_callbacks:
                     label = fn(label)
-                self.model.train_batch(feature=feature, label=label, learning_rate=lr)
+                loss = self.model.train_batch(feature=feature, label=label, learning_rate=lr)
                 step_in_epoch += 1
                 global_step = self.model.global_steps.eval()
                 if learning_rate_schedule and callable(learning_rate_schedule):

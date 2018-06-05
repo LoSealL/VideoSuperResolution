@@ -129,7 +129,11 @@ class SuperResolution(object):
             feed_dict[self.inputs[i]] = feature[i]
         for i in range(len(self.label)):
             feed_dict[self.label[i]] = label[i]
-        return tf.get_default_session().run(self.loss, feed_dict=feed_dict)
+        loss = tf.get_default_session().run(list(self.metrics.values()) + self.loss, feed_dict=feed_dict)
+        ret = {}
+        for k, v in zip(self.metrics, loss):
+            ret[k] = v
+        return ret
 
     def validate_batch(self, feature, label, **kwargs):
         r"""validate one batch for one step

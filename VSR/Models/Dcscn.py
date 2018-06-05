@@ -9,8 +9,8 @@ Implementing Fast and Accurate Image Super Resolution by
 Deep CNN with Skip Connection and Network in Network
 See https://arxiv.org/abs/1707.05425
 """
-from VSR.Framework.SuperResolution import SuperResolution
-from VSR.Util.Utility import *
+from ..Framework.SuperResolution import SuperResolution
+from ..Util.Utility import *
 
 import tensorflow as tf
 
