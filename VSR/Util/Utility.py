@@ -75,6 +75,14 @@ def pixel_shift(t, scale, c):
         return t
 
 
+def bicubic_rescale(img, scale):
+    with tf.name_scope('Bicubic'):
+        shape = tf.shape(img)
+        scale = to_list(scale, 2)
+        shape_enlarge = shape * [1, *scale, 1]
+        return tf.image.resize_bicubic(img, shape_enlarge[1:3])
+
+
 def guassian_kernel(kernel_size, width):
     """generate a guassian kernel"""
 

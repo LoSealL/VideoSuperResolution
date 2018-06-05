@@ -6,7 +6,7 @@ Created Date: May 12th 2018
 Updated Date: May 25th 2018
 
 Spatial transformer motion compensation model
-Ref https://arxiv.org/abs/1501.00092
+Ref https://arxiv.org/abs/1609.05158
 """
 from ..Framework.SuperResolution import SuperResolution
 from ..Util import Utility

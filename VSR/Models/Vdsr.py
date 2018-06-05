@@ -10,6 +10,7 @@ See https://arxiv.org/abs/1511.04587
 """
 
 from ..Framework.SuperResolution import SuperResolution
+from ..Util.Utility import bicubic_rescale
 import tensorflow as tf
 
 
@@ -25,9 +26,7 @@ class VDSR(SuperResolution):
         with tf.variable_scope(self.name):
             super(VDSR, self).build_graph()
             # bicubic upscale
-            shape = tf.shape(self.inputs_preproc[-1])
-            shape_enlarge = shape * [1, *self.scale, 1]
-            bic = tf.image.resize_bicubic(self.inputs_preproc[-1], shape_enlarge)
+            bic = bicubic_rescale(self.inputs_preproc[-1], self.scale)
             x = bic
             for _ in range(self.layers - 1):
                 x = self.conv2d(x, self.filters, 3, activation='relu', kernel_initializer='he_normal',

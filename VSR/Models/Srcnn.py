@@ -9,34 +9,30 @@ SRCNN mainly for framework tests
 Ref https://arxiv.org/abs/1501.00092
 """
 from ..Framework.SuperResolution import SuperResolution
-
+from ..Util.Utility import bicubic_rescale
 import tensorflow as tf
 
 
 class SRCNN(SuperResolution):
 
-    def __init__(self, scale, layers=3, name='srcnn', **kwargs):
+    def __init__(self, scale, layers=3, filters=64, kernel=(9, 5, 5), name='srcnn', **kwargs):
         self.name = name
         self.layers = layers
+        self.filters = filters
+        self.kernel_size = kernel
         super(SRCNN, self).__init__(scale=scale, **kwargs)
 
     def build_graph(self):
         with tf.variable_scope(self.name):
             super(SRCNN, self).build_graph()
-            shape = tf.shape(self.inputs_preproc[-1])
-            shape_enlarge = shape * [1, *self.scale, 1]
-            l2_decay = 1e-4
-            x = tf.image.resize_bicubic(self.inputs_preproc[-1], shape_enlarge[1:3], name='bicubic')
-            x = tf.layers.conv2d(x, 64, 9, padding='same', activation=tf.nn.relu,
-                                 kernel_initializer=tf.keras.initializers.he_normal(),
-                                 kernel_regularizer=tf.keras.regularizers.l2(l2_decay))
-            for _ in range(1, self.layers - 1):
-                x = tf.layers.conv2d(x, 32, 5, padding='same', activation=tf.nn.relu,
-                                     kernel_initializer=tf.keras.initializers.he_normal(),
-                                     kernel_regularizer=tf.keras.regularizers.l2(l2_decay))
-            x = tf.layers.conv2d(x, 1, 5, padding='same',
-                                 kernel_initializer=tf.keras.initializers.he_normal(),
-                                 kernel_regularizer=tf.keras.regularizers.l2(l2_decay))
+            x = bicubic_rescale(self.inputs_preproc[-1], self.scale)
+            f = self.filters
+            ks = self.kernel_size
+            x = self.conv2d(x, f, ks[0], activation='relu', kernel_regularizer='l2', kernel_initializer='he_normal')
+            for i in range(1, self.layers - 1):
+                x = self.conv2d(x, f, ks[i], activation='relu', kernel_regularizer='l2',
+                                kernel_initializer='he_normal')
+            x = self.conv2d(x, 1, ks[-1], activation='relu', kernel_regularizer='l2', kernel_initializer='he_normal')
             self.outputs.append(x)
 
     def build_loss(self):

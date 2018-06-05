@@ -5,4 +5,6 @@ __all__ = [
     'Idn',
     'Rdn',
     'Srcnn',
+    'Vdsr',
+    'Drcn'
 ]

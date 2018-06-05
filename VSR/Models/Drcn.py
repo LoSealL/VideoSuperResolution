@@ -10,7 +10,7 @@ See https://arxiv.org/abs/1511.04491
 """
 
 from ..Framework.SuperResolution import SuperResolution
-from ..Util.Utility import *
+from ..Util.Utility import bicubic_rescale
 import tensorflow as tf
 import numpy as np
 
@@ -27,14 +27,19 @@ class DRCN(SuperResolution):
     def build_graph(self):
         with tf.variable_scope(self.name):
             super(DRCN, self).build_graph()
-            x = self._build_embedding(self.inputs_preproc[-1])
-            y = [self._build_reconstruction(self.inputs_preproc[-1])]
+            # bicubic upscale
+            bic = bicubic_rescale(self.inputs_preproc[-1], self.scale)
+            x = self._build_embedding(bic)
+            y = [bic]
             for _ in range(self.recur):
                 x = self._build_inference(x)
                 y += [self._build_reconstruction(x)]
             self.outputs = y
-            layer_weights = tf.Variable(np.ones_like(y, 'float'), name="LayerWeights")
-            self.outputs.insert(0, tf.reduce_sum(y * layer_weights) / tf.reduce_sum(layer_weights))
+            layer_weights = tf.Variable(np.ones_like(y, 'float') / len(y), name="LayerWeights", dtype=tf.float32)
+            output = 0
+            for i in range(len(y)):
+                output += y[i] * layer_weights[i]
+            self.outputs.insert(0, output / tf.reduce_sum(layer_weights))
 
     def build_loss(self):
         with tf.variable_scope('loss'):
@@ -50,7 +55,6 @@ class DRCN(SuperResolution):
             loss = alpha * loss1 + (1.0 - alpha) * loss2 + regularization
             optimizer = tf.train.AdamOptimizer(self.learning_rate)
             self.loss.append(optimizer.minimize(loss, self.global_steps))
-            self.metrics['alpha'] = alpha
             self.metrics['local_mse'] = loss1
             self.metrics['final_mse'] = loss2
             self.metrics['regularization'] = regularization
@@ -58,7 +62,6 @@ class DRCN(SuperResolution):
             self.metrics['ssim'] = tf.image.ssim(y_true, self.outputs[-1], max_val=255)
 
     def build_summary(self):
-        tf.summary.scalar('alpha', self.metrics['alpha'])
         tf.summary.scalar('loss/local_mse', self.metrics['local_mse'])
         tf.summary.scalar('loss/final_mse', self.metrics['final_mse'])
         tf.summary.scalar('loss/regularization', self.metrics['regularization'])
@@ -83,7 +86,5 @@ class DRCN(SuperResolution):
         with tf.variable_scope('reconstruct', reuse=tf.AUTO_REUSE):
             x = self.conv2d(inputs, self.filters, 3, activation='relu',
                             kernel_initializer='he_normal', kernel_regularizer='l2')
-            x = self.conv2d(x, self.scale[0] * self.scale[1], 3,
-                            kernel_initializer='he_normal', kernel_regularizer='l2')
-            x = pixel_shift(x, self.scale, 1)
+            x = self.conv2d(x, 1, 3, kernel_initializer='he_normal', kernel_regularizer='l2')
             return x
