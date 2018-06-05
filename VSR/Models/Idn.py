@@ -37,10 +37,10 @@ class InformationDistillationNetwork(SuperResolution):
         super(InformationDistillationNetwork, self).__init__(scale=scale, **kwargs)
 
     def build_graph(self):
-        with tf.name_scope(self.name):
+        with tf.variable_scope(self.name):
             super(InformationDistillationNetwork, self).build_graph()
             x = self.inputs_preproc[-1]
-            with tf.name_scope('feature_blocks'):
+            with tf.variable_scope('feature_blocks'):
                 x = tf.layers.conv2d(x, self.D, 3, padding='same',
                                      kernel_regularizer=tf.keras.regularizers.l2(self.weight_decay),
                                      kernel_initializer=tf.keras.initializers.he_normal())
@@ -49,10 +49,10 @@ class InformationDistillationNetwork(SuperResolution):
                                      kernel_regularizer=tf.keras.regularizers.l2(self.weight_decay),
                                      kernel_initializer=tf.keras.initializers.he_normal())
                 x = tf.nn.leaky_relu(x, self.leaky_slope)
-            with tf.name_scope('distillation_blocks'):
+            with tf.variable_scope('distillation_blocks'):
                 for _ in range(self.blocks):
                     x = self._make_idn(x, self.D, self.d, self.s)
-            with tf.name_scope('reconstruction'):
+            with tf.variable_scope('reconstruction'):
                 x = tf.layers.conv2d_transpose(x, 1, 17, strides=self.scale, padding='same',
                                                kernel_regularizer=tf.keras.regularizers.l2(self.weight_decay),
                                                kernel_initializer=tf.keras.initializers.he_normal())
@@ -63,7 +63,7 @@ class InformationDistillationNetwork(SuperResolution):
 
         """
 
-        with tf.name_scope('loss'):
+        with tf.variable_scope('loss'):
             self.label.append(tf.placeholder(tf.uint8, shape=[None, None, None, 1]))
             y_true = tf.cast(self.label[-1], tf.float32)
             y_pred = self.outputs[-1]
@@ -104,7 +104,7 @@ class InformationDistillationNetwork(SuperResolution):
         D5 = D4 - d
         D6 = D4 + d
         D = [D1, D2, D3, D4, D5, D6]
-        with tf.name_scope('enhancement'):
+        with tf.variable_scope('enhancement'):
             x = inputs
             for _D in D[:3]:
                 x = tf.layers.conv2d(x, _D, 3, padding='same',
@@ -119,7 +119,7 @@ class InformationDistillationNetwork(SuperResolution):
                                      kernel_initializer=tf.keras.initializers.he_normal())
                 x = tf.nn.leaky_relu(x, self.leaky_slope)
             x += tf.concat([inputs, R], axis=-1)
-        with tf.name_scope('compression'):
+        with tf.variable_scope('compression'):
             outputs = tf.layers.conv2d(x, D3, 1, padding='same',
                                        kernel_regularizer=tf.keras.regularizers.l2(self.weight_decay),
                                        kernel_initializer=tf.keras.initializers.he_normal())

@@ -60,15 +60,25 @@ class Environment:
         self.li = label_index if feature_index is not None else 0
 
         self.saver = tf.train.Saver()
+        self.sess = tf.get_default_session()
 
-    def reset(self, model):
-        self.model = model
-        self.saver = tf.train.Saver()
+    def __enter__(self):
+        if not self.sess:
+            self.sess = tf.Session()
+        self.sess = self.sess.__enter__()
+        if not self.model.compiled:
+            self.model.compile()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.sess.__exit__(exc_type, exc_val, exc_tb)
+        self.sess = None
+        tf.reset_default_graph()
 
     def fit(self,
-            batch,
-            epochs,
-            dataset,
+            batch=32,
+            epochs=1,
+            dataset=None,
             learning_rate=1e-4,
             learning_rate_schedule=None,
             restart=False,
@@ -85,72 +95,81 @@ class Environment:
             restart: if True, start training from scratch, regardless of saved checkpoints
         """
 
-        with self.model.sess.as_default():
-            ckpt_last = self._find_last_ckpt() if not restart else None
-            init_epoch = self._parse_ckpt_name(ckpt_last) + 1
-
-            if ckpt_last:
-                print(f'Restoring from last epoch {ckpt_last}')
-                self.saver.restore(self.model.sess, str(self.savedir / ckpt_last))
-            self.model.summary()
-            summary_writer = tf.summary.FileWriter(str(self.logdir), graph=tf.get_default_graph())
-            lr = learning_rate
-            max_patches = dataset.max_patches
-            step_in_epoch = 0
-            global_step = self.model.global_steps.eval()
-            for epoch in range(init_epoch, epochs + 1):
-                dataset.setattr(max_patches=max_patches)
-                loader = BatchLoader(batch, dataset, 'train', scale=self.model.scale, **kwargs)
-                equal_length_mod = step_in_epoch // 20 or 10
-                step_in_epoch -= step_in_epoch
-                start_time = time.time()
-                print(f'| Epoch: {epoch}/{epochs} |', end='')
-                for img in loader:
-                    feature, label = img[self.fi], img[self.li]
-                    for fn in self.feature_callbacks:
-                        feature = fn(feature)
-                    for fn in self.label_callbacks:
-                        label = fn(label)
-                    self.model.train_batch(feature=feature, label=label, learning_rate=lr)
-                    step_in_epoch += 1
-                    global_step = self.model.global_steps.eval()
-                    if learning_rate_schedule and callable(learning_rate_schedule):
-                        lr = learning_rate_schedule(lr, epochs=epoch, steps=global_step)
-                    if step_in_epoch % equal_length_mod == 0:
-                        print(f'=', end='', flush=True)
-                consumed_time = time.time() - start_time
-                print(f'| Time: {consumed_time:.4f}s, time per batch: {consumed_time * 1000 / step_in_epoch:.4f}ms/b |',
-                      flush=True)
-                dataset.setattr(max_patches=batch * 10)
-                loader = BatchLoader(batch, dataset, 'val', scale=self.model.scale, **kwargs)
-                val_metrics = {}
-                for img in loader:
-                    feature, label = img[self.fi], img[self.li]
-                    for fn in self.feature_callbacks:
-                        feature = fn(feature)
-                    for fn in self.label_callbacks:
-                        label = fn(label)
-                    metrics, summary_op = self.model.validate_batch(feature=feature, label=label)
-                    for k, v in metrics.items():
-                        if k not in val_metrics:
-                            val_metrics[k] = []
-                        val_metrics[k] += [v]
-                    summary_writer.add_summary(summary_op, global_step)
-
-                for k, v in val_metrics.items():
-                    print(f'{k}: {np.asarray(v).mean():.4f}', end=', ')
-                print('')
-                ckpt_last = self._make_ckpt_name(epoch)
-                self.saver.save(self.model.sess, str(self.savedir / ckpt_last))
-                if self._early_exit():
-                    break
-            # flush all pending summaries to disk
-            summary_writer.close()
+        sess = tf.get_default_session()
+        ckpt_last = self._find_last_ckpt() if not restart else None
+        init_epoch = self._parse_ckpt_name(ckpt_last) + 1
+        sess.run(tf.global_variables_initializer())
+        if ckpt_last:
+            print(f'Restoring from last epoch {ckpt_last}')
+            self.saver.restore(sess, str(ckpt_last))
+        self.model.summary()
+        summary_writer = tf.summary.FileWriter(str(self.logdir), graph=tf.get_default_graph())
+        lr = learning_rate
+        max_patches = dataset.max_patches
+        step_in_epoch = 0
+        global_step = self.model.global_steps.eval()
+        if learning_rate_schedule and callable(learning_rate_schedule):
+            lr = learning_rate_schedule(lr, epochs=init_epoch, steps=global_step)
+        for epoch in range(init_epoch, epochs + 1):
             dataset.setattr(max_patches=max_patches)
+            loader = BatchLoader(batch, dataset, 'train', scale=self.model.scale, **kwargs)
+            equal_length_mod = step_in_epoch // 20 or 10
+            step_in_epoch -= step_in_epoch
+            start_time = time.time()
+            print(f'| Epoch: {epoch}/{epochs} |', end='')
+            for img in loader:
+                feature, label = img[self.fi], img[self.li]
+                for fn in self.feature_callbacks:
+                    feature = fn(feature)
+                for fn in self.label_callbacks:
+                    label = fn(label)
+                self.model.train_batch(feature=feature, label=label, learning_rate=lr)
+                step_in_epoch += 1
+                global_step = self.model.global_steps.eval()
+                if learning_rate_schedule and callable(learning_rate_schedule):
+                    lr = learning_rate_schedule(lr, epochs=epoch, steps=global_step)
+                if step_in_epoch % equal_length_mod == 0:
+                    print(f'=', end='', flush=True)
+            consumed_time = time.time() - start_time
+            print(f'| Time: {consumed_time:.4f}s, time per batch: {consumed_time * 1000 / step_in_epoch:.4f}ms/b |',
+                  flush=True)
+            dataset.setattr(max_patches=batch * 10)
+            loader = BatchLoader(batch, dataset, 'val', scale=self.model.scale, **kwargs)
+            val_metrics = {}
+            for img in loader:
+                feature, label = img[self.fi], img[self.li]
+                for fn in self.feature_callbacks:
+                    feature = fn(feature)
+                for fn in self.label_callbacks:
+                    label = fn(label)
+                metrics, summary_op = self.model.validate_batch(feature=feature, label=label)
+                for k, v in metrics.items():
+                    if k not in val_metrics:
+                        val_metrics[k] = []
+                    val_metrics[k] += [v]
+                summary_writer.add_summary(summary_op, global_step)
+            for k, v in val_metrics.items():
+                print(f'{k}: {np.asarray(v).mean():.4f}', end=', ')
+            print('')
+            ckpt_last = self._make_ckpt_name(epoch)
+            self.saver.save(sess, str(self.savedir / ckpt_last))
+            if self._early_exit():
+                break
+        # flush all pending summaries to disk
+        summary_writer.close()
+        dataset.setattr(max_patches=max_patches)
 
     def test(self, dataset, **kwargs):
+        r"""Test model with test sets in dataset
+        
+        Args:
+            dataset: instance of dataset, with dataset.test valid
+        """
+
+        sess = tf.get_default_session()
+        sess.run(tf.global_variables_initializer())
         ckpt_last = self._find_last_ckpt()
-        self.saver.restore(self.model.sess, str(self.savedir / ckpt_last))
+        self.saver.restore(sess, str(ckpt_last))
         loader = BatchLoader(1, dataset, 'test', scale=self.model.scale, crop=False, **kwargs)
         step = 0
         for img in loader:
@@ -165,8 +184,18 @@ class Environment:
             step += 1
 
     def predict(self, files, mode='pil-image', depth=1, **kwargs):
+        r"""Predict output for files
+
+        Args:
+            files: a list of files as inputs
+            mode: specify file format. `pil-image` for PIL supported images, or `NV12/YV12/RGB` for raw data
+            depth: specify length of sequence of images. 1 for images, >1 for videos
+        """
+
+        sess = tf.get_default_session()
+        sess.run(tf.global_variables_initializer())
         ckpt_last = self._find_last_ckpt()
-        self.saver.restore(self.model.sess, str(self.savedir / ckpt_last))
+        self.saver.restore(sess, str(ckpt_last))
         files = [Path(file) for file in to_list(files)]
         data = Dataset(test=files, mode=mode, depth=depth, **kwargs)
         loader = BatchLoader(1, data, 'test', scale=self.model.scale, crop=False, **kwargs)
@@ -183,15 +212,22 @@ class Environment:
             step += 1
 
     def export(self, export_dir='.'):
+        """Export model as protobuf
+        
+        Args:
+            export_dir: directory to save the exported model
+        """
+        
+        sess = tf.get_default_session()
+        sess.run(tf.global_variables_initializer())
         ckpt_last = self._find_last_ckpt()
-        self.saver.restore(self.model.sess, str(self.savedir / ckpt_last))
+        self.saver.restore(sess, str(ckpt_last))
         self.model.export_model_pb(export_dir)
 
     def _make_ckpt_name(self, epoch):
         return f'{self.model.name}-sc{self.model.scale[0]}-ep{epoch:04d}.ckpt'
 
     def _parse_ckpt_name(self, name):
-
         # sample name: {model}-sc{scale}-ep{epoch}.ckpt(.index)
         if not name:
             return 0
@@ -200,10 +236,15 @@ class Environment:
 
     def _find_last_ckpt(self):
         # restore the latest checkpoint in savedir
+        ckpt = tf.train.get_checkpoint_state(self.savedir)
+        if ckpt and ckpt.model_checkpoint_path:
+            return tf.train.latest_checkpoint(self.savedir)
+        # try another way
         ckpt = to_list(self.savedir.glob('*.ckpt.index'))
         # sort as modification time
         ckpt = sorted(ckpt, key=lambda x: x.stat().st_mtime_ns)
-        return ckpt[-1].stem if ckpt else None
+        return self.savedir / ckpt[-1].stem if ckpt else None
 
     def _early_exit(self):
+        # Todo not implemented
         return False

@@ -35,23 +35,23 @@ class ResidualDenseNetwork(SuperResolution):
         super(ResidualDenseNetwork, self).__init__(scale=scale, rgb_input=rgb_input, **kwargs)
 
     def build_graph(self):
-        with tf.name_scope(self.name):
+        with tf.variable_scope(self.name):
             super(ResidualDenseNetwork, self).build_graph()
             x = self.inputs_preproc[-1]
             # shallow feature extraction
             # NOTE: no activation
-            with tf.name_scope('sfe'):
+            with tf.variable_scope('sfe'):
                 sf0 = tf.layers.conv2d(self.inputs_preproc[-1], self.gfilter, 3, padding='same',
                                        kernel_regularizer=tf.keras.regularizers.l2(self.weight_decay),
                                        kernel_initializer=tf.keras.initializers.he_normal())
                 sf1 = tf.layers.conv2d(sf0, self.gfilter, 3, padding='same',
                                        kernel_regularizer=tf.keras.regularizers.l2(self.weight_decay),
                                        kernel_initializer=tf.keras.initializers.he_normal())
-            with tf.name_scope('blocks'):
+            with tf.variable_scope('blocks'):
                 F = [sf1]
                 for i in range(self.block):
                     F += [self._make_rdb(F[-1])]
-            with tf.name_scope('gf'):
+            with tf.variable_scope('gf'):
                 gf0 = tf.layers.conv2d(tf.concat(F[1:], axis=-1), self.gfilter, 1, padding='same',
                                        kernel_regularizer=tf.keras.regularizers.l2(self.weight_decay),
                                        kernel_initializer=tf.keras.initializers.he_normal())
@@ -69,7 +69,7 @@ class ResidualDenseNetwork(SuperResolution):
 
     def build_loss(self):
         """In paper, authors use L1 loss instead of MSE error. Claimed a better perf."""
-        with tf.name_scope('loss'):
+        with tf.variable_scope('loss'):
             self.label.append(tf.placeholder(tf.uint8, shape=[None, None, None, 1]))
             y_true = tf.cast(self.label[-1], tf.float32)
             y_pred = self.outputs[-1]
@@ -99,7 +99,7 @@ class ResidualDenseNetwork(SuperResolution):
 
         filters, conv = self.growth_rate, self.conv
         x = [inputs]
-        with tf.name_scope('rdb'):
+        with tf.variable_scope('rdb'):
             x += [tf.layers.conv2d(x[-1], filters, 3, padding='same', activation=tf.nn.relu,
                                    kernel_regularizer=tf.keras.regularizers.l2(self.weight_decay),
                                    kernel_initializer=tf.keras.initializers.he_normal())]

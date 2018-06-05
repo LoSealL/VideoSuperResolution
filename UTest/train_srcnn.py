@@ -8,11 +8,10 @@ if __name__ == '__main__':
     model = SRCNN(scale=3).compile()
     dataset = load_datasets('../Data/datasets.json')['91-IMAGE']
     dataset.setattr(patch_size=48, strides=48, depth=1)
-    env = Environment(model, f'{model.name}/save', f'{model.name}/log')
-    env.fit(64, 1, dataset, shuffle=False, restart=True)
-    model.reset()
-    model = SRCNN(scale=3).compile()
-    env.reset(model)
-    env.fit(64, 1, dataset, shuffle=False, restart=True)
-    env.output_callbacks = [save_image(f'{model.name}/test')]
-    env.test(dataset)
+    with Environment(model, f'../Results/{model.name}/save', f'../Results/{model.name}/log') as env:
+        env.fit(64, 1, dataset, shuffle=False, restart=True)
+    model.recompile(scale=4)
+    with Environment(model, f'../Results/{model.name}/save', f'../Results/{model.name}/log') as env:
+        env.fit(64, 5, dataset, shuffle=False, restart=True)
+        env.output_callbacks = [save_image(f'../Results/{model.name}/test')]
+        env.test(dataset)

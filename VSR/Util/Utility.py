@@ -91,7 +91,7 @@ class Vgg:
     """
 
     def __init__(self, include_top=False, input_shape=None, type='vgg16'):
-        with tf.name_scope('VGG'):
+        with tf.variable_scope('VGG'):
             if np.size(input_shape) > 3:
                 input_shape = input_shape[-3:]
             elif np.size(input_shape) < 3:
@@ -122,16 +122,17 @@ class Vgg:
             Note:
                 if `conv` and `block` is lists, return a list of outputs
             """
-        x = self._normalize(x, yuv_to_rgb_convert)
-        block = to_list(block)
-        conv = to_list(conv)
-        outputs = []
-        for b, c in zip(block, conv):
-            layer_name = f'block{b}_conv{c}'
-            layer = self._m.get_layer(layer_name)
-            outputs.append(layer.output)
-        m = tf.keras.Model(self._m.input, outputs, name='VGG')
-        return m(x)
+        with tf.variable_scope('VGG'):
+            x = self._normalize(x, yuv_to_rgb_convert)
+            block = to_list(block)
+            conv = to_list(conv)
+            outputs = []
+            for b, c in zip(block, conv):
+                layer_name = f'block{b}_conv{c}'
+                layer = self._m.get_layer(layer_name)
+                outputs.append(layer.output)
+            m = tf.keras.Model(self._m.input, outputs, name='VGG')
+            return m(x)
 
     def _normalize(self, x, yuv_to_rgb_convert):
         if yuv_to_rgb_convert:
@@ -141,5 +142,6 @@ class Vgg:
         if self.include_top:
             x = tf.image.resize_bicubic(x, (224, 224))
         # RGB->BGR
+        x = tf.cast(x, tf.float32)
         x = x[..., ::-1] - self._vgg_mean
         return x

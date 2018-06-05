@@ -24,7 +24,7 @@ class DnCNN(SuperResolution):
         super(DnCNN, self).__init__(scale=1, **kwargs)
 
     def build_graph(self):
-        with tf.name_scope(self.name):
+        with tf.variable_scope(self.name):
             super(DnCNN, self).build_graph()  # build inputs placeholder
             # build layers
             x = self.inputs_preproc[-1]  # use channel Y only
@@ -39,7 +39,7 @@ class DnCNN(SuperResolution):
             self.outputs.append(outputs)
 
     def build_loss(self):
-        with tf.name_scope('loss'):
+        with tf.variable_scope('loss'):
             self.label.append(tf.placeholder(tf.uint8, shape=[None, None, None, 1]))
             y_true = tf.cast(self.label[-1], tf.float32)
             y_pred = self.outputs[-1]

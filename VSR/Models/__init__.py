@@ -5,5 +5,4 @@ __all__ = [
     'Idn',
     'Rdn',
     'Srcnn',
-    'Vespcn'
 ]

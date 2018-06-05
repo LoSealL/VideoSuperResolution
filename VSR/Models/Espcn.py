@@ -53,7 +53,7 @@ class Espcn(SuperResolution):
         super(Espcn, self).__init__(scale=scale, **kwargs)
 
     def build_graph(self):
-        with tf.name_scope(self.name):
+        with tf.variable_scope(self.name):
             super(Espcn, self).build_graph()
             l2_decay = 1e-4
             x = tf.layers.conv2d(self.inputs_preproc[-1], 64, 5, padding='same', activation=tf.nn.tanh,
@@ -70,7 +70,7 @@ class Espcn(SuperResolution):
             self.outputs.append(x)
 
     def build_loss(self):
-        with tf.name_scope('loss'):
+        with tf.variable_scope('loss'):
             self.label.append(tf.placeholder(tf.uint8, shape=[None, None, None, 1]))
             y_true = tf.cast(self.label[-1], tf.float32)
             y_pred = self.outputs[-1]

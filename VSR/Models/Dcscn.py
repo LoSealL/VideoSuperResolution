@@ -40,7 +40,7 @@ class DCSCN(SuperResolution):
         super(DCSCN, self).__init__(**kwargs)
 
     def build_graph(self):
-        with tf.name_scope(self.name):
+        with tf.variable_scope(self.name):
             super(DCSCN, self).build_graph()
             shape_enlarged = tf.shape(self.inputs_preproc[-1])[1:3]
             shape_enlarged = shape_enlarged * self.scale
@@ -56,7 +56,7 @@ class DCSCN(SuperResolution):
                                      kernel_initializer='he_normal', kernel_regularizer='l2')
                     x.append(tf.nn.dropout(nn, drop_out))
             concat_x = tf.concat(x, axis=-1)
-            with tf.name_scope('NIN'):
+            with tf.variable_scope('NIN'):
                 a1 = self.conv2d(concat_x, self.nin_filter[0], 1, activation='relu', use_batchnorm=True,
                                  kernel_initializer='he_normal', kernel_regularizer='l2')
                 b1 = self.conv2d(concat_x, self.nin_filter[1], 1, activation='relu', use_batchnorm=True,
@@ -67,7 +67,7 @@ class DCSCN(SuperResolution):
             ps = self.conv2d(concat_nin, self.scale[0] * self.scale[1], 3, kernel_initializer='he_normal',
                              kernel_regularizer='l2')
             ps = pixel_shift(ps, self.scale, 1)
-            with tf.name_scope('Reconstruction'):
+            with tf.variable_scope('Reconstruction'):
                 for i in range(self.reconstruction_layers - 1):
                     ps = self.conv2d(ps, self.reconst_filter, 3, activation='relu', kernel_initializer='he_normal',
                                      kernel_regularizer='l2')
@@ -76,7 +76,7 @@ class DCSCN(SuperResolution):
             self.outputs.append(outputs + bic)
 
     def build_loss(self):
-        with tf.name_scope('loss'):
+        with tf.variable_scope('loss'):
             self.label.append(tf.placeholder(tf.uint8, shape=[None, None, None, 1]))
             y_true = tf.cast(self.label[-1], tf.float32)
             y_pred = self.outputs[-1]

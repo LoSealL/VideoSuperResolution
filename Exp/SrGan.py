@@ -21,13 +21,23 @@ class SRGAN(SuperResolution):
         self.g_layers = glayers
         self.d_layers = dlayers
         self.vgg_layer = to_list(vgg_layer, 2)
-        self.vgg = Vgg(input_shape=[None, None, 3], type='vgg19')
         self.init = init
         self.name = name
         super(SRGAN, self).__init__(**kwargs)
 
+    def compile(self):
+        self.vgg = Vgg(input_shape=[None, None, 3], type='vgg19')
+        return super(SRGAN, self).compile()
+
+    def summary(self):
+        super(SRGAN, self).summary()
+        if self.init:
+            print('Initializing model using mse loss...')
+        else:
+            print('Training model using GAN loss...')
+
     def build_graph(self):
-        with tf.variable_scope(self.name, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.name):
             super(SRGAN, self).build_graph()
             x = self._build_generative(self.inputs_preproc[-1])
             self.outputs.append(x)
@@ -35,9 +45,8 @@ class SRGAN(SuperResolution):
             self.outputs.append(x)
 
     def build_loss(self):
-        with tf.variable_scope('loss', reuse=tf.AUTO_REUSE):
-            if self.init:
-                self.label.append(tf.placeholder(tf.uint8, [None, None, None, 1]))
+        with tf.variable_scope('loss'):
+            self.label.append(tf.placeholder(tf.uint8, [None, None, None, 1]))
             y_true = tf.cast(self.label[-1], tf.float32)
             mse = tf.losses.mean_squared_error(y_true, self.outputs[0])
             gan_loss = tf.losses.sigmoid_cross_entropy(tf.ones_like(self.outputs[1]), self.outputs[1], weights=1e-3)
@@ -79,7 +88,7 @@ class SRGAN(SuperResolution):
         tf.summary.scalar('ssim', self.metrics['ssim'])
 
     def _build_generative(self, inputs):
-        with tf.variable_scope('Generative', reuse=tf.AUTO_REUSE):
+        with tf.variable_scope('Generative'):
             shallow_feature = self.conv2d(inputs, 64, 9, activation='relu', kernel_initializer='he_normal')
             x = shallow_feature
             for _ in range(self.g_layers):
@@ -118,31 +127,3 @@ class SRGAN(SuperResolution):
             x = tf.layers.dense(x, 1024, tf.nn.leaky_relu, kernel_initializer=w_init)
             x = tf.layers.dense(x, 1, kernel_initializer=w_init)
             return tf.nn.sigmoid(x), x
-
-
-from VSR.DataLoader.Dataset import load_datasets
-from VSR.Framework.Envrionment import Environment
-from VSR.Framework.Callbacks import *
-
-
-def learning_rate_decay(lr, epochs, steps, **kwargs):
-    lr = tf.train.exponential_decay(1e-2, global_step=steps, decay_steps=1000, decay_rate=0.5)
-    return lr.eval()
-
-
-if __name__ == '__main__':
-    model = SRGAN(scale=4, glayers=16, dlayers=8, vgg_layer=[2, 2], init=True).compile()
-    dataset = load_datasets('../Data/datasets.json')['BSD']
-    dataset.setattr(patch_size=96, strides=96, random=True, max_patches=64 * 100)
-    env = Environment(model, f'../Results/{model.name}/save', f'../Results/{model.name}/log')
-    env.fit(64, 100, dataset, learning_rate_schedule=learning_rate_decay, learning_rate=1e-2)
-    model.reset()
-    gan = SRGAN(scale=4, glayers=16, dlayers=8, vgg_layer=[2, 2], init=False).compile()
-    env.reset(gan)
-    env.fit(64, 200, dataset, learning_rate_schedule=learning_rate_decay, learning_rate=1e-2)
-    env.feature_callbacks = [to_gray()]
-    env.label_callbacks = [to_gray()]
-    env.output_callbacks += [lambda output, **kwargs: output[0]]
-    env.output_callbacks += [to_rgb()]
-    env.output_callbacks += [save_image(f'../Results/{model.name}/test')]
-    env.test(dataset, convert_to_gray=False)  # load image with 3 channels
