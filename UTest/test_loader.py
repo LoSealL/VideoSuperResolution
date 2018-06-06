@@ -22,23 +22,45 @@ if __name__ == '__main__':
             Loader(d, 'test')
         except ValueError as ex:
             print(f'{d.name} load test set failed: {ex}')
-    loader = Loader(datasets['MCL-V'], 'test')
     try:
-        next(loader)
-        print('Unexpected: load before built')
-    except RuntimeError as ex:
-        print('Expected: ' + str(ex))
-    loader.build_loader(2, 48, 48, 7)
-    start = time.time()
-    for _ in range(100):
-        next(loader)
-    print(f'frames per second: {100 / (time.time() - start + 1e-6):.6f} fps')
+        loader = Loader(datasets['MCL-V'], 'test')
+        try:
+            next(loader)
+            print('Unexpected: load before built')
+        except RuntimeError as ex:
+            print('Expected: ' + str(ex))
+        loader.build_loader(2, 48, 48, 7)
+        start = time.time()
+        for _ in range(100):
+            next(loader)
+        print(f'frames per second: {100 / (time.time() - start + 1e-6):.6f} fps')
+    except KeyError:
+        pass
 
-    batch_loader = BatchLoader(100, datasets['91-IMAGE'], 'train')
+    data = datasets['91-IMAGE']
+    data.setattr(patch_size=48, strides=12)
+    batch_loader = BatchLoader(32, data, 'train', scale=1)
     start = time.time()
-    load_cnt = 0
-    for hr, lr in batch_loader:
-        assert hr.ndim == 5 or hr.ndim == 4
-        assert lr.ndim == 5 or lr.ndim == 4
-        load_cnt += 1
-    print(f'Time: {time.time() - start}s. Count: {load_cnt}')
+    sz = len(list(batch_loader))
+    print(f'Time: {time.time() - start}s. Count: {sz}')
+    data.setattr(random=True, max_patches=sz * 32)
+    start = time.time()
+    batch_loader = BatchLoader(32, data, 'train', scale=1)
+    sz = len(list(batch_loader))
+    print(f'Time: {time.time() - start}s. Count: {sz}')
+
+
+    def g(a, b):
+        for i in range(a):
+            for j in range(b):
+                yield a * b
+
+
+    g1 = g(1, 100000)
+    g2 = g(100000, 1)
+    start = time.time()
+    list(g1)
+    print(f'Time: {time.time() - start}s.')
+    start = time.time()
+    list(g2)
+    print(f'Time: {time.time() - start}s.')

@@ -1,5 +1,6 @@
 seafile-ignore.txt
 .idea/
+.vscode/
 __pycache__/
 *.egg-info/
 Results/

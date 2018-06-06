@@ -28,6 +28,8 @@ class Loader(object):
         if not isinstance(dataset, Dataset):
             raise TypeError('dataset must be Dataset object')
         dataset_file = dataset.__getattr__(method.lower())
+        np.random.shuffle(dataset_file)
+        self.length = len(dataset_file)
         self.mode = dataset.mode
         if self.mode.lower() == 'pil-image':
             self.dataset = (ImageFile(fp, loop) for fp in dataset_file)
@@ -77,21 +79,21 @@ class Loader(object):
                 raise StopIteration('Dataset iterates over')
 
     def _build_random_iter(self):
-        self.dataset = list(self.dataset)
         patch_counter = 0
-        for _ in range(self.max_patches):
-            if patch_counter > self.max_patches:
-                raise StopIteration()
-            np.random.shuffle(self.dataset)
-            for vf in self.dataset:
-                vf.reopen()
-                for _ in range(vf.frames // self.depth):
-                    frames_hr = [ImageProcess.shrink_to_multiple_scale(img, self.scale) for img in
-                                 vf.read_frame(self.depth)]
-                    frames_lr = [ImageProcess.bicubic_rescale(
-                        img, np.ones(2) / self.scale) for img in frames_hr]
-                    width, height = frames_hr[0].size
-                    patch_size = self.patch_size or [width, height]
+        patch_per_file = self.max_patches // self.length
+        patch_per_file += 1 if patch_per_file != self.max_patches / self.length else 0
+        for vf in self.dataset:
+            vf.reopen() if not vf.frames else None
+            for _ in range(vf.frames // self.depth):
+                frames_hr = [ImageProcess.shrink_to_multiple_scale(img, self.scale) for img in
+                             vf.read_frame(self.depth)]
+                frames_lr = [ImageProcess.bicubic_rescale(
+                    img, np.ones(2) / self.scale) for img in frames_hr]
+                width, height = frames_hr[0].size
+                patch_size = self.patch_size or [width, height]
+                for _ in range(patch_per_file):
+                    if patch_counter >= self.max_patches:
+                        raise StopIteration()
                     x = np.random.randint(0, width - patch_size[0] + 1)
                     y = np.random.randint(0, height - patch_size[1] + 1)
                     box = np.array([x, y, x + patch_size[0], y + patch_size[1]])
@@ -100,11 +102,10 @@ class Loader(object):
                     patch_counter += 1
                     yield crop_hr, crop_lr
 
-    def build_loader(self, shuffle=False, crop=True, **kwargs):
+    def build_loader(self, crop=True, **kwargs):
         """Build image(s) pair loader, make self iterable
 
          Args:
-             shuffle: if True, shuffle the dataset. Note this will take long time if dataset contains many files
              crop: if True, crop the images into patches
              kwargs: you can override attribute in the dataset
         """
@@ -123,8 +124,7 @@ class Loader(object):
         self.strides = Utility.to_list(self.strides, 2)
         self.patch_size = Utility.shrink_mod_scale(self.patch_size, self.scale) if crop else None
         self.strides = Utility.shrink_mod_scale(self.strides, self.scale) if crop else None
-        if shuffle or self.random:
-            # this will evaluate the generator
+        if self.random:
             self.batch_iterator = self._build_random_iter()
         else:
             self.batch_iterator = self._build_iter()
