@@ -22,6 +22,17 @@ class SRCNN(SuperResolution):
         self.kernel_size = kernel
         super(SRCNN, self).__init__(scale=scale, **kwargs)
 
+    def summary(self):
+        super(SRCNN, self).summary()
+        import numpy as np
+        v = tf.trainable_variables(self.name)
+        weights = v[::2]
+        bias = v[1::2]
+        for w in weights:
+            print(np.histogram(w.eval(), 10))
+        for b in bias:
+            print(np.histogram(b.eval(), 10))
+
     def build_graph(self):
         with tf.variable_scope(self.name):
             super(SRCNN, self).build_graph()
@@ -43,17 +54,32 @@ class SRCNN(SuperResolution):
             mse = tf.losses.mean_squared_error(y_true, y_pred)
             tv_decay = 1e-4
             tv_loss = tv_decay * tf.reduce_mean(tf.image.total_variation(y_pred))
-            regular_loss = tf.add_n(tf.losses.get_regularization_losses()) + tv_loss
-            loss = mse + regular_loss
-            optimizer = tf.train.AdamOptimizer(self.learning_rate)
+            regular_loss = tf.losses.get_regularization_losses()
+            if regular_loss is not []:
+                regular_loss = tf.add_n(tf.losses.get_regularization_losses())
+                loss = mse + regular_loss
+            else:
+                loss = mse
+            optimizer = tf.train.RMSPropOptimizer(self.learning_rate)
+            # self.grad = optimizer.compute_gradients(loss)
             self.loss.append(optimizer.minimize(loss, self.global_steps))
             self.metrics['mse'] = mse
-            self.metrics['regularization'] = regular_loss
-            self.metrics['psnr'] = tf.image.psnr(y_true, y_pred, max_val=255)
-            self.metrics['ssim'] = tf.image.ssim(y_true, y_pred, max_val=255)
+            if regular_loss is not []:
+                self.metrics['regularization'] = regular_loss
+            self.metrics['tv'] = tv_loss
+            self.metrics['psnr'] = tf.reduce_mean(tf.image.psnr(y_true, y_pred, max_val=255))
+            self.metrics['ssim'] = tf.reduce_mean(tf.image.ssim(y_true, y_pred, max_val=255))
 
     def build_summary(self):
         tf.summary.scalar('loss/mse', self.metrics['mse'])
-        tf.summary.scalar('loss/regularization', self.metrics['regularization'])
-        tf.summary.scalar('psnr', tf.reduce_mean(self.metrics['psnr']))
-        tf.summary.scalar('ssim', tf.reduce_mean(self.metrics['ssim']))
+        if self.metrics.get('regularization') is not None:
+            tf.summary.scalar('loss/regularization', self.metrics['regularization'])
+        tf.summary.scalar('psnr', self.metrics['psnr'])
+        tf.summary.scalar('ssim', self.metrics['ssim'])
+        v = tf.trainable_variables(self.name)
+        weights = v[::2]
+        bias = v[1::2]
+        for w in weights:
+            tf.summary.histogram(f'weight_{weights.index(w)}', w)
+        # for b in bias:
+        #     tf.summary.histogram(f'bias_{bias.index(b)}', b)

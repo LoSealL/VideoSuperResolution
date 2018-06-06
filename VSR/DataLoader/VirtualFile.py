@@ -48,6 +48,12 @@ class File:
         self.cur_fd = None
         self.rewind = rewind
 
+    def reopen(self):
+        self.file = self.read_file + self.file
+        self.read_file.clear()
+        self.read_pointer = 0
+        self.cur_fd = None
+
     def read(self, count=None):
         """
         Read `count` bytes

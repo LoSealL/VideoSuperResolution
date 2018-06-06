@@ -59,21 +59,17 @@ class Environment:
         self.fi = feature_index if feature_index is not None else 1
         self.li = label_index if feature_index is not None else 0
 
-        self.saver = tf.train.Saver()
-        self.sess = tf.get_default_session()
-
     def __enter__(self):
-        if not self.sess:
-            self.sess = tf.Session()
-        self.sess = self.sess.__enter__()
+        sess = tf.Session()
+        sess.__enter__()
         if not self.model.compiled:
             self.model.compile()
+        self.saver = tf.train.Saver()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.sess.__exit__(exc_type, exc_val, exc_tb)
-        self.sess = None
-        tf.reset_default_graph()
+        sess = tf.get_default_session()
+        sess.__exit__(exc_type, exc_val, exc_tb)
 
     def fit(self,
             batch=32,
@@ -96,9 +92,14 @@ class Environment:
         """
 
         sess = tf.get_default_session()
+        if sess is None:
+            raise RuntimeError('No session initialized')
+        if not self.model.compiled:
+            print('[Warning] model not compiled, compiling now...')
+            self.model.compile()
+        sess.run(tf.global_variables_initializer())
         ckpt_last = self._find_last_ckpt() if not restart else None
         init_epoch = self._parse_ckpt_name(ckpt_last) + 1
-        sess.run(tf.global_variables_initializer())
         if ckpt_last:
             print(f'Restoring from last epoch {ckpt_last}')
             self.saver.restore(sess, str(ckpt_last))

@@ -225,9 +225,9 @@ class SuperResolution(object):
         kr = None
         if isinstance(kernel_regularizer, str):
             if kernel_regularizer == 'l1':
-                kr = tf.keras.regularizers.l1(self.weight_decay)
+                kr = tf.keras.regularizers.l1(self.weight_decay) if self.weight_decay else None
             elif kernel_regularizer == 'l2':
-                kr = tf.keras.regularizers.l2(self.weight_decay)
+                kr = tf.keras.regularizers.l2(self.weight_decay) if self.weight_decay else None
         elif callable(kernel_regularizer):
             kr = kernel_regularizer
         elif kernel_regularizer:

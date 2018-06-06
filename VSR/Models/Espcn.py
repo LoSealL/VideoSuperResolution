@@ -15,36 +15,6 @@ import tensorflow as tf
 import numpy as np
 
 
-def get_perceptual_loss(block, conv):
-    """Perceptual Loss Function
-
-    paper: https://arxiv.org/abs/1603.08155
-    """
-
-    VGG = tf.keras.applications.vgg16.VGG16
-    layer_name = f'block{block}_conv{conv}'
-    vgg = VGG(input_shape=[None, None, 3], include_top=False)
-    inp = vgg.input
-    outp = vgg.get_layer(layer_name).output
-    model = tf.keras.models.Model(inputs=inp, outputs=outp, name='perceptual_loss')
-
-    def _vgg_normalize(x):
-        shape = tf.shape(x)
-        x = tf.cond(shape[-1] == 1, true_fn=lambda: tf.image.grayscale_to_rgb(x), false_fn=lambda: x[..., :3])
-        x = x[:, :, :, ::-1] - 114.0
-        return x
-
-    def loss(y_true, y_pred):
-        y_true.set_shape(y_pred.shape)
-        y_true_norm = _vgg_normalize(y_true)
-        y_pred_norm = _vgg_normalize(y_pred)
-        feature_true = model(y_true_norm)
-        feature_pred = model(y_pred_norm)
-        return tf.reduce_mean(tf.square(feature_true - feature_pred))
-
-    return loss
-
-
 class Espcn(SuperResolution):
 
     def __init__(self, scale, layers=3, name='espcn', **kwargs):

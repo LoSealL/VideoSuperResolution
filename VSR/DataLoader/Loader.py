@@ -54,7 +54,6 @@ class Loader(object):
         return self.batch_iterator
 
     def _build_iter(self):
-        patch_counter = 0
         while True:
             for vf in self.dataset:
                 for _ in range(vf.frames // self.depth):
@@ -63,36 +62,43 @@ class Loader(object):
                     frames_lr = [ImageProcess.bicubic_rescale(
                         img, np.ones(2) / self.scale) for img in frames_hr]
                     width, height = frames_hr[0].size
-                    strides = self.strides
-                    patch_size = self.patch_size
-                    if not strides:
-                        strides = [width, height]
-                    if not patch_size:
-                        patch_size = [width, height]
-                    if self.random:
-                        for _ in range(self.max_patches):
-                            if patch_counter > self.max_patches:
-                                raise StopIteration()
-                            x = np.random.randint(0, width - patch_size[0] + 1)
-                            y = np.random.randint(0, height - patch_size[1] + 1)
-                            box = np.array([x, y, x + patch_size[0], y + patch_size[1]])
+                    strides = self.strides or [width, height]
+                    patch_size = self.patch_size or [width, height]
+                    for w in range(0, width, strides[0]):
+                        for h in range(0, height, strides[1]):
+                            if w + patch_size[0] > width or h + patch_size[1] > height:
+                                continue
+                            box = np.array([w, h, w + patch_size[0], h + patch_size[1]])
                             crop_hr = [img.crop(box) for img in frames_hr]
                             crop_lr = [img.crop(box // [*self.scale, *self.scale]) for img in frames_lr]
-                            patch_counter += 1
                             yield crop_hr, crop_lr
-                    else:
-                        for w in range(0, width, strides[0]):
-                            for h in range(0, height, strides[1]):
-                                if w + patch_size[0] > width or h + patch_size[1] > height:
-                                    continue
-                                box = np.array([w, h, w + patch_size[0], h + patch_size[1]])
-                                crop_hr = [img.crop(box) for img in frames_hr]
-                                crop_lr = [img.crop(box // [*self.scale, *self.scale]) for img in frames_lr]
-                                yield crop_hr, crop_lr
                 vf.read_frame(vf.frames)
-            if not self.random and not self.loop:
-                # StopIterator
+            if not self.loop:
                 raise StopIteration('Dataset iterates over')
+
+    def _build_random_iter(self):
+        self.dataset = list(self.dataset)
+        patch_counter = 0
+        for _ in range(self.max_patches):
+            if patch_counter > self.max_patches:
+                raise StopIteration()
+            np.random.shuffle(self.dataset)
+            for vf in self.dataset:
+                vf.reopen()
+                for _ in range(vf.frames // self.depth):
+                    frames_hr = [ImageProcess.shrink_to_multiple_scale(img, self.scale) for img in
+                                 vf.read_frame(self.depth)]
+                    frames_lr = [ImageProcess.bicubic_rescale(
+                        img, np.ones(2) / self.scale) for img in frames_hr]
+                    width, height = frames_hr[0].size
+                    patch_size = self.patch_size or [width, height]
+                    x = np.random.randint(0, width - patch_size[0] + 1)
+                    y = np.random.randint(0, height - patch_size[1] + 1)
+                    box = np.array([x, y, x + patch_size[0], y + patch_size[1]])
+                    crop_hr = [img.crop(box) for img in frames_hr]
+                    crop_lr = [img.crop(box // [*self.scale, *self.scale]) for img in frames_lr]
+                    patch_counter += 1
+                    yield crop_hr, crop_lr
 
     def build_loader(self, shuffle=False, crop=True, **kwargs):
         """Build image(s) pair loader, make self iterable
@@ -119,9 +125,9 @@ class Loader(object):
         self.strides = Utility.shrink_mod_scale(self.strides, self.scale) if crop else None
         if shuffle or self.random:
             # this will evaluate the generator
-            self.dataset = list(self.dataset)
-            np.random.shuffle(self.dataset)
-        self.batch_iterator = self._build_iter()
+            self.batch_iterator = self._build_random_iter()
+        else:
+            self.batch_iterator = self._build_iter()
         self.built = True
 
 
