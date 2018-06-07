@@ -63,6 +63,7 @@ class SRCNN(SuperResolution):
             optimizer = tf.train.RMSPropOptimizer(self.learning_rate)
             # self.grad = optimizer.compute_gradients(loss)
             self.loss.append(optimizer.minimize(loss, self.global_steps))
+            self.train_metric['loss'] = loss
             self.metrics['mse'] = mse
             if regular_loss is not []:
                 self.metrics['regularization'] = regular_loss

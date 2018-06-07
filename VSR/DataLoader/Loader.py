@@ -32,10 +32,10 @@ class Loader(object):
         self.length = len(dataset_file)
         self.mode = dataset.mode
         if self.mode.lower() == 'pil-image':
-            self.dataset = (ImageFile(fp, loop) for fp in dataset_file)
+            self.dataset = [ImageFile(fp, loop) for fp in dataset_file]
         elif self.mode.upper() in _ALLOWED_RAW_FORMAT:
-            self.dataset = (RawFile(
-                fp, dataset.mode, (dataset.width, dataset.height), loop) for fp in dataset_file)
+            self.dataset = [RawFile(
+                fp, dataset.mode, (dataset.width, dataset.height), loop) for fp in dataset_file]
         self.patch_size = dataset.patch_size
         self.scale = dataset.scale
         self.strides = dataset.strides
@@ -54,6 +54,18 @@ class Loader(object):
 
     def __iter__(self):
         return self.batch_iterator
+
+    def __len__(self):
+        if self.random:
+            return self.max_patches
+        else:
+            n_patches = 0
+            for vf in self.dataset:
+                w, h = vf.shape
+                sr = self.strides or [w, h]
+                sz = self.patch_size or [w, h]
+                n_patches += ((w - sz[0]) // sr[0] + 1) * ((h - sz[1]) // sr[1] + 1)
+            return n_patches
 
     def _build_iter(self):
         while True:
@@ -76,7 +88,7 @@ class Loader(object):
                             yield crop_hr, crop_lr
                 vf.read_frame(vf.frames)
             if not self.loop:
-                raise StopIteration('Dataset iterates over')
+                break
 
     def _build_random_iter(self):
         patch_counter = 0
@@ -166,6 +178,11 @@ class BatchLoader:
                 return hr, lr
         raise StopIteration('End BatchLoader!')
 
+    def __len__(self):
+        """Total iteration steps"""
+        steps = np.ceil(len(self.loader) / self.batch)
+        return int(steps)
+
     def _load_batch(self):
         batch_hr, batch_lr = [], []
         for hr, lr in self.loader:
@@ -179,4 +196,6 @@ class BatchLoader:
             batch_lr.append(np.stack([ImageProcess.img_to_array(img) for img in lr]))
             if len(batch_hr) == self.batch:
                 return np.stack(batch_hr), np.stack(batch_lr)
+        if batch_hr and batch_lr:
+            return np.stack(batch_hr), np.stack(batch_lr)
         return [], []

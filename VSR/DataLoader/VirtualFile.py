@@ -48,6 +48,9 @@ class File:
         self.cur_fd = None
         self.rewind = rewind
 
+    def __len__(self):
+        return self.end_pointer
+
     def reopen(self):
         self.file = self.read_file + self.file
         self.read_file.clear()
@@ -112,9 +115,6 @@ class File:
         Tell the current position of the read pointer
         """
         return self.read_pointer
-
-    def __len__(self):
-        return self.end_pointer
 
     def size(self, name):
         """
@@ -244,7 +244,7 @@ class ImageFile(File):
     @property
     def shape(self):
         with Image.open(self.file[0]) as img:
-            return img.shape
+            return img.width, img.height
 
     @property
     def frames(self):

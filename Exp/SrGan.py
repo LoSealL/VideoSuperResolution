@@ -89,7 +89,7 @@ class SRGAN(SuperResolution):
 
     def _build_generative(self, inputs):
         with tf.variable_scope('Generative'):
-            shallow_feature = self.conv2d(inputs, 64, 9, activation='relu', kernel_initializer='he_normal')
+            shallow_feature = self.conv2d(inputs, 64, 3, activation='relu', kernel_initializer='he_normal')
             x = shallow_feature
             for _ in range(self.g_layers):
                 x_old = x
@@ -110,7 +110,7 @@ class SRGAN(SuperResolution):
                 x = self.conv2d(x, self.scale[0] * self.scale[1], 3, activation='relu',
                                 kernel_initializer='he_normal')
                 x = pixel_shift(x, self.scale, 1)
-            x = self.conv2d(x, 1, 9, kernel_initializer='he_normal')
+            x = self.conv2d(x, 1, 1, kernel_initializer='he_normal')
             return x
 
     def _build_adversial(self, inputs):

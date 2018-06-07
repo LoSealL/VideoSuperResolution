@@ -48,6 +48,7 @@ class SuperResolution(object):
         self.label = []
         self.outputs = []
         self.loss = []
+        self.train_metric = {}
         self.metrics = {}
         self.global_steps = None
         self.summary_op = None
@@ -129,9 +130,9 @@ class SuperResolution(object):
             feed_dict[self.inputs[i]] = feature[i]
         for i in range(len(self.label)):
             feed_dict[self.label[i]] = label[i]
-        loss = tf.get_default_session().run(list(self.metrics.values()) + self.loss, feed_dict=feed_dict)
+        loss = tf.get_default_session().run(list(self.train_metric.values()) + self.loss, feed_dict=feed_dict)
         ret = {}
-        for k, v in zip(self.metrics, loss):
+        for k, v in zip(self.train_metric, loss):
             ret[k] = v
         return ret
 

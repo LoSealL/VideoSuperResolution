@@ -23,44 +23,32 @@ if __name__ == '__main__':
         except ValueError as ex:
             print(f'{d.name} load test set failed: {ex}')
     try:
-        loader = Loader(datasets['MCL-V'], 'test')
+        start = time.time()
+        loader = Loader(datasets['MCL-VIDEO'], 'train')
         try:
             next(loader)
             print('Unexpected: load before built')
         except RuntimeError as ex:
             print('Expected: ' + str(ex))
-        loader.build_loader(2, 48, 48, 7)
-        start = time.time()
-        for _ in range(100):
-            next(loader)
+
+        loader.build_loader(scale=2, patch_size=48, strides=48, depth=7)
+        print('Len: %d' % len(loader))
+        # for _ in loader:
+        #     pass
         print(f'frames per second: {100 / (time.time() - start + 1e-6):.6f} fps')
     except KeyError:
         pass
 
     data = datasets['91-IMAGE']
-    data.setattr(patch_size=48, strides=12)
+    data.setattr(patch_size=32, strides=14)
     batch_loader = BatchLoader(32, data, 'train', scale=1)
+    print("Len: %d" % len(batch_loader))
     start = time.time()
     sz = len(list(batch_loader))
     print(f'Time: {time.time() - start}s. Count: {sz}')
     data.setattr(random=True, max_patches=sz * 32)
     start = time.time()
     batch_loader = BatchLoader(32, data, 'train', scale=1)
+    print("Len: %d" % len(batch_loader))
     sz = len(list(batch_loader))
     print(f'Time: {time.time() - start}s. Count: {sz}')
-
-
-    def g(a, b):
-        for i in range(a):
-            for j in range(b):
-                yield a * b
-
-
-    g1 = g(1, 100000)
-    g2 = g(100000, 1)
-    start = time.time()
-    list(g1)
-    print(f'Time: {time.time() - start}s.')
-    start = time.time()
-    list(g2)
-    print(f'Time: {time.time() - start}s.')

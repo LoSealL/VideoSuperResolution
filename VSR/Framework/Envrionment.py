@@ -60,6 +60,8 @@ class Environment:
         self.li = label_index if feature_index is not None else 0
 
     def __enter__(self):
+        """Create session of tensorflow and build model graph"""
+
         sess = tf.Session()
         sess.__enter__()
         if not self.model.compiled:
@@ -68,8 +70,13 @@ class Environment:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Close session and
+        ? clear graph ?
+        """
+
         sess = tf.get_default_session()
         sess.__exit__(exc_type, exc_val, exc_tb)
+        # tf.reset_default_graph() ?
 
     def fit(self,
             batch=32,
@@ -107,17 +114,18 @@ class Environment:
         summary_writer = tf.summary.FileWriter(str(self.logdir), graph=tf.get_default_graph())
         lr = learning_rate
         max_patches = dataset.max_patches
-        step_in_epoch = 0
         global_step = self.model.global_steps.eval()
         if learning_rate_schedule and callable(learning_rate_schedule):
             lr = learning_rate_schedule(lr, epochs=init_epoch, steps=global_step)
         for epoch in range(init_epoch, epochs + 1):
             dataset.setattr(max_patches=max_patches)
             loader = BatchLoader(batch, dataset, 'train', scale=self.model.scale, **kwargs)
-            equal_length_mod = step_in_epoch // 20 or 10
-            step_in_epoch -= step_in_epoch
+            total_steps = len(loader)
+            equal_length_mod = total_steps // 20
+            step_in_epoch = 0
             start_time = time.time()
-            print(f'| Epoch: {epoch}/{epochs} |', end='')
+            date = time.strftime('%Y-%M-%d %T', time.localtime())
+            print(f'| {date} | Epoch: {epoch}/{epochs} |')
             for img in loader:
                 feature, label = img[self.fi], img[self.li]
                 for fn in self.feature_callbacks:
@@ -129,10 +137,14 @@ class Environment:
                 global_step = self.model.global_steps.eval()
                 if learning_rate_schedule and callable(learning_rate_schedule):
                     lr = learning_rate_schedule(lr, epochs=epoch, steps=global_step)
-                if step_in_epoch % equal_length_mod == 0:
-                    print(f'=', end='', flush=True)
+                n_equals = step_in_epoch // equal_length_mod
+                n_dots = 20 - n_equals
+                bar = f'{step_in_epoch}/{total_steps} [' + '=' * n_equals + '.' * n_dots + ']'
+                for k, v in loss.items():
+                    bar += f' {k}={v:.4f}'
+                print(bar, flush=True, end='\r')
             consumed_time = time.time() - start_time
-            print(f'| Time: {consumed_time:.4f}s, time per batch: {consumed_time * 1000 / step_in_epoch:.4f}ms/b |',
+            print(f'\n| Time: {consumed_time:.4f}s, time per batch: {consumed_time * 1e3 / step_in_epoch:.4f}ms/b |',
                   flush=True)
             dataset.setattr(max_patches=batch * 10)
             loader = BatchLoader(batch, dataset, 'val', scale=self.model.scale, **kwargs)
@@ -150,7 +162,7 @@ class Environment:
                     val_metrics[k] += [v]
                 summary_writer.add_summary(summary_op, global_step)
             for k, v in val_metrics.items():
-                print(f'{k}: {np.asarray(v).mean():.4f}', end=', ')
+                print(f'{k}: {np.asarray(v).mean():.6f}', end=', ')
             print('')
             ckpt_last = self._make_ckpt_name(epoch)
             self.saver.save(sess, str(self.savedir / ckpt_last))
@@ -218,7 +230,7 @@ class Environment:
         Args:
             export_dir: directory to save the exported model
         """
-        
+
         sess = tf.get_default_session()
         sess.run(tf.global_variables_initializer())
         ckpt_last = self._find_last_ckpt()
