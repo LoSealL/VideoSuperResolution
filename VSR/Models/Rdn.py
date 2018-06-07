@@ -78,16 +78,17 @@ class ResidualDenseNetwork(SuperResolution):
             regularization = tf.add_n(tf.losses.get_regularization_losses())
             loss = mae + regularization
             self.loss.append(opt.minimize(loss, self.global_steps))
+            self.train_metric['loss'] = loss
             self.metrics['mse'] = mse
             self.metrics['mae'] = mae
-            self.metrics['psnr'] = tf.image.psnr(y_true, self.outputs[-1], 255)
-            self.metrics['ssim'] = tf.image.ssim(y_true, self.outputs[-1], 255)
+            self.metrics['psnr'] = tf.reduce_mean(tf.image.psnr(y_true, self.outputs[-1], 255))
+            self.metrics['ssim'] = tf.reduce_mean(tf.image.ssim(y_true, self.outputs[-1], 255))
 
     def build_summary(self):
         tf.summary.scalar('loss/mse', self.metrics['mse'])
         tf.summary.scalar('loss/mae', self.metrics['mae'])
-        tf.summary.scalar('metric/psnr', tf.reduce_mean(self.metrics['psnr']))
-        tf.summary.scalar('metric/ssim', tf.reduce_mean(self.metrics['ssim']))
+        tf.summary.scalar('metric/psnr', self.metrics['psnr'])
+        tf.summary.scalar('metric/ssim', self.metrics['ssim'])
 
     def _make_rdb(self, inputs):
         """Make Residual Dense Block

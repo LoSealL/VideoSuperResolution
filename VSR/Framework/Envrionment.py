@@ -113,19 +113,20 @@ class Environment:
         self.model.summary()
         summary_writer = tf.summary.FileWriter(str(self.logdir), graph=tf.get_default_graph())
         lr = learning_rate
+        random = dataset.random
         max_patches = dataset.max_patches
         global_step = self.model.global_steps.eval()
         if learning_rate_schedule and callable(learning_rate_schedule):
             lr = learning_rate_schedule(lr, epochs=init_epoch, steps=global_step)
         for epoch in range(init_epoch, epochs + 1):
-            dataset.setattr(max_patches=max_patches)
+            dataset.setattr(random=random, max_patches=max_patches)
             loader = BatchLoader(batch, dataset, 'train', scale=self.model.scale, **kwargs)
             total_steps = len(loader)
             equal_length_mod = total_steps // 20
             step_in_epoch = 0
             start_time = time.time()
             date = time.strftime('%Y-%M-%d %T', time.localtime())
-            print(f'| {date} | Epoch: {epoch}/{epochs} |')
+            print(f'| {date} | Epoch: {epoch}/{epochs} | LR: {lr} |')
             for img in loader:
                 feature, label = img[self.fi], img[self.li]
                 for fn in self.feature_callbacks:
@@ -146,7 +147,7 @@ class Environment:
             consumed_time = time.time() - start_time
             print(f'\n| Time: {consumed_time:.4f}s, time per batch: {consumed_time * 1e3 / step_in_epoch:.4f}ms/b |',
                   flush=True)
-            dataset.setattr(max_patches=batch * 10)
+            dataset.setattr(max_patches=batch * 10, random=True)
             loader = BatchLoader(batch, dataset, 'val', scale=self.model.scale, **kwargs)
             val_metrics = {}
             for img in loader:

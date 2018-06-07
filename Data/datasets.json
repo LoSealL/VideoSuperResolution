@@ -10,7 +10,9 @@
     "IMAGENET": "d:/Datasets/Imagenet/20180122/*.jpg",
     "GOPRO": "d:/Datasets/GOPRO_Large_all/train",
     "MCL-V": "d:/Datasets/MCL-V/train/*.yuv",
-    "WATERLOO": "d:/Datasets/exploration_database_and_code/pristine_images/"
+    "WATERLOO": "d:/Datasets/exploration_database_and_code/pristine_images/",
+    "DIV2K-Train": "d:/Datasets/DIV2K/DIV2K_train_HR/",
+    "DIV2K-Val": "d:/Datasets/DIV2K/DIV2K_valid_HR/"
   },
   "Dataset": {
     "BSD": {
@@ -32,6 +34,11 @@
     "MIXED-PICTURE": {
       "train": ["BSD500", "WATERLOO"],
       "val": ["SET5"],
+      "test": ["SET5", "SET14", "URBAN100"]
+    },
+    "DIV2K": {
+      "train": "DIV2K-Train",
+      "val": "DIV2K-Val",
       "test": ["SET5", "SET14", "URBAN100"]
     }
   }
