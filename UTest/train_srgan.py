@@ -8,7 +8,7 @@ if __name__ == '__main__':
     dataset.setattr(patch_size=96, strides=96, random=True, max_patches=32 * 1000)
     model = SRGAN(scale=4, glayers=16, dlayers=8, vgg_layer=[2, 2], init=True)
     with Environment(model, f'../Results/{model.name}/save', f'../Results/{model.name}/log') as env:
-        env.fit(32, 100, dataset, learning_rate_schedule=lr_decay('stair', 0.01, decay_step=1000, decay_rate=0.5))
+        env.fit(32, 100, dataset, learning_rate_schedule=lr_decay('stair', 0.0001, decay_step=1000, decay_rate=0.9))
 
     # model = SRGAN(scale=4, glayers=16, dlayers=8, vgg_layer=[2, 2], init=False)
     # with Environment(model, f'../Results/{model.name}/save', f'../Results/{model.name}/log') as env:
