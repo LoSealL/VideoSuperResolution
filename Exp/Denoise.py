@@ -69,6 +69,7 @@ class Denoise(SuperResolution):
                 optimizer = tf.train.AdamOptimizer(self.learning_rate)
                 self.loss.append(optimizer.minimize(loss, self.global_steps))
             # Adding metrics
+            self.train_metric['loss'] = loss
             self.metrics['mse'] = mse
             self.metrics['noise'] = tf.constant(0)
             self.metrics['regularization'] = regular_loss
@@ -100,28 +101,24 @@ from VSR.Framework.Envrionment import Environment
 from VSR.Framework.Callbacks import *
 
 
-def learning_rate_decay(lr, epochs, steps, **kwargs):
-    lr = tf.train.exponential_decay(1e-2, global_step=steps, decay_steps=1000, decay_rate=0.96)
-    return lr.eval()
-
-
 def add_noise(x):
     stddev = np.random.randint(0, 55)
-    noised = x + np.random.normal(0, stddev, x.shape)
-    return np.clip(x, 0, 255), 40
+    x = x.astype('int32') + np.random.normal(0, stddev, x.shape)
+    return np.clip(x, 0, 255).astype('uint8'), stddev
 
 
 if __name__ == '__main__':
-    model = Denoise(scale=3, layers=12, noise_decay=1e-2, rgb_input=False).compile()
+    model = Denoise(scale=3, layers=12, noise_decay=1e-2, rgb_input=False)
     dataset = load_datasets('../Data/datasets.json')['BSD']
-    dataset.setattr(patch_size=96, strides=96, random=True, max_patches=64 * 100)
-    env = Environment(model, f'../Results/{model.name}/save', f'../Results/{model.name}/log')
-    env.feature_callbacks = [add_noise]
-    env.fit(64, 200, dataset, restart=False, learning_rate_schedule=learning_rate_decay, learning_rate=1e-2)
-    env.feature_callbacks = [to_gray(), add_noise]
-    env.label_callbacks = [to_gray()]
-    env.output_callbacks += [lambda output, **kwargs: output[0]]
-    env.output_callbacks += [to_rgb()]
-    env.output_callbacks += [save_image(f'../Results/{model.name}/test')]
-    env.test(dataset, convert_to_gray=False)  # load image with 3 channels
-    # env.export()
+    dataset.setattr(patch_size=96, strides=96, random=True, max_patches=64 * 1000)
+    with Environment(model, f'../Results/{model.name}/save', f'../Results/{model.name}/log') as env:
+        env.feature_callbacks = [add_noise]
+        env.fit(64, 200, dataset, restart=True,
+                learning_rate_schedule=lr_decay('stair', 0.001, decay_step=1000, decay_rate=0.96))
+        env.feature_callbacks = [to_gray(), add_noise]
+        env.label_callbacks = [to_gray()]
+        env.output_callbacks += [lambda output, **kwargs: output[0]]
+        env.output_callbacks += [to_rgb()]
+        env.output_callbacks += [save_image(f'../Results/{model.name}/test')]
+        env.test(dataset, convert_to_gray=False)  # load image with 3 channels
+        # env.export()

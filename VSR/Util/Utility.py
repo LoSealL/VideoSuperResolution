@@ -79,7 +79,8 @@ def bicubic_rescale(img, scale):
     with tf.name_scope('Bicubic'):
         shape = tf.shape(img)
         scale = to_list(scale, 2)
-        shape_enlarge = shape * [1, *scale, 1]
+        shape_enlarge = tf.cast(shape, tf.float32) * [1, *scale, 1]
+        shape_enlarge = tf.cast(shape_enlarge, tf.int32)
         return tf.image.resize_bicubic(img, shape_enlarge[1:3])
 
 

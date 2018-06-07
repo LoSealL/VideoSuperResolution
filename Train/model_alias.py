@@ -9,6 +9,7 @@ dncnn = DnCnn.DnCNN
 idn = Idn.InformationDistillationNetwork
 rdn = Rdn.ResidualDenseNetwork
 dcscn = Dcscn.DCSCN
+lapsrn = LapSrn.LapSRN
 
 
 def get_model(name):
