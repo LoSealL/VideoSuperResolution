@@ -72,7 +72,12 @@ class SRGAN(SuperResolution):
                     self.loss = loss[0:1]
                 else:
                     self.loss = loss[1:]
-            self.train_metric['init_loss'] = g_init_loss
+            if self.init:
+                self.train_metric['init_loss'] = g_init_loss
+            else:
+                self.train_metric['g_loss'] = gan_loss
+                self.train_metric['d_loss'] = discriminator_loss
+                self.train_metric['mse'] = mse
             self.metrics['mse'] = mse
             self.metrics['gan_loss'] = gan_loss
             self.metrics['vgg_loss'] = vgg_loss
