@@ -113,7 +113,7 @@ if __name__ == '__main__':
     dataset.setattr(patch_size=96, strides=96, random=True, max_patches=64 * 1000)
     with Environment(model, f'../Results/{model.name}/save', f'../Results/{model.name}/log') as env:
         env.feature_callbacks = [add_noise]
-        env.fit(64, 200, dataset, restart=True,
+        env.fit(64, 20, dataset, restart=False,
                 learning_rate_schedule=lr_decay('stair', 0.001, decay_step=1000, decay_rate=0.96))
         env.feature_callbacks = [to_gray(), add_noise]
         env.label_callbacks = [to_gray()]

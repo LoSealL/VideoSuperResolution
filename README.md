@@ -85,6 +85,6 @@ You can also use [pre-made](./Train/train.py) script to train the models in VSR 
 See [readme](./Train/README.md) for details.
 
 ## Todo
-- [ ] DRRN
+- [x] DRRN
 - [x] LapSRN
 - [ ] MemNet

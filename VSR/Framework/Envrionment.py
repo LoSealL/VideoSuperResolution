@@ -139,7 +139,7 @@ class Environment:
                 if learning_rate_schedule and callable(learning_rate_schedule):
                     lr = learning_rate_schedule(lr, epochs=epoch, steps=global_step)
                 n_equals = step_in_epoch // equal_length_mod
-                n_dots = 20 - n_equals
+                n_dots = total_steps // equal_length_mod - n_equals
                 bar = f'{step_in_epoch}/{total_steps} [' + '=' * n_equals + '.' * n_dots + ']'
                 for k, v in loss.items():
                     bar += f' {k}={v:.4f}'

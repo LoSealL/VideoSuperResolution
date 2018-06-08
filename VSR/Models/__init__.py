@@ -7,5 +7,6 @@ __all__ = [
     'Srcnn',
     'Vdsr',
     'Drcn',
-    'LapSrn'
+    'LapSrn',
+    'Drrn'
 ]
