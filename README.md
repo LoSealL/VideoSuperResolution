@@ -4,23 +4,23 @@ A collection of state-of-the-art video or single-image super-resolution architec
 ## Network list and reference
 The hyperlink directs to paper site, follows the official codes if the authors open sources.
 - Classic
-	1. [**SRCNN**](https://arxiv.org/abs/1501.00092)
+  1. [**SRCNN**](https://arxiv.org/abs/1501.00092)
 - CVPR 2016
-	2. [**ESPCN**](https://arxiv.org/abs/1609.05158)
-	3. [**VDSR**](https://arxiv.org/abs/1511.04587)
-	4. [**DRCN**](https://arxiv.org/abs/1511.04491)
+  2. [**ESPCN**](https://arxiv.org/abs/1609.05158)
+  3. [**VDSR**](https://arxiv.org/abs/1511.04587)
+  4. [**DRCN**](https://arxiv.org/abs/1511.04491)
 - CVPR 2017
-	5. [**DRRN**](http://cvlab.cse.msu.edu/pdfs/Tai_Yang_Liu_CVPR2017.pdf) *https://github.com/tyshiwo/DRRN_CVPR17*
-	6. [**LapSRN**](http://vllab.ucmerced.edu/wlai24/LapSRN/) *https://github.com/phoenix104104/LapSRN*
+  5. [**DRRN**](http://cvlab.cse.msu.edu/pdfs/Tai_Yang_Liu_CVPR2017.pdf) *https://github.com/tyshiwo/DRRN_CVPR17*
+  6. [**LapSRN**](http://vllab.ucmerced.edu/wlai24/LapSRN/) *https://github.com/phoenix104104/LapSRN*
 - ICCV 2017
-	7. [**MemNet**](https://arxiv.org/abs/1708.02209) *https://github.com/tyshiwo/MemNet*
+  7. [**MemNet**](https://arxiv.org/abs/1708.02209) *https://github.com/tyshiwo/MemNet*
 - CVPR 2018
-	8. [**IDN**](https://arxiv.org/abs/1803.09454) *https://github.com/Zheng222/IDN-Caffe*
-	9. [**RDN**](https://arxiv.org/abs/1802.08797) *https://github.com/yulunzhang/RDN*
-	10. [**SRMD**](https://arxiv.org/abs/1712.06116) *https://github.com/cszn/SRMD*
+  8. [**IDN**](https://arxiv.org/abs/1803.09454) *https://github.com/Zheng222/IDN-Caffe*
+  9. [**RDN**](https://arxiv.org/abs/1802.08797) *https://github.com/yulunzhang/RDN*
+  10. [**SRMD**](https://arxiv.org/abs/1712.06116) *https://github.com/cszn/SRMD*
 - Others
-	11. [**DNCNN**](http://ieeexplore.ieee.org/document/7839189/) (*This is for denoise*) *https://github.com/cszn/DnCNN*
-	12. [**DCSCN**](https://arxiv.org/abs/1707.05425) *https://github.com/jiny2001/dcscn-super-resolution*
+  11. [**DNCNN**](http://ieeexplore.ieee.org/document/7839189/) (*This is for denoise*) *https://github.com/cszn/DnCNN*
+  12. [**DCSCN**](https://arxiv.org/abs/1707.05425) *https://github.com/jiny2001/dcscn-super-resolution*
 
 All these models are implemented in **ONE** framework.
 
@@ -58,26 +58,25 @@ describe your own datasets.
 For config file, see [here](./Data/datasets.json) as a sample, and [here](./Data/README.md) for details.
 
 ### list of datasets
-- [SET 5]()
-- [SET 14]()
-- [BSD100]()
-- [BSD200]()
-- [BSD500]()
-- [91-Image]()
-- [SunHays80]()
-- [Urban100]()
-- [MCL-V]() *This is video datasets*
-
+- [SET 5](https://uofi.box.com/shared/static/kfahv87nfe8ax910l85dksyl2q212voc.zip)
+- [SET 14](https://uofi.box.com/shared/static/igsnfieh4lz68l926l8xbklwsnnk8we9.zip)
+- [BSD100](https://uofi.box.com/shared/static/qgctsplb8txrksm9to9x01zfa4m61ngq.zip)
+- [SunHays80](https://uofi.box.com/shared/static/rirohj4773jl7ef752r330rtqw23djt8.zip)
+- [Urban100](https://uofi.box.com/shared/static/65upg43jjd0a4cwsiqgl6o6ixube6klm.zip)
+*Above links are from [jbhuang0604](https://github.com/jbhuang0604/SelfExSR)*
+- [BSD300](https://www2.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/segbench/BSDS300-images.tgz)
+- [BSD500](http://www.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/BSR/BSR_bsds500.tgz)
+- [91-Image](http://www.ifp.illinois.edu/~jyang29/codes/ScSR.rar)
+- [DIV2K](https://data.vision.ee.ethz.ch/cvl/DIV2K/)
+- [Waterloo](https://ece.uwaterloo.ca/~k29ma/dataset/exploration_database_and_code.rar)
+- [MCL-V](http://mcl.usc.edu/mcl-v-database/) *This is video datasets*
 
 ## Training
 You can either train via `Environment` object or via your own script.
 You can also use [pre-made](./Train/train.py) script to train the models in VSR package.
 See [readme](./Train/README.md) for details.
 
-
 ## Todo
-- [x] SRCNN, ESPCN, VDSR, DRCN, IDN, RDN, DNCNN, DCSCN
-- [ ] Add links to dataset
 - [ ] DRRN
-- [ ] LapSRN
+- [x] LapSRN
 - [ ] MemNet
