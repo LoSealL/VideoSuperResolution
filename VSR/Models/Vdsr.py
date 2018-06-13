@@ -43,13 +43,14 @@ class VDSR(SuperResolution):
             loss = mse + regularization
             optimizer = tf.train.AdamOptimizer(self.learning_rate)
             self.loss.append(optimizer.minimize(loss, self.global_steps))
+            self.train_metric['loss'] = loss
             self.metrics['mse'] = mse
             self.metrics['regularization'] = regularization
-            self.metrics['psnr'] = tf.image.psnr(y_true, self.outputs[-1], max_val=255)
-            self.metrics['ssim'] = tf.image.ssim(y_true, self.outputs[-1], max_val=255)
+            self.metrics['psnr'] = tf.reduce_mean(tf.image.psnr(y_true, self.outputs[-1], max_val=255))
+            self.metrics['ssim'] = tf.reduce_mean(tf.image.ssim(y_true, self.outputs[-1], max_val=255))
 
     def build_summary(self):
         tf.summary.scalar('loss/mse', self.metrics['mse'])
         tf.summary.scalar('loss/regularization', self.metrics['regularization'])
-        tf.summary.scalar('psnr', tf.reduce_mean(self.metrics['psnr']))
-        tf.summary.scalar('ssim', tf.reduce_mean(self.metrics['ssim']))
+        tf.summary.scalar('psnr', self.metrics['psnr'])
+        tf.summary.scalar('ssim', self.metrics['ssim'])

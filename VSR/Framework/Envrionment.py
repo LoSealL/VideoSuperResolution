@@ -119,9 +119,9 @@ class Environment:
         if learning_rate_schedule and callable(learning_rate_schedule):
             lr = learning_rate_schedule(lr, epochs=init_epoch, steps=global_step)
         train_loader = BatchLoader(batch, dataset, 'train', scale=self.model.scale, **kwargs)
+        dataset.setattr(max_patches=batch * 10, random=True)
         val_loader = BatchLoader(batch, dataset, 'val', scale=self.model.scale, **kwargs)
         for epoch in range(init_epoch, epochs + 1):
-            dataset.setattr(random=random, max_patches=max_patches)
             train_loader.reset()
             total_steps = len(train_loader)
             equal_length_mod = total_steps // 20
@@ -150,7 +150,6 @@ class Environment:
             print(f'\n| Time: {consumed_time:.4f}s, time per batch: {consumed_time * 1e3 / step_in_epoch:.4f}ms/b |',
                   flush=True)
 
-            dataset.setattr(max_patches=batch * 10, random=True)
             val_metrics = {}
             val_loader.reset()
             for img in val_loader:
@@ -174,7 +173,6 @@ class Environment:
                 break
         # flush all pending summaries to disk
         summary_writer.close()
-        dataset.setattr(max_patches=max_patches)
 
     def test(self, dataset, **kwargs):
         r"""Test model with test sets in dataset

@@ -55,11 +55,11 @@ class ESPCN(SuperResolution):
             self.train_metric['loss'] = loss
             self.metrics['mse'] = mse
             self.metrics['regularization'] = regular_loss
-            self.metrics['psnr'] = tf.image.psnr(y_true, y_pred, max_val=255)
-            self.metrics['ssim'] = tf.image.ssim(y_true, y_pred, max_val=255)
+            self.metrics['psnr'] = tf.reduce_mean(tf.image.psnr(y_true, y_pred, max_val=255))
+            self.metrics['ssim'] = tf.reduce_mean(tf.image.ssim(y_true, y_pred, max_val=255))
 
     def build_summary(self):
         tf.summary.scalar('loss/mse', self.metrics['mse'])
         tf.summary.scalar('loss/regularization', self.metrics['regularization'])
-        tf.summary.scalar('psnr', tf.reduce_mean(self.metrics['psnr']))
-        tf.summary.scalar('ssim', tf.reduce_mean(self.metrics['ssim']))
+        tf.summary.scalar('psnr', self.metrics['psnr'])
+        tf.summary.scalar('ssim', self.metrics['ssim'])
