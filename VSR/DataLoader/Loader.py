@@ -87,6 +87,7 @@ class Loader(object):
             self.build_loader(**kwargs)
         else:
             if self.random:
+                self.grid = []
                 rand_index = np.random.randint(len(self.frames), size=self.max_patches)
                 for i in rand_index:
                     hr, lr = self.frames[i]
