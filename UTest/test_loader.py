@@ -11,8 +11,8 @@ try:
 except FileNotFoundError:
     DATASETS = load_datasets('../Data/datasets.json')
 
-BATCH_SIZE = 16
-RANDOM = True
+BATCH_SIZE = 64
+RANDOM = False
 
 if __name__ == '__main__':
     """ Test """
@@ -33,8 +33,10 @@ if __name__ == '__main__':
 
     # Test Reset
     loader = BatchLoader(1, DATASETS['91-IMAGE'], 'train', 3)
+    print(len(loader))
     print(len(list(loader)))
     loader.reset()
+    print(len(loader))
     print(len(list(loader)))
 
     print(f'Using batch={BATCH_SIZE}, random={RANDOM}', flush=True)

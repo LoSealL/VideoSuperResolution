@@ -91,7 +91,7 @@ class Environment:
         Args:
             batch: the size of mini-batch during training
             epochs: the total training epochs
-            dataset: the Dataset object, used to get training and validation files
+            dataset: the Dataset object, used to get training and validation frames
             learning_rate: the initial learning rate
             learning_rate_schedule: a callable to adjust learning rate. The signature is
                                     `fn(learning_rate, epochs, steps, loss)`
@@ -118,16 +118,18 @@ class Environment:
         global_step = self.model.global_steps.eval()
         if learning_rate_schedule and callable(learning_rate_schedule):
             lr = learning_rate_schedule(lr, epochs=init_epoch, steps=global_step)
+        train_loader = BatchLoader(batch, dataset, 'train', scale=self.model.scale, **kwargs)
+        val_loader = BatchLoader(batch, dataset, 'val', scale=self.model.scale, **kwargs)
         for epoch in range(init_epoch, epochs + 1):
             dataset.setattr(random=random, max_patches=max_patches)
-            loader = BatchLoader(batch, dataset, 'train', scale=self.model.scale, **kwargs)
-            total_steps = len(loader)
+            train_loader.reset()
+            total_steps = len(train_loader)
             equal_length_mod = total_steps // 20
             step_in_epoch = 0
             start_time = time.time()
             date = time.strftime('%Y-%M-%d %T', time.localtime())
             print(f'| {date} | Epoch: {epoch}/{epochs} | LR: {lr} |')
-            for img in loader:
+            for img in train_loader:
                 feature, label = img[self.fi], img[self.li]
                 for fn in self.feature_callbacks:
                     feature = fn(feature)
@@ -147,10 +149,11 @@ class Environment:
             consumed_time = time.time() - start_time
             print(f'\n| Time: {consumed_time:.4f}s, time per batch: {consumed_time * 1e3 / step_in_epoch:.4f}ms/b |',
                   flush=True)
+
             dataset.setattr(max_patches=batch * 10, random=True)
-            loader = BatchLoader(batch, dataset, 'val', scale=self.model.scale, **kwargs)
             val_metrics = {}
-            for img in loader:
+            val_loader.reset()
+            for img in val_loader:
                 feature, label = img[self.fi], img[self.li]
                 for fn in self.feature_callbacks:
                     feature = fn(feature)
@@ -197,12 +200,12 @@ class Environment:
                 outputs = fn(output=outputs, input=img[self.fi], label=img[self.li], step=step)
             step += 1
 
-    def predict(self, files, mode='pil-image', depth=1, **kwargs):
-        r"""Predict output for files
+    def predict(self, files, mode='pil-image1', depth=1, **kwargs):
+        r"""Predict output for frames
 
         Args:
-            files: a list of files as inputs
-            mode: specify file format. `pil-image` for PIL supported images, or `NV12/YV12/RGB` for raw data
+            files: a list of frames as inputs
+            mode: specify file format. `pil-image1` for PIL supported images, or `NV12/YV12/RGB` for raw data
             depth: specify length of sequence of images. 1 for images, >1 for videos
         """
 

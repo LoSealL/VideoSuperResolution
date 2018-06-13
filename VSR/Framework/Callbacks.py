@@ -63,7 +63,7 @@ def _to_normalized_image(img):
     elif img.ndim == 3:
         return array_to_img(img, 'YCbCr')
     else:
-        raise ValueError('Invalid img data, must be an array of 2D image with channel less than 3')
+        raise ValueError('Invalid img data, must be an array of 2D image1 with channel less than 3')
 
 
 def _add_noise(feature, stddev, mean):

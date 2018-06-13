@@ -27,23 +27,27 @@ class Loader(object):
         """
         if not isinstance(dataset, Dataset):
             raise TypeError('dataset must be Dataset object')
+
+        self.method = method  # train/val/test
+        self.mode = dataset.mode  # file format
+        self.patch_size = dataset.patch_size  # crop patch size
+        self.scale = dataset.scale  # scale factor
+        self.strides = dataset.strides  # crop strides when cropping in grid
+        self.depth = dataset.depth  # the length of a video sequence
+        self.loop = loop  # infinite iterate
+        self.random = dataset.random and not (method == 'test')  # random crop, or gridded crop
+        self.max_patches = dataset.max_patches  # max random crop patches
+        self.grid = []  # crop coordinates
+        self.frames = []  # loaded HR/LR frames
+        self.batch_iterator = None
+        self.built = False
+
         dataset_file = dataset.__getattr__(method.lower())
-        self.mode = dataset.mode
         if self.mode.lower() == 'pil-image1':
             self.dataset = [ImageFile(fp, loop) for fp in dataset_file]
         elif self.mode.upper() in _ALLOWED_RAW_FORMAT:
             self.dataset = [RawFile(
                 fp, dataset.mode, (dataset.width, dataset.height), loop) for fp in dataset_file]
-        self.patch_size = dataset.patch_size
-        self.scale = dataset.scale
-        self.strides = dataset.strides
-        self.depth = dataset.depth
-        self.batch_iterator = None
-        self.loop = loop
-        self.random = dataset.random and not (method == 'test')
-        self.max_patches = dataset.max_patches
-        self.grid = []
-        self.built = False
 
     def __next__(self):
         if not self.built:
@@ -69,8 +73,7 @@ class Loader(object):
     def _build_iter(self):
         while True:
             np.random.shuffle(self.grid)
-            for frames_hr, x, y in self.grid:
-                frames_lr = [ImageProcess.bicubic_rescale(img, np.ones(2) / self.scale) for img in frames_hr]
+            for frames_hr, frames_lr, x, y in self.grid:
                 patch_size = self.patch_size or frames_hr[0].size
                 box = np.array([x, y, x + patch_size[0], y + patch_size[1]])
                 crop_hr = [img.crop(box) for img in frames_hr]
@@ -83,7 +86,17 @@ class Loader(object):
         if not self.built:
             self.build_loader(**kwargs)
         else:
+            if self.random:
+                rand_index = np.random.randint(len(self.frames), size=self.max_patches)
+                for i in rand_index:
+                    hr, lr = self.frames[i]
+                    _w, _h = hr[0].width, hr[0].height
+                    _pw, _ph = self.patch_size or [_w, _h]
+                    x = np.random.randint(0, _w - _pw + 1)
+                    y = np.random.randint(0, _h - _ph + 1)
+                    self.grid.append((hr, lr, x, y))
             self.batch_iterator = self._build_iter()
+        self.built = True
 
     def build_loader(self, crop=True, **kwargs):
         """Build image1(s) pair loader, make self iterable
@@ -108,30 +121,33 @@ class Loader(object):
         self.patch_size = Utility.shrink_mod_scale(self.patch_size, self.scale) if crop else None
         self.strides = Utility.shrink_mod_scale(self.strides, self.scale) if crop else None
 
-        frames = []
+        print('loading files in dataset...')
         for vf in self.dataset:
             for _ in range(vf.frames // self.depth):
-                frames.append(
-                    [ImageProcess.shrink_to_multiple_scale(img, self.scale) for img in vf.read_frame(self.depth)])
+                frames_hr = [ImageProcess.shrink_to_multiple_scale(img, self.scale) for img in
+                             vf.read_frame(self.depth)]
+                frames_lr = [ImageProcess.bicubic_rescale(img, np.ones(2) / self.scale) for img in frames_hr]
+                self.frames.append((frames_hr, frames_lr))
             vf.reopen()
+        print('files load finished, generating cropping meshes...')
         if self.random:
-            rand_index = np.random.randint(len(frames), size=self.max_patches)
+            rand_index = np.random.randint(len(self.frames), size=self.max_patches)
             for i in rand_index:
-                vf = frames[i]
-                _w, _h = vf[0].width, vf[0].height
+                hr, lr = self.frames[i]
+                _w, _h = hr[0].width, hr[0].height
                 _pw, _ph = self.patch_size or [_w, _h]
                 x = np.random.randint(0, _w - _pw + 1)
                 y = np.random.randint(0, _h - _ph + 1)
-                self.grid.append((vf, x, y))
+                self.grid.append((hr, lr, x, y))
         else:
-            for vf in frames:
-                _w, _h = vf[0].width, vf[0].height
+            for hr, lr in self.frames:
+                _w, _h = hr[0].width, hr[0].height
                 _sw, _sh = self.strides or [_w, _h]
                 _pw, _ph = self.patch_size or [_w, _h]
                 x, y = np.mgrid[0:_w - _pw - (_w - _pw) % _sw + _sw:_sw,
-                       0:_h - _ph - (_h - _ph) % _sh:_sh]
-                self.grid += [(vf, _x, _y) for _x, _y in zip(x.flatten(), y.flatten())]
-
+                       0:_h - _ph - (_h - _ph) % _sh + _sh:_sh]
+                self.grid += [(hr, lr, _x, _y) for _x, _y in zip(x.flatten(), y.flatten())]
+        print('data loader ready!')
         self.batch_iterator = self._build_iter()
         self.built = True
 
@@ -196,4 +212,5 @@ class BatchLoader:
         return [], []
 
     def reset(self, *args, **kwargs):
+        """reset the iterator"""
         self.loader.reset(*args, **kwargs)

@@ -22,17 +22,18 @@ def main(*args, **kwargs):
     args.add_argument('--scale', type=int, default=3, help='scale factor')
     args.add_argument('--dataconfig', type=str, default='../Data/datasets.json',
                       help='the path to dataset config json file')
-    args.add_argument('--dataset', type=str, default='BSD', help='specified dataset name(as described in config file')
+    args.add_argument('--dataset', type=str, default='91-IMAGE',
+                      help='specified dataset name(as described in config file')
     args.add_argument('--batch', type=int, default=64, help='training batch size')
     args.add_argument('--epochs', type=int, default=200, help='training epochs')
     args.add_argument('--patch_size', type=int, default=48,
                       help='patch size of cropped training and validating sub-images')
     args.add_argument('--stride', type=int, default=48, help='crop stride if random_patches is set 0')
-    args.add_argument('--depth', type=int, default=1, help='image depth used for video sources')
+    args.add_argument('--depth', type=int, default=1, help='image1 depth used for video sources')
     args.add_argument('--shuffle', type=bool, default=False,
-                      help='shuffle files in dataset, this operation will open all files and may be slow')
+                      help='shuffle frames in dataset, this operation will open all frames and may be slow')
     args.add_argument('--random_patches', type=int, default=0,
-                      help='if set more than 0, use random crop to generate `random_patches` sub-image batches')
+                      help='if set more than 0, use random crop to generate `random_patches` sub-image1 batches')
     args.add_argument('--retrain', type=bool, default=False, help='retrain the model from scratch')
     args.add_argument('--lr', type=float, default=1e-4, help='initial learning rate')
     args.add_argument('--lr_decay', type=float, default=1, help='learning rate decay')
@@ -51,7 +52,7 @@ def main(*args, **kwargs):
     model_args = json.load(open(f'parameters/{args.name}.json', mode='r'))
 
     model = get_model(args.name)(scale=args.scale, **model_args)
-    dataset = load_datasets(args.dataconfig)[args.dataset]
+    dataset = load_datasets(args.dataconfig)[args.dataset.upper()]
     dataset.setattr(patch_size=args.patch_size, strides=args.stride, depth=args.depth)
     if args.random_patches:
         dataset.setattr(random=True, max_patches=args.batch * args.random_patches)
@@ -67,13 +68,13 @@ def main(*args, **kwargs):
                 learning_rate_schedule=lr_decay('stair', args.lr, decay_step=1000, decay_rate=args.lr_decay))
         if args.test:
             # use callback to generate colored images from grayscale ones
-            # all models inputs is gray image however
+            # all models inputs is gray image1 however
             env.feature_callbacks += [to_gray()]
             env.label_callbacks = [to_gray()]
             if args.output_color == 'RGB':
                 env.output_callbacks += [to_rgb()]
             env.output_callbacks += [save_image(f'../Results/{model.name}/test')]
-            env.test(dataset, convert_to_gray=False)  # load image with 3 channels
+            env.test(dataset, convert_to_gray=False)  # load image1 with 3 channels
     if args.export_pb:
         model = get_model(args.name)(scale=args.scale, rgb_input=True)
         with Environment(model, f'../Results/{model.name}/save', f'../Results/{model.name}/log') as env:

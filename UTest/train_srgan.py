@@ -20,4 +20,4 @@ if __name__ == '__main__':
         env.output_callbacks = [lambda output, **kwargs: output[0]]
         env.output_callbacks += [to_rgb()]
         env.output_callbacks += [save_image(f'../Results/{model.name}/test')]
-        env.test(dataset, convert_to_gray=False)  # load image with 3 channels
+        env.test(dataset, convert_to_gray=False)  # load image1 with 3 channels

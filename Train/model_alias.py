@@ -2,7 +2,7 @@ from VSR.Models import *
 
 
 srcnn = Srcnn.SRCNN
-espcn = Espcn.Espcn
+espcn = Espcn.ESPCN
 vdsr = Vdsr.VDSR
 drcn = Drcn.DRCN
 dncnn = DnCnn.DnCNN

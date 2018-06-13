@@ -15,16 +15,17 @@ import tensorflow as tf
 import numpy as np
 
 
-class Espcn(SuperResolution):
+class ESPCN(SuperResolution):
 
     def __init__(self, scale, layers=3, name='espcn', **kwargs):
         self.layers = layers
         self.name = name
-        super(Espcn, self).__init__(scale=scale, **kwargs)
+        super(ESPCN, self).__init__(scale=scale, **kwargs)
 
     def build_graph(self):
         with tf.variable_scope(self.name):
-            super(Espcn, self).build_graph()
+            self.inputs.append(tf.placeholder(tf.float32, shape=[None, None, None, 1], name='input/lr/gray'))
+            self.inputs_preproc = self.inputs
             l2_decay = 1e-4
             x = tf.layers.conv2d(self.inputs_preproc[-1], 64, 5, padding='same', activation=tf.nn.tanh,
                                  kernel_initializer=tf.keras.initializers.he_normal(),
@@ -41,8 +42,8 @@ class Espcn(SuperResolution):
 
     def build_loss(self):
         with tf.variable_scope('loss'):
-            self.label.append(tf.placeholder(tf.uint8, shape=[None, None, None, 1]))
-            y_true = tf.cast(self.label[-1], tf.float32)
+            self.label.append(tf.placeholder(tf.float32, shape=[None, None, None, 1]))
+            y_true = self.label[-1]
             y_pred = self.outputs[-1]
             mse = tf.losses.mean_squared_error(y_true, y_pred)
             tv_decay = 1e-4
@@ -51,6 +52,7 @@ class Espcn(SuperResolution):
             loss = mse + regular_loss
             optimizer = tf.train.AdamOptimizer(self.learning_rate)
             self.loss.append(optimizer.minimize(loss, self.global_steps))
+            self.train_metric['loss'] = loss
             self.metrics['mse'] = mse
             self.metrics['regularization'] = regular_loss
             self.metrics['psnr'] = tf.image.psnr(y_true, y_pred, max_val=255)

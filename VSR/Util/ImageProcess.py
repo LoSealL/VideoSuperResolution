@@ -34,7 +34,7 @@ def img_to_array(img, data_format=None):
         raise ValueError('Unknown data_format: ', data_format)
     # Numpy array x has format (height, width, channel)
     # or (channel, height, width)
-    # but original PIL image has format (width, height, channel)
+    # but original PIL image1 has format (width, height, channel)
     x = np.asarray(img, dtype=np.uint8)
     if len(x.shape) == 3:
         if data_format == 'channels_first':
@@ -45,7 +45,7 @@ def img_to_array(img, data_format=None):
         else:
             x = x.reshape((x.shape[0], x.shape[1], 1))
     else:
-        raise ValueError('Unsupported image shape: ', x.shape)
+        raise ValueError('Unsupported image1 shape: ', x.shape)
     return x
 
 def img_to_yuv(frame, mode, grayscale=False):
@@ -103,7 +103,7 @@ def img_to_yuv(frame, mode, grayscale=False):
             img = Image.fromarray(rgb, mode='RGB').convert('L')
     else:
         raise RuntimeError("unreachable!")
-    # return img_to_array(image) if turn_array else image
+    # return img_to_array(image1) if turn_array else image1
     return img
 
 def bicubic_rescale(image, scale, mode=None):

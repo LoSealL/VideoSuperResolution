@@ -34,7 +34,7 @@ class SuperResolution(object):
         Args:
             scale: the scale factor, can be a list of 2 integer to specify different stretch in width and height
             weight_decay: decay of L2 regularization on trainable weights
-            rgb_input: if True, specify inputs as RGBA with 4 channels, otherwise the input is grayscale image
+            rgb_input: if True, specify inputs as RGBA with 4 channels, otherwise the input is grayscale image1
         """
 
         self.scale = to_list(scale, repeat=2)
@@ -84,8 +84,8 @@ class SuperResolution(object):
 
     def build_graph(self):
         """this super method create 2 kinds of input placeholder:
-            - For grayscale image, input type is uint8, cast to float32 in self.inputs_preproc
-            - For colored image, input type is uint8, mode is RGBA, discard alpha channel and convert to YUV,
+            - For grayscale image1, input type is uint8, cast to float32 in self.inputs_preproc
+            - For colored image1, input type is uint8, mode is RGBA, discard alpha channel and convert to YUV,
               self.inputs_preproc[0] is normalized UV with value ranged [-0.5, 0.5]
               self.inputs_preproc[1] is casted Y channel ranged [0, 255.0]
 
@@ -114,8 +114,8 @@ class SuperResolution(object):
         r"""training one batch one step
 
         Args:
-            feature: input tensors, LR image for SR use case
-            label: labels, HR image for SR use case
+            feature: input tensors, LR image1 for SR use case
+            label: labels, HR image1 for SR use case
             learning_rate: update step size in current calculation
             kwargs: for future use
 
@@ -140,8 +140,8 @@ class SuperResolution(object):
         r"""validate one batch for one step
 
         Args:
-            feature: input tensors, LR image for SR use case
-            label: labels, HR image for SR use case
+            feature: input tensors, LR image1 for SR use case
+            label: labels, HR image1 for SR use case
             kwargs: for future use
 
         Return:

@@ -22,20 +22,10 @@ class SRCNN(SuperResolution):
         self.kernel_size = kernel
         super(SRCNN, self).__init__(scale=scale, **kwargs)
 
-    def summary(self):
-        super(SRCNN, self).summary()
-        import numpy as np
-        v = tf.trainable_variables(self.name)
-        weights = v[::2]
-        bias = v[1::2]
-        for w in weights:
-            print(np.histogram(w.eval(), 10))
-        for b in bias:
-            print(np.histogram(b.eval(), 10))
-
     def build_graph(self):
         with tf.variable_scope(self.name):
-            super(SRCNN, self).build_graph()
+            self.inputs.append(tf.placeholder(tf.float32, shape=[None, None, None, 1], name='input/lr/gray'))
+            self.inputs_preproc = self.inputs
             x = bicubic_rescale(self.inputs_preproc[-1], self.scale)
             f = self.filters
             ks = self.kernel_size
@@ -48,8 +38,8 @@ class SRCNN(SuperResolution):
 
     def build_loss(self):
         with tf.variable_scope('loss'):
-            self.label.append(tf.placeholder(tf.uint8, shape=[None, None, None, 1]))
-            y_true = tf.cast(self.label[-1], tf.float32)
+            self.label.append(tf.placeholder(tf.float32, shape=[None, None, None, 1]))
+            y_true = self.label[-1]
             y_pred = self.outputs[-1]
             mse = tf.losses.mean_squared_error(y_true, y_pred)
             tv_decay = 1e-4
@@ -60,7 +50,7 @@ class SRCNN(SuperResolution):
                 loss = mse + regular_loss
             else:
                 loss = mse
-            optimizer = tf.train.RMSPropOptimizer(self.learning_rate)
+            optimizer = tf.train.AdamOptimizer(self.learning_rate)
             # self.grad = optimizer.compute_gradients(loss)
             self.loss.append(optimizer.minimize(loss, self.global_steps))
             self.train_metric['loss'] = loss
@@ -77,10 +67,3 @@ class SRCNN(SuperResolution):
             tf.summary.scalar('loss/regularization', self.metrics['regularization'])
         tf.summary.scalar('psnr', self.metrics['psnr'])
         tf.summary.scalar('ssim', self.metrics['ssim'])
-        v = tf.trainable_variables(self.name)
-        weights = v[::2]
-        bias = v[1::2]
-        for w in weights:
-            tf.summary.histogram(f'weight_{weights.index(w)}', w)
-        # for b in bias:
-        #     tf.summary.histogram(f'bias_{bias.index(b)}', b)
