@@ -6,7 +6,7 @@ Created Date: May 9th 2018
 Updated Date: May 9th 2018
 
 virtual file is an abstraction of a file or
-a collection of ordered files
+a collection of ordered frames
 """
 from pathlib import Path
 from io import SEEK_END, BytesIO
@@ -57,6 +57,9 @@ class File:
         self.read_pointer = 0
         self.cur_fd = None
 
+    def split(self, depth):
+        pass
+
     def read(self, count=None):
         """
         Read `count` bytes
@@ -74,7 +77,7 @@ class File:
             self.read_file.append(self.file[0])
             self.file.pop(0)
         elif not self.cur_fd:
-            raise FileNotFoundError('No files in File')
+            raise FileNotFoundError('No frames in File')
         read_bytes = self.cur_fd.read(count)
         if read_bytes:
             self.read_pointer += len(read_bytes)
@@ -224,7 +227,7 @@ class RawFile(File):
 class ImageFile(File):
 
     def __init__(self, path, rewind):
-        """Open image file or a sequence of image files
+        """Open image1 file or a sequence of image1 frames
 
         Args:
             path: file path or handle

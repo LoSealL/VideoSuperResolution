@@ -22,7 +22,7 @@ class Dataset:
     def __init__(self, **kwargs):
         self._args = kwargs
         # default attr
-        self._args['mode'] = 'pil-image' if not 'mode' in kwargs else kwargs['mode']
+        self._args['mode'] = 'pil-image1' if not 'mode' in kwargs else kwargs['mode']
         self._args['depth'] = 1 if not 'depth' in kwargs else kwargs['depth']
 
     def __getattr__(self, item):

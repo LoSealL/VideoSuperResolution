@@ -5,7 +5,7 @@ Email: wenyi.tang@intel.com
 Created Date: May 8th 2018
 Updated Date: May 24th 2018
 
-Load files with specified filter in given directories,
+Load frames with specified filter in given directories,
 and provide inheritable API for specific loaders.
 """
 import numpy as np
@@ -28,10 +28,8 @@ class Loader(object):
         if not isinstance(dataset, Dataset):
             raise TypeError('dataset must be Dataset object')
         dataset_file = dataset.__getattr__(method.lower())
-        np.random.shuffle(dataset_file)
-        self.length = len(dataset_file)
         self.mode = dataset.mode
-        if self.mode.lower() == 'pil-image':
+        if self.mode.lower() == 'pil-image1':
             self.dataset = [ImageFile(fp, loop) for fp in dataset_file]
         elif self.mode.upper() in _ALLOWED_RAW_FORMAT:
             self.dataset = [RawFile(
@@ -44,6 +42,7 @@ class Loader(object):
         self.loop = loop
         self.random = dataset.random and not (method == 'test')
         self.max_patches = dataset.max_patches
+        self.grid = []
         self.built = False
 
     def __next__(self):
@@ -69,53 +68,25 @@ class Loader(object):
 
     def _build_iter(self):
         while True:
-            for vf in self.dataset:
-                for _ in range(vf.frames // self.depth):
-                    frames_hr = [ImageProcess.shrink_to_multiple_scale(img, self.scale) for img in
-                                 vf.read_frame(self.depth)]
-                    frames_lr = [ImageProcess.bicubic_rescale(
-                        img, np.ones(2) / self.scale) for img in frames_hr]
-                    width, height = frames_hr[0].size
-                    strides = self.strides or [width, height]
-                    patch_size = self.patch_size or [width, height]
-                    for w in range(0, width, strides[0]):
-                        for h in range(0, height, strides[1]):
-                            if w + patch_size[0] > width or h + patch_size[1] > height:
-                                continue
-                            box = np.array([w, h, w + patch_size[0], h + patch_size[1]])
-                            crop_hr = [img.crop(box) for img in frames_hr]
-                            crop_lr = [img.crop(box // [*self.scale, *self.scale]) for img in frames_lr]
-                            yield crop_hr, crop_lr
-                vf.read_frame(vf.frames)
+            np.random.shuffle(self.grid)
+            for frames_hr, x, y in self.grid:
+                frames_lr = [ImageProcess.bicubic_rescale(img, np.ones(2) / self.scale) for img in frames_hr]
+                patch_size = self.patch_size or frames_hr[0].size
+                box = np.array([x, y, x + patch_size[0], y + patch_size[1]])
+                crop_hr = [img.crop(box) for img in frames_hr]
+                crop_lr = [img.crop(box // [*self.scale, *self.scale]) for img in frames_lr]
+                yield crop_hr, crop_lr
             if not self.loop:
                 break
 
-    def _build_random_iter(self):
-        patch_counter = 0
-        patch_per_file = self.max_patches // self.length
-        patch_per_file += 1 if patch_per_file != self.max_patches / self.length else 0
-        for vf in self.dataset:
-            vf.reopen() if not vf.frames else None
-            for _ in range(vf.frames // self.depth):
-                frames_hr = [ImageProcess.shrink_to_multiple_scale(img, self.scale) for img in
-                             vf.read_frame(self.depth)]
-                frames_lr = [ImageProcess.bicubic_rescale(
-                    img, np.ones(2) / self.scale) for img in frames_hr]
-                width, height = frames_hr[0].size
-                patch_size = self.patch_size or [width, height]
-                for _ in range(patch_per_file):
-                    if patch_counter >= self.max_patches:
-                        raise StopIteration()
-                    x = np.random.randint(0, width - patch_size[0] + 1)
-                    y = np.random.randint(0, height - patch_size[1] + 1)
-                    box = np.array([x, y, x + patch_size[0], y + patch_size[1]])
-                    crop_hr = [img.crop(box) for img in frames_hr]
-                    crop_lr = [img.crop(box // [*self.scale, *self.scale]) for img in frames_lr]
-                    patch_counter += 1
-                    yield crop_hr, crop_lr
+    def reset(self, **kwargs):
+        if not self.built:
+            self.build_loader(**kwargs)
+        else:
+            self.batch_iterator = self._build_iter()
 
     def build_loader(self, crop=True, **kwargs):
-        """Build image(s) pair loader, make self iterable
+        """Build image1(s) pair loader, make self iterable
 
          Args:
              crop: if True, crop the images into patches
@@ -136,10 +107,32 @@ class Loader(object):
         self.strides = Utility.to_list(self.strides, 2)
         self.patch_size = Utility.shrink_mod_scale(self.patch_size, self.scale) if crop else None
         self.strides = Utility.shrink_mod_scale(self.strides, self.scale) if crop else None
+
+        frames = []
+        for vf in self.dataset:
+            for _ in range(vf.frames // self.depth):
+                frames.append(
+                    [ImageProcess.shrink_to_multiple_scale(img, self.scale) for img in vf.read_frame(self.depth)])
+            vf.reopen()
         if self.random:
-            self.batch_iterator = self._build_random_iter()
+            rand_index = np.random.randint(len(frames), size=self.max_patches)
+            for i in rand_index:
+                vf = frames[i]
+                _w, _h = vf[0].width, vf[0].height
+                _pw, _ph = self.patch_size or [_w, _h]
+                x = np.random.randint(0, _w - _pw + 1)
+                y = np.random.randint(0, _h - _ph + 1)
+                self.grid.append((vf, x, y))
         else:
-            self.batch_iterator = self._build_iter()
+            for vf in frames:
+                _w, _h = vf[0].width, vf[0].height
+                _sw, _sh = self.strides or [_w, _h]
+                _pw, _ph = self.patch_size or [_w, _h]
+                x, y = np.mgrid[0:_w - _pw - (_w - _pw) % _sw + _sw:_sw,
+                       0:_h - _ph - (_h - _ph) % _sh:_sh]
+                self.grid += [(vf, _x, _y) for _x, _y in zip(x.flatten(), y.flatten())]
+
+        self.batch_iterator = self._build_iter()
         self.built = True
 
 
@@ -149,6 +142,7 @@ class BatchLoader:
                  batch_size,
                  dataset,
                  method,
+                 scale,
                  loop=False,
                  convert_to_gray=True,
                  **kwargs):
@@ -157,12 +151,13 @@ class BatchLoader:
         Args:
             batch_size: an integer, the size of a batch
             dataset: an instance of Dataset, see DataLoader.Dataset
-            method: 'train', 'val', or 'test', each for different files in datasets
+            method: 'train', 'val', or 'test', each for different frames in datasets
+            scale: scale factor
             loop: if True, iterates infinitely
             kwargs: you can override attribute in the dataset
         """
         self.loader = Loader(dataset, method, loop)
-        self.loader.build_loader(**kwargs)
+        self.loader.build_loader(scale=scale, **kwargs)
         self.batch = batch_size
         self.to_gray = convert_to_gray
 
@@ -199,3 +194,6 @@ class BatchLoader:
         if batch_hr and batch_lr:
             return np.stack(batch_hr), np.stack(batch_lr)
         return [], []
+
+    def reset(self, *args, **kwargs):
+        self.loader.reset(*args, **kwargs)
