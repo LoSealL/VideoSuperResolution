@@ -130,7 +130,8 @@ class Loader(object):
                 self.frames.append((frames_hr, frames_lr))
             vf.reopen()
         print('files load finished, generating cropping meshes...')
-        if self.random and crop:
+        self.random = self.random and crop
+        if self.random:
             rand_index = np.random.randint(len(self.frames), size=self.max_patches)
             for i in rand_index:
                 hr, lr = self.frames[i]
