@@ -24,8 +24,7 @@ class ESPCN(SuperResolution):
 
     def build_graph(self):
         with tf.variable_scope(self.name):
-            self.inputs.append(tf.placeholder(tf.float32, shape=[None, None, None, 1], name='input/lr/gray'))
-            self.inputs_preproc = self.inputs
+            super(ESPCN, self).build_graph()
             tf.summary.image('input', self.inputs[-1], 1)
             x = self.inputs_preproc[-1] / 255.0
             y_near = tf.concat([x] * self.scale[0] * self.scale[1], -1)

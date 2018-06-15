@@ -24,8 +24,7 @@ class SRCNN(SuperResolution):
 
     def build_graph(self):
         with tf.variable_scope(self.name):
-            self.inputs.append(tf.placeholder(tf.float32, shape=[None, None, None, 1], name='input/lr/gray'))
-            self.inputs_preproc = self.inputs
+            super(SRCNN, self).build_graph()
             x = bicubic_rescale(self.inputs_preproc[-1], self.scale)
             f = self.filters
             ks = self.kernel_size

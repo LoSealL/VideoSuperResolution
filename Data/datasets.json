@@ -42,7 +42,7 @@
     "DIV2K": {
       "train": "DIV2K-Train",
       "val": "DIV2K-Val",
-      "test": ["SET5", "SET14", "URBAN100"]
+      "test": ["SET5", "SET14", "URBAN100", "SUNHAY80"]
     },
     "MCL-V": {
       "train": "MCL-V",

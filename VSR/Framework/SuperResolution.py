@@ -96,6 +96,7 @@ class SuperResolution(object):
             self.inputs.append(tf.placeholder(tf.float32, shape=[None, None, None, None], name='input/lr/gray'))
             self.inputs_preproc.append(self.inputs[-1][..., 1:])
             self.inputs_preproc.append(self.inputs[-1][..., :1])
+            self.inputs_preproc[-1].set_shape([None, None, None, 1])
         else:
             self.inputs.append(tf.placeholder(tf.uint8, shape=[None, None, None, 4], name='input/lr/rgba'))
             yuv = tf.cast(self.inputs[-1], tf.float32) / 255.0

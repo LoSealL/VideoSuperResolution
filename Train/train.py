@@ -9,7 +9,7 @@ Train models
 
 import argparse, json
 
-from model_alias import get_model
+from model_alias import get_model, list_supported_models
 from VSR.DataLoader.Dataset import load_datasets
 from VSR.Framework.Envrionment import Environment
 from VSR.Framework.Callbacks import *
@@ -17,7 +17,8 @@ from VSR.Framework.Callbacks import *
 
 def main(*args, **kwargs):
     args = argparse.ArgumentParser()
-    args.add_argument('name', type=str, help='the model name can be found in model_alias.py')
+    args.add_argument('name', type=str, choices=list_supported_models(),
+                      help='the model name can be found in model_alias.py')
     args.add_argument('--scale', type=int, default=3, help='scale factor')
     args.add_argument('--dataconfig', type=str, default='../Data/datasets.json',
                       help='the path to dataset config json file')
