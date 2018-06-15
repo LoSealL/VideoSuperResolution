@@ -73,9 +73,9 @@ class ResidualDenseNetwork(SuperResolution):
             y_true = self.label[-1]
             y_pred = self.outputs[-1]
             mae = tf.losses.absolute_difference(y_true, y_pred)
-            mse = tf.metrics.mean_squared_error(y_true, y_pred)
+            mse = tf.losses.mean_squared_error(y_true, y_pred)
             opt = tf.train.AdamOptimizer(self.learning_rate)
-            loss = tf.losses.get_total_loss()
+            loss = tf.add_n([mae] + tf.losses.get_regularization_losses())
             self.loss.append(opt.minimize(loss, self.global_steps))
             self.train_metric['loss'] = loss
             self.metrics['mse'] = mse
