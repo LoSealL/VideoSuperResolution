@@ -40,25 +40,15 @@ class DnCNN(SuperResolution):
 
     def build_loss(self):
         with tf.variable_scope('loss'):
-            self.label.append(tf.placeholder(tf.uint8, shape=[None, None, None, 1]))
-            y_true = tf.cast(self.label[-1], tf.float32)
-            y_pred = self.outputs[-1]
-            mse = tf.losses.mean_squared_error(y_true, y_pred)
-            regular_loss = tf.add_n(tf.losses.get_regularization_losses())
-            loss = mse + regular_loss
-            # update BN
-            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-            with tf.control_dependencies(update_ops):
-                optimizer = tf.train.AdamOptimizer(self.learning_rate)
-                self.loss.append(optimizer.minimize(loss, self.global_steps))
+            mse, loss = super(DnCNN, self).build_loss()
+            self.train_metric['loss'] = loss
             self.metrics['mse'] = mse
-            self.metrics['regularization'] = regular_loss
-            self.metrics['psnr'] = tf.reduce_mean(tf.image.psnr(y_true, y_pred, max_val=255))
-            self.metrics['ssim'] = tf.reduce_mean(tf.image.ssim(y_true, y_pred, max_val=255))
+            self.metrics['psnr'] = tf.reduce_mean(tf.image.psnr(self.label[-1], self.outputs[-1], max_val=255))
+            self.metrics['ssim'] = tf.reduce_mean(tf.image.ssim(self.label[-1], self.outputs[-1], max_val=255))
 
     def build_summary(self):
+        tf.summary.scalar('loss/training', self.train_metric['loss'])
         tf.summary.scalar('loss/mse', self.metrics['mse'])
-        tf.summary.scalar('loss/regularization', self.metrics['regularization'])
         tf.summary.scalar('psnr', self.metrics['psnr'])
         tf.summary.scalar('ssim', self.metrics['ssim'])
 

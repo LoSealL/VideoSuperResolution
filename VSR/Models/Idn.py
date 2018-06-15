@@ -23,7 +23,7 @@ class InformationDistillationNetwork(SuperResolution):
                  delta=16,
                  slice_factor=4,
                  leaky_slope=0.05,
-                 fine_tune=False,
+                 fine_tune=100000,
                  name='idn',
                  **kwargs):
         self.blocks = blocks
@@ -63,27 +63,27 @@ class InformationDistillationNetwork(SuperResolution):
         """
 
         with tf.variable_scope('loss'):
-            self.label.append(tf.placeholder(tf.uint8, shape=[None, None, None, 1]))
-            y_true = tf.cast(self.label[-1], tf.float32)
+            self.label.append(tf.placeholder(tf.float32, shape=[None, None, None, 1]))
+            y_true = self.label[-1]
             y_pred = self.outputs[-1]
             mse = tf.losses.mean_squared_error(y_true, y_pred)
             mae = tf.losses.absolute_difference(y_true, y_pred)
-            regular_loss = tf.add_n(tf.losses.get_regularization_losses())
-            loss = mae + regular_loss if self.fine_tune else mse + regular_loss
+            loss = tf.cond(self.global_steps > self.fine_tune,
+                           lambda: tf.add_n([mae] + tf.losses.get_regularization_losses()),
+                           lambda: tf.add_n([mse] + tf.losses.get_regularization_losses()))
             optimizer = tf.train.AdamOptimizer(self.learning_rate)
             self.loss.append(optimizer.minimize(loss, self.global_steps))
+            self.train_metric['loss'] = loss
             self.metrics['mse'] = mse
             self.metrics['mae'] = mae
-            self.metrics['regularization'] = regular_loss
-            self.metrics['psnr'] = tf.image.psnr(y_true, y_pred, max_val=255)
-            self.metrics['ssim'] = tf.image.ssim(y_true, y_pred, max_val=255)
+            self.metrics['psnr'] = tf.reduce_mean(tf.image.psnr(y_true, y_pred, max_val=255))
+            self.metrics['ssim'] = tf.reduce_mean(tf.image.ssim(y_true, y_pred, max_val=255))
 
     def build_summary(self):
         tf.summary.scalar('loss/mse', self.metrics['mse'])
         tf.summary.scalar('loss/mae', self.metrics['mae'])
-        tf.summary.scalar('loss/weight', self.metrics['regularization'])
-        tf.summary.scalar('metric/psnr', tf.reduce_mean(self.metrics['psnr']))
-        tf.summary.scalar('metric/ssim', tf.reduce_mean(self.metrics['ssim']))
+        tf.summary.scalar('metric/psnr', self.metrics['psnr'])
+        tf.summary.scalar('metric/ssim', self.metrics['ssim'])
 
     def _make_idn(self, index, inputs, D3=64, d=16, s=4):
         """ the information distillation block contains:

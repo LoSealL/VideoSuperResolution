@@ -93,8 +93,9 @@ class SuperResolution(object):
             You can also suppress this method and create your own inputs from scratch
         """
         if not self.rgba:
-            self.inputs.append(tf.placeholder(tf.uint8, shape=[None, None, None, 1], name='input/lr/gray'))
-            self.inputs_preproc.append(tf.cast(self.inputs[-1], tf.float32, name='cast/lr/gray_float'))
+            self.inputs.append(tf.placeholder(tf.float32, shape=[None, None, None, None], name='input/lr/gray'))
+            self.inputs_preproc.append(self.inputs[-1][..., 1:])
+            self.inputs_preproc.append(self.inputs[-1][..., :1])
         else:
             self.inputs.append(tf.placeholder(tf.uint8, shape=[None, None, None, 4], name='input/lr/rgba'))
             yuv = tf.cast(self.inputs[-1], tf.float32) / 255.0
@@ -103,8 +104,23 @@ class SuperResolution(object):
             self.inputs_preproc.append(yuv[..., 0:1] * 255)  # scaled Y channel
 
     def build_loss(self):
-        # the pure abstract method
-        raise NotImplementedError('DO NOT use base SuperResolution directly! Use inheritive models instead.')
+        """help to build mse loss via self.label[-1] and self.outputs[-1] for simplicity
+
+        >>> loss = tf.losses.mean_squared_error(self.label[-1], self.outputs[-1])
+
+        Note
+            You can also suppress this method and build your own loss function from scratch
+        """
+
+        self.label.append(tf.placeholder(tf.float32, [None, None, None, 1], name='label'))
+        opt = tf.train.AdamOptimizer(self.learning_rate)
+        mse = tf.losses.mean_squared_error(self.label[-1], self.outputs[-1])
+        loss = tf.losses.get_total_loss()
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(update_ops):
+            self.loss.append(opt.minimize(loss, self.global_steps))
+
+        return mse, loss
 
     def build_summary(self):
         # the pure abstract method

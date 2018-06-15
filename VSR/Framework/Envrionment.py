@@ -113,21 +113,18 @@ class Environment:
         self.model.summary()
         summary_writer = tf.summary.FileWriter(str(self.logdir), graph=tf.get_default_graph())
         lr = learning_rate
-        random = dataset.random
-        max_patches = dataset.max_patches
         global_step = self.model.global_steps.eval()
         if learning_rate_schedule and callable(learning_rate_schedule):
             lr = learning_rate_schedule(lr, epochs=init_epoch, steps=global_step)
         train_loader = BatchLoader(batch, dataset, 'train', scale=self.model.scale, **kwargs)
-        dataset.setattr(max_patches=batch * 10, random=True)
-        val_loader = BatchLoader(batch, dataset, 'val', scale=self.model.scale, **kwargs)
+        val_loader = BatchLoader(1, dataset, 'val', scale=self.model.scale, crop=False, **kwargs)
         for epoch in range(init_epoch, epochs + 1):
             train_loader.reset()
             total_steps = len(train_loader)
             equal_length_mod = total_steps // 20
             step_in_epoch = 0
             start_time = time.time()
-            date = time.strftime('%Y-%M-%d %T', time.localtime())
+            date = time.strftime('%Y-%m-%d %T', time.localtime())
             print(f'| {date} | Epoch: {epoch}/{epochs} | LR: {lr} |')
             for img in train_loader:
                 feature, label = img[self.fi], img[self.li]
@@ -184,6 +181,9 @@ class Environment:
         sess = tf.get_default_session()
         sess.run(tf.global_variables_initializer())
         ckpt_last = self._find_last_ckpt()
+        print('===================================')
+        print(f'Testing model: {self.model.name}')
+        print('===================================')
         self.saver.restore(sess, str(ckpt_last))
         loader = BatchLoader(1, dataset, 'test', scale=self.model.scale, crop=False, **kwargs)
         step = 0

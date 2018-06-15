@@ -43,8 +43,8 @@ class DRCN(SuperResolution):
 
     def build_loss(self):
         with tf.variable_scope('loss'):
-            self.label.append(tf.placeholder(tf.uint8, [None, None, None, 1]))
-            y_true = tf.cast(self.label[-1], tf.float32)
+            self.label.append(tf.placeholder(tf.float32, [None, None, None, 1]))
+            y_true = self.label[-1]
             mse_n = []
             for y_pred in self.outputs[1:]:
                 mse_n.append(tf.losses.mean_squared_error(y_true, y_pred))
@@ -55,6 +55,8 @@ class DRCN(SuperResolution):
             loss = alpha * loss1 + (1.0 - alpha) * loss2 + regularization
             optimizer = tf.train.AdamOptimizer(self.learning_rate)
             self.loss.append(optimizer.minimize(loss, self.global_steps))
+
+            self.train_metric['loss'] = loss
             self.metrics['local_mse'] = loss1
             self.metrics['final_mse'] = loss2
             self.metrics['regularization'] = regularization
@@ -62,6 +64,7 @@ class DRCN(SuperResolution):
             self.metrics['ssim'] = tf.image.ssim(y_true, self.outputs[-1], max_val=255)
 
     def build_summary(self):
+        tf.summary.scalar('loss/training', self.train_metric['loss'])
         tf.summary.scalar('loss/local_mse', self.metrics['local_mse'])
         tf.summary.scalar('loss/final_mse', self.metrics['final_mse'])
         tf.summary.scalar('loss/regularization', self.metrics['regularization'])

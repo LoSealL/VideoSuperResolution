@@ -26,40 +26,41 @@ class ESPCN(SuperResolution):
         with tf.variable_scope(self.name):
             self.inputs.append(tf.placeholder(tf.float32, shape=[None, None, None, 1], name='input/lr/gray'))
             self.inputs_preproc = self.inputs
-            l2_decay = 1e-4
-            x = tf.layers.conv2d(self.inputs_preproc[-1], 64, 5, padding='same', activation=tf.nn.tanh,
-                                 kernel_initializer=tf.keras.initializers.he_normal(),
-                                 kernel_regularizer=tf.keras.regularizers.l2(l2_decay))
+            tf.summary.image('input', self.inputs[-1], 1)
+            x = self.inputs_preproc[-1] / 255.0
+            y_near = tf.concat([x] * self.scale[0] * self.scale[1], -1)
+            y_near = Utility.pixel_shift(y_near, self.scale, 1)
+            x = self.conv2d(x, 64, 5, activation=tf.nn.tanh,
+                            kernel_initializer='he_normal',
+                            kernel_regularizer='l2')
+            for i in range(64):
+                tf.summary.image('layer/0', x[..., i:i + 1], 1)
             for _ in range(1, self.layers - 1):
-                x = tf.layers.conv2d(x, 32, 3, padding='same', activation=tf.nn.tanh,
-                                     kernel_initializer=tf.keras.initializers.he_normal(),
-                                     kernel_regularizer=tf.keras.regularizers.l2(l2_decay))
-            x = tf.layers.conv2d(x, self.scale[0] * self.scale[1], 3, padding='same',
-                                 kernel_initializer=tf.keras.initializers.he_normal(),
-                                 kernel_regularizer=tf.keras.regularizers.l2(l2_decay))
+                x = self.conv2d(x, 32, 3, activation=tf.nn.tanh, kernel_initializer='he_normal',
+                                kernel_regularizer='l2')
+                for i in range(32):
+                    tf.summary.image(f'layer/{_}', x[..., i:i + 1], 1)
+
+            x = self.conv2d(x, self.scale[0] * self.scale[1], 3, kernel_initializer='he_normal',
+                            kernel_regularizer='l2')
+            for i in range(self.scale[0] * self.scale[1]):
+                tf.summary.image('layer/99', x[..., i:i + 1], 1)
             x = Utility.pixel_shift(x, self.scale, 1)
-            self.outputs.append(x)
+            # x = tf.nn.tanh(x)
+            x += y_near
+            tf.summary.image('feature/output', x, 1)
+            self.outputs.append(x * 255.0)
 
     def build_loss(self):
         with tf.variable_scope('loss'):
-            self.label.append(tf.placeholder(tf.float32, shape=[None, None, None, 1]))
-            y_true = self.label[-1]
-            y_pred = self.outputs[-1]
-            mse = tf.losses.mean_squared_error(y_true, y_pred)
-            tv_decay = 1e-4
-            tv_loss = tv_decay * tf.reduce_mean(tf.image.total_variation(y_pred))
-            regular_loss = tf.add_n(tf.losses.get_regularization_losses()) + tv_loss
-            loss = mse + regular_loss
-            optimizer = tf.train.AdamOptimizer(self.learning_rate)
-            self.loss.append(optimizer.minimize(loss, self.global_steps))
+            mse, loss = super(ESPCN, self).build_loss()
             self.train_metric['loss'] = loss
             self.metrics['mse'] = mse
-            self.metrics['regularization'] = regular_loss
-            self.metrics['psnr'] = tf.reduce_mean(tf.image.psnr(y_true, y_pred, max_val=255))
-            self.metrics['ssim'] = tf.reduce_mean(tf.image.ssim(y_true, y_pred, max_val=255))
+            self.metrics['psnr'] = tf.reduce_mean(tf.image.psnr(self.label[-1], self.outputs[-1], max_val=255))
+            self.metrics['ssim'] = tf.reduce_mean(tf.image.ssim(self.label[-1], self.outputs[-1], max_val=255))
 
     def build_summary(self):
+        tf.summary.scalar('training_loss', self.train_metric['loss'])
         tf.summary.scalar('loss/mse', self.metrics['mse'])
-        tf.summary.scalar('loss/regularization', self.metrics['regularization'])
         tf.summary.scalar('psnr', self.metrics['psnr'])
         tf.summary.scalar('ssim', self.metrics['ssim'])

@@ -1,5 +1,5 @@
 {
-  "residual_unit": 3,
-  "recursive_block": 3,
+  "residual_unit": 9,
+  "recursive_block": 1,
   "grad_clip": 0.01
 }

@@ -25,7 +25,7 @@ class Denoise(SuperResolution):
         with tf.name_scope(self.name):
             super(Denoise, self).build_graph()
             self.inputs.append(tf.placeholder(tf.float32, shape=()))
-            x = self.inputs_preproc[-1]
+            x = self.inputs_preproc[-1] / 255
             # with tf.name_scope('noise_extraction'):
             #     for _ in range(self.layers[0] - 1):
             #         x = tf.layers.conv2d(x, 64, 3, padding='same', activation=tf.nn.relu,
@@ -46,7 +46,7 @@ class Denoise(SuperResolution):
                 x = self.conv2d(x, self.scale[0] * self.scale[1], 3, kernel_initializer='he_normal',
                                 kernel_regularizer='l2')
                 x = pixel_shift(x, self.scale, 1)
-            self.outputs.append(x)
+            self.outputs.append(x * 255)
             tf.summary.image('output', x)
 
     def build_loss(self):
@@ -57,9 +57,9 @@ class Denoise(SuperResolution):
             y_pred = self.outputs[-1]
             mse = tf.losses.mean_squared_error(y_true, y_pred)
             # Denoise loss part
-            # y_lr = tf.image.resize_bicubic(y_true, tf.shape(self.inputs_preproc[-1])[1:3])
+            # y_lr = tf.image1.resize_bicubic(y_true, tf.shape(self.inputs_preproc[-1])[1:3])
             # y_clear = self.inputs_preproc[-1] - self.outputs[0]
-            # tf.summary.image('denoise', y_clear)
+            # tf.summary.image1('denoise', y_clear)
             # noise_loss = tf.losses.mean_squared_error(y_lr, y_clear)
             # regularization
             regular_loss = tf.add_n(tf.losses.get_regularization_losses())
@@ -107,18 +107,24 @@ def add_noise(x):
     return np.clip(x, 0, 255).astype('uint8'), stddev
 
 
+def add_fix_noise(x):
+    x = x.astype('int32') + np.random.normal(0, 0, x.shape)
+    return np.clip(x, 0, 255).astype('uint8'), 0
+
+
+
 if __name__ == '__main__':
     model = Denoise(scale=3, layers=12, noise_decay=1e-2, rgb_input=False)
-    dataset = load_datasets('../Data/datasets.json')['BSD']
+    dataset = load_datasets('../Data/datasets.json')['BSD-500']
     dataset.setattr(patch_size=96, strides=96, random=True, max_patches=64 * 1000)
     with Environment(model, f'../Results/{model.name}/save', f'../Results/{model.name}/log') as env:
         env.feature_callbacks = [add_noise]
-        env.fit(64, 20, dataset, restart=False,
-                learning_rate_schedule=lr_decay('stair', 0.001, decay_step=1000, decay_rate=0.96))
-        env.feature_callbacks = [to_gray(), add_noise]
+        env.fit(64, 10, dataset, restart=False,
+                learning_rate_schedule=lr_decay('stair', 0.0001, decay_step=1000, decay_rate=0.96))
+        env.feature_callbacks = [to_gray(), add_fix_noise]
         env.label_callbacks = [to_gray()]
         env.output_callbacks += [lambda output, **kwargs: output[0]]
         env.output_callbacks += [to_rgb()]
         env.output_callbacks += [save_image(f'../Results/{model.name}/test')]
-        env.test(dataset, convert_to_gray=False)  # load image with 3 channels
+        env.test(dataset, convert_to_gray=False)  # load image1 with 3 channels
         # env.export()

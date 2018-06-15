@@ -41,13 +41,13 @@ class DRRN(SuperResolution):
 
     def build_loss(self):
         with tf.variable_scope('loss'):
-            self.label.append(tf.placeholder(tf.uint8, [None, None, None, 1]))
-            y_true = tf.cast(self.label[-1], tf.float32)
+            self.label.append(tf.placeholder(tf.float32, [None, None, None, 1]))
+            y_true = self.label[-1]
             y_pred = self.outputs[-1]
             mse = tf.losses.mean_squared_error(y_true, y_pred)
             reg = tf.add_n(tf.losses.get_regularization_losses())
             loss = mse + reg
-            opt = tf.train.MomentumOptimizer(self.learning_rate, momentum=0.9)
+            opt = tf.train.AdamOptimizer(self.learning_rate)
             if self.grad_clip > 0:
                 grads_and_vars = []
                 for grad, var in opt.compute_gradients(loss):

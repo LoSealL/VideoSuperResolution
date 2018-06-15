@@ -69,14 +69,13 @@ class ResidualDenseNetwork(SuperResolution):
     def build_loss(self):
         """In paper, authors use L1 loss instead of MSE error. Claimed a better perf."""
         with tf.variable_scope('loss'):
-            self.label.append(tf.placeholder(tf.uint8, shape=[None, None, None, 1]))
-            y_true = tf.cast(self.label[-1], tf.float32)
+            self.label.append(tf.placeholder(tf.float32, shape=[None, None, None, 1]))
+            y_true = self.label[-1]
             y_pred = self.outputs[-1]
-            mae = tf.losses.absolute_difference(y_true, self.outputs[-1])
-            mse = tf.losses.mean_squared_error(y_true, y_pred)
+            mae = tf.losses.absolute_difference(y_true, y_pred)
+            mse = tf.metrics.mean_squared_error(y_true, y_pred)
             opt = tf.train.AdamOptimizer(self.learning_rate)
-            regularization = tf.add_n(tf.losses.get_regularization_losses())
-            loss = mae + regularization
+            loss = tf.losses.get_total_loss()
             self.loss.append(opt.minimize(loss, self.global_steps))
             self.train_metric['loss'] = loss
             self.metrics['mse'] = mse

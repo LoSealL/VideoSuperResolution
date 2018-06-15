@@ -11,6 +11,7 @@ Training environment callbacks preset
 from pathlib import Path
 from functools import partial
 import numpy as np
+from PIL.Image import Image
 
 from ..Util.ImageProcess import array_to_img, img_to_array, bicubic_rescale
 
@@ -91,8 +92,26 @@ def _stair_decay(lr, start_lr, epochs, steps, decay_step, decay_rate):
     return start_lr * decay_rate ** (steps // decay_step)
 
 
+def _eval_psnr(output, label, **kwargs):
+    if isinstance(output, Image):
+        output = img_to_array(output.convert('RGB'))
+    if isinstance(label, Image):
+        label = img_to_array(label.convert('RGB'))
+    if label.ndim == 4:
+        label = label[0]
+    assert output.shape == label.shape
+
+    mse = np.mean(np.square(output - label))
+    psnr = 20 * np.log10(255 / np.sqrt(mse))
+    print(f'PSNR = {psnr:.2f}dB')
+
+
 def save_image(save_dir='.'):
     return partial(_save_model_predicted_images, save_dir=save_dir)
+
+
+def print_psnr():
+    return _eval_psnr
 
 
 def reduce_residual(**kwargs):

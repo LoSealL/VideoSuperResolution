@@ -1,11 +1,9 @@
-from VSR.Framework.Envrionment import Environment
+from VSR.Framework.Envrionment import Environment as Env
 from VSR.DataLoader.Dataset import load_datasets
-from VSR.DataLoader.Loader import BatchLoader
-from VSR.Framework.Callbacks import *
-from VSR.Models.Srcnn import SRCNN
-from VSR.Models.Espcn import ESPCN
+from VSR.Framework.Callbacks import lr_decay
 
 import tensorflow as tf
+import numpy as np
 
 try:
     DATASETS = load_datasets('./Data/datasets.json')
@@ -13,24 +11,17 @@ except FileNotFoundError:
     DATASETS = load_datasets('../Data/datasets.json')
 
 BATCH_SIZE = 32
-EPOCHS = 200
+EPOCHS = 50
+
+from Exp import Exp
 
 
 def main(*args):
-    d = DATASETS['BSD-500']
+    m = Exp.SRCNN(scale=3)
+    d = DATASETS['91-IMAGE']
     d.setattr(patch_size=48, strides=48, random=False, max_patches=BATCH_SIZE * 100)
-    loader = BatchLoader(BATCH_SIZE, d, 'train', scale=4)
-    with tf.Session() as sess:
-        m = SRCNN(scale=4).compile()
-        sess.run(tf.global_variables_initializer())
-        for i in range(EPOCHS):
-            loader.reset()
-            # image_pairs = [x for x in loader]
-            rate = 1e-6 if i > 100 else 1e-4
-            for hr, lr in loader:
-                loss = m.train_batch(lr, hr, rate)
-                print(loss, end='\r')
-            print('')
+    with Env(m, '../Results/Exp/save', '../Results/Exp/log') as env:
+        env.fit(BATCH_SIZE, EPOCHS, d)
 
 
 if __name__ == '__main__':

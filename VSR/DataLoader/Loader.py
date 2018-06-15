@@ -122,7 +122,6 @@ class Loader(object):
         self.patch_size = Utility.shrink_mod_scale(self.patch_size, self.scale) if crop else None
         self.strides = Utility.shrink_mod_scale(self.strides, self.scale) if crop else None
 
-        print('loading files in dataset...')
         for vf in self.dataset:
             for _ in range(vf.frames // self.depth):
                 frames_hr = [ImageProcess.shrink_to_multiple_scale(img, self.scale) for img in
@@ -173,6 +172,8 @@ class BatchLoader:
             loop: if True, iterates infinitely
             kwargs: you can override attribute in the dataset
         """
+
+        print(f'Loading {method} data files...')
         self.loader = Loader(dataset, method, loop)
         self.loader.build_loader(scale=scale, **kwargs)
         self.batch = batch_size

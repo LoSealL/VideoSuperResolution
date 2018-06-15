@@ -8,7 +8,6 @@ Train models
 """
 
 import argparse, json
-import tensorflow as tf
 
 from model_alias import get_model
 from VSR.DataLoader.Dataset import load_datasets
@@ -28,13 +27,11 @@ def main(*args, **kwargs):
     args.add_argument('--epochs', type=int, default=200, help='training epochs')
     args.add_argument('--patch_size', type=int, default=48,
                       help='patch size of cropped training and validating sub-images')
-    args.add_argument('--stride', type=int, default=48, help='crop stride if random_patches is set 0')
+    args.add_argument('--strides', type=int, default=48, help='crop stride if random_patches is set 0')
     args.add_argument('--depth', type=int, default=1, help='image1 depth used for video sources')
-    args.add_argument('--shuffle', type=bool, default=False,
-                      help='shuffle frames in dataset, this operation will open all frames and may be slow')
     args.add_argument('--random_patches', type=int, default=0,
                       help='if set more than 0, use random crop to generate `random_patches` sub-image1 batches')
-    args.add_argument('--retrain', type=bool, default=False, help='retrain the model from scratch')
+    args.add_argument('--retrain', type=int, default=0, help='retrain the model from scratch')
     args.add_argument('--lr', type=float, default=1e-4, help='initial learning rate')
     args.add_argument('--lr_decay', type=float, default=1, help='learning rate decay')
     args.add_argument('--add_noise', type=float, default=None,
@@ -53,7 +50,7 @@ def main(*args, **kwargs):
 
     model = get_model(args.name)(scale=args.scale, **model_args)
     dataset = load_datasets(args.dataconfig)[args.dataset.upper()]
-    dataset.setattr(patch_size=args.patch_size, strides=args.stride, depth=args.depth)
+    dataset.setattr(patch_size=args.patch_size, strides=args.strides, depth=args.depth)
     if args.random_patches:
         dataset.setattr(random=True, max_patches=args.batch * args.random_patches)
     with Environment(model, f'{args.savedir}/{model.name}/save', f'{args.savedir}/{model.name}/log',
@@ -82,4 +79,4 @@ def main(*args, **kwargs):
 
 
 if __name__ == '__main__':
-    tf.app.run(main)
+    main()

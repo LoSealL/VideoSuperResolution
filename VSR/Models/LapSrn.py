@@ -53,8 +53,8 @@ class LapSRN(SuperResolution):
 
     def build_loss(self):
         with tf.variable_scope('loss'):
-            self.label.append(tf.placeholder(tf.uint8, [None, None, None, 1]))
-            y_true = [tf.cast(self.label[-1], tf.float32)]
+            self.label.append(tf.placeholder(tf.float32, [None, None, None, 1]))
+            y_true = [self.label[-1]]
             for _ in range(1, self.level):
                 y_true.append(bicubic_rescale(y_true[-1], 0.5))
             charbonnier = []
@@ -63,8 +63,7 @@ class LapSRN(SuperResolution):
                 charbonnier.append(tf.reduce_mean(tf.sqrt(tf.square(x - y) + self.epsilon2)))
                 mse.append(tf.reduce_mean(tf.squared_difference(y, x)))
             charbonnier_loss = tf.reduce_mean(charbonnier)
-            regularization = tf.add_n(tf.losses.get_regularization_losses())
-            loss = charbonnier_loss + regularization
+            loss = tf.add_n([charbonnier_loss] + tf.losses.get_regularization_losses())
             opt = tf.train.AdamOptimizer(self.learning_rate)
             self.loss.append(opt.minimize(loss, self.global_steps))
 

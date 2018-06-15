@@ -70,7 +70,7 @@ def pixel_shift(t, scale, c):
         # Here we are different from Equation 4 from the paper. That equation
         # is equivalent to switching 3 and 4 in `perm`. But I feel my
         # implementation is more natural.
-        t = tf.transpose(t, perm=[0, 1, 3, 2, 4, 5])  # S, H, r, H, r, C
+        t = tf.transpose(t, perm=[0, 1, 3, 2, 4, 5])  # B, H, r, W, r, C
         t = tf.reshape(t, [-1, H * r[1], W * r[0], C])
         return t
 

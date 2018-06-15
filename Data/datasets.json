@@ -34,6 +34,11 @@
       "val": ["SET5"],
       "test": ["SET5", "SET14"]
     },
+    "WATERLOO": {
+      "train": "WATERLOO",
+      "val": ["SET5", "SET14"],
+      "test": ["URBAN100", "SUNHAY80"]
+    },
     "DIV2K": {
       "train": "DIV2K-Train",
       "val": "DIV2K-Val",

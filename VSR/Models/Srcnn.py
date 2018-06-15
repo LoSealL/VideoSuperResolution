@@ -33,37 +33,19 @@ class SRCNN(SuperResolution):
             for i in range(1, self.layers - 1):
                 x = self.conv2d(x, f, ks[i], activation='relu', kernel_regularizer='l2',
                                 kernel_initializer='he_normal')
-            x = self.conv2d(x, 1, ks[-1], activation='relu', kernel_regularizer='l2', kernel_initializer='he_normal')
+            x = self.conv2d(x, 1, ks[-1], kernel_regularizer='l2', kernel_initializer='he_normal')
             self.outputs.append(x)
 
     def build_loss(self):
         with tf.variable_scope('loss'):
-            self.label.append(tf.placeholder(tf.float32, shape=[None, None, None, 1]))
-            y_true = self.label[-1]
-            y_pred = self.outputs[-1]
-            mse = tf.losses.mean_squared_error(y_true, y_pred)
-            tv_decay = 1e-4
-            tv_loss = tv_decay * tf.reduce_mean(tf.image.total_variation(y_pred))
-            regular_loss = tf.losses.get_regularization_losses()
-            if regular_loss is not []:
-                regular_loss = tf.add_n(tf.losses.get_regularization_losses())
-                loss = mse + regular_loss
-            else:
-                loss = mse
-            optimizer = tf.train.AdamOptimizer(self.learning_rate)
-            # self.grad = optimizer.compute_gradients(loss)
-            self.loss.append(optimizer.minimize(loss, self.global_steps))
+            mse, loss = super(SRCNN, self).build_loss()
             self.train_metric['loss'] = loss
             self.metrics['mse'] = mse
-            if regular_loss is not []:
-                self.metrics['regularization'] = regular_loss
-            self.metrics['tv'] = tv_loss
-            self.metrics['psnr'] = tf.reduce_mean(tf.image.psnr(y_true, y_pred, max_val=255))
-            self.metrics['ssim'] = tf.reduce_mean(tf.image.ssim(y_true, y_pred, max_val=255))
+            self.metrics['psnr'] = tf.reduce_mean(tf.image.psnr(self.label[-1], self.outputs[-1], max_val=255))
+            self.metrics['ssim'] = tf.reduce_mean(tf.image.ssim(self.label[-1], self.outputs[-1], max_val=255))
 
     def build_summary(self):
+        tf.summary.scalar('loss/training', self.train_metric['loss'])
         tf.summary.scalar('loss/mse', self.metrics['mse'])
-        if self.metrics.get('regularization') is not None:
-            tf.summary.scalar('loss/regularization', self.metrics['regularization'])
         tf.summary.scalar('psnr', self.metrics['psnr'])
         tf.summary.scalar('ssim', self.metrics['ssim'])
