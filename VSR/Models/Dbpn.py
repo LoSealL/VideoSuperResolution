@@ -28,7 +28,7 @@ class DBPN(SuperResolution):
         if s0 == 3:
             self.kernel_size = 7
         elif s0 == 2 or s0 == 4 or s0 == 8:
-            self.kernel_size = 4 + 2 * np.log2(s0)
+            self.kernel_size = int(4 + 2 * np.log2(s0))
 
     def build_graph(self):
         with tf.variable_scope(self.name):

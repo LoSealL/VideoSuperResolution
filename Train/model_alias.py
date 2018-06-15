@@ -12,6 +12,7 @@ __all__ = {
     'lapsrn': LapSrn.LapSRN,
     'drrn': Drrn.DRRN,
     'dbpn': Dbpn.DBPN,
+    'edsr': Edsr.EDSR,
 }
 
 

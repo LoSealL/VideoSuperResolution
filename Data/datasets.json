@@ -41,8 +41,8 @@
     },
     "DIV2K": {
       "train": "DIV2K-Train",
-      "val": "DIV2K-Val",
-      "test": ["SET5", "SET14", "URBAN100", "SUNHAY80"]
+      "val": ["SET5", "SET14"],
+      "test": ["DIV2K-Val"]
     },
     "MCL-V": {
       "train": "MCL-V",
@@ -53,7 +53,7 @@
     "GOPRO": {
       "train": ["GOPRO-Train"],
       "val": ["GOPRO-Val"],
-      "test": []
+      "test": ["GOPRO-Val"]
     }
   }
 }

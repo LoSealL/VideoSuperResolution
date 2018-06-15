@@ -9,5 +9,6 @@ __all__ = [
     'Drcn',
     'LapSrn',
     'Drrn',
-    'Dbpn'
+    'Dbpn',
+    'Edsr'
 ]
