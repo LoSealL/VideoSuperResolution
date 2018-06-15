@@ -3,7 +3,7 @@ Copyright: Intel Corp. 2018
 Author: Wenyi Tang
 Email: wenyi.tang@intel.com
 Created Date: May 9th 2018
-Updated Date: May 11th 2018
+Updated Date: June 15th 2018
 
 Framework for network model (tensorflow)
 """
@@ -11,7 +11,7 @@ import tensorflow as tf
 import numpy as np
 from pathlib import Path
 
-from ..Util.Utility import to_list
+from ..Util.Utility import to_list, prelu
 
 
 class SuperResolution(object):
@@ -232,6 +232,59 @@ class SuperResolution(object):
                **kwargs):
         """wrap a convolution for common use case"""
 
+        ki, kr = self._kernel(kernel_initializer, kernel_regularizer)
+        x = tf.layers.conv2d(x, filters, kernel_size, strides=strides, padding=padding, data_format=data_format,
+                             dilation_rate=dilation_rate, use_bias=use_bias, kernel_initializer=ki,
+                             kernel_regularizer=kr, **kwargs)
+        if use_batchnorm:
+            x = tf.layers.batch_normalization(x, training=self.training_phase)
+        activator = self._act(activation)
+        if activation:
+            x = activator(x)
+        return x
+
+    def deconv2d(self, x,
+                 filters,
+                 kernel_size,
+                 strides=(1, 1),
+                 padding='same',
+                 data_format='channels_last',
+                 activation=None,
+                 use_bias=True,
+                 use_batchnorm=False,
+                 kernel_initializer=None,
+                 kernel_regularizer=None,
+                 **kwargs):
+        """warp a conv2d_transpose op for simplicity usage"""
+
+        ki, kr = self._kernel(kernel_initializer, kernel_regularizer)
+        x = tf.layers.conv2d_transpose(x, filters, kernel_size, strides=strides, padding=padding,
+                                       data_format=data_format, use_bias=use_bias,
+                                       kernel_initializer=ki, kernel_regularizer=kr, **kwargs)
+        if use_batchnorm:
+            x = tf.layers.batch_normalization(x, training=self.training_phase)
+        activator = self._act(activation)
+        if activation:
+            x = activator(x)
+        return x
+
+    def _act(self, activation):
+        activator = None
+        if activation:
+            if isinstance(activation, str):
+                if activation == 'relu':
+                    activator = tf.nn.relu
+                elif activator == 'tanh':
+                    activator = tf.nn.tanh
+                elif activation == 'prelu':
+                    activator = prelu
+            elif callable(activation):
+                activator = activation
+            else:
+                raise ValueError('invalid activation!')
+        return activator
+
+    def _kernel(self, kernel_initializer, kernel_regularizer):
         ki = None
         if isinstance(kernel_initializer, str):
             if kernel_initializer == 'he_normal':
@@ -250,21 +303,4 @@ class SuperResolution(object):
             kr = kernel_regularizer
         elif kernel_regularizer:
             raise ValueError('invalid kernel regularizer!')
-        x = tf.layers.conv2d(x, filters, kernel_size, strides=strides, padding=padding, data_format=data_format,
-                             dilation_rate=dilation_rate, use_bias=use_bias, kernel_initializer=ki,
-                             kernel_regularizer=kr, **kwargs)
-        if use_batchnorm:
-            x = tf.layers.batch_normalization(x, training=self.training_phase)
-        activator = None
-        if activation:
-            if isinstance(activation, str):
-                if activation == 'relu':
-                    activator = tf.nn.relu
-                elif activator == 'tanh':
-                    activator = tf.nn.tanh
-            elif callable(activation):
-                activator = activation
-            else:
-                raise ValueError('invalid activation!')
-            x = activator(x)
-        return x
+        return ki, kr

@@ -15,19 +15,20 @@ The hyperlink directs to paper site, follows the official codes if the authors o
 
   5. Deep Recursive Residual Network: [**DRRN**](http://cvlab.cse.msu.edu/pdfs/Tai_Yang_Liu_CVPR2017.pdf) *https://github.com/tyshiwo/DRRN_CVPR17*
   6. Deep Laplacian Pyramid Networks: [**LapSRN**](http://vllab.ucmerced.edu/wlai24/LapSRN/) *https://github.com/phoenix104104/LapSRN*
+  7. Enhanced Deep Residual Networks: [**EDSR**](https://arxiv.org/abs/1707.02921)
 - ICCV 2017
 
-  7. Memory Network: [**MemNet**](https://arxiv.org/abs/1708.02209) *https://github.com/tyshiwo/MemNet*
+  8. Memory Network: [**MemNet**](https://arxiv.org/abs/1708.02209) *https://github.com/tyshiwo/MemNet*
 - CVPR 2018
 
-  8. Information Distillation Network: [**IDN**](https://arxiv.org/abs/1803.09454) *https://github.com/Zheng222/IDN-Caffe*
-  9. Residual Dense Network: [**RDN**](https://arxiv.org/abs/1802.08797) *https://github.com/yulunzhang/RDN*
-  10. Super-Resolution Network for Multiple Degradations: [**SRMD**](https://arxiv.org/abs/1712.06116) *https://github.com/cszn/SRMD*
-  11. Deep Back-Projection Networks: [**DBPN**](https://arxiv.org/abs/1803.02735) https://github.com/alterzero/DBPN-Pytorch
+  9. Information Distillation Network: [**IDN**](https://arxiv.org/abs/1803.09454) *https://github.com/Zheng222/IDN-Caffe*
+  10. Residual Dense Network: [**RDN**](https://arxiv.org/abs/1802.08797) *https://github.com/yulunzhang/RDN*
+  11. Super-Resolution Network for Multiple Degradations: [**SRMD**](https://arxiv.org/abs/1712.06116) *https://github.com/cszn/SRMD*
+  12. Deep Back-Projection Networks: [**DBPN**](https://arxiv.org/abs/1803.02735) https://github.com/alterzero/DBPN-Pytorch
 - Others
 
-  11. [**DNCNN**](http://ieeexplore.ieee.org/document/7839189/) (*This is for denoise*) *https://github.com/cszn/DnCNN*
-  12. Deep CNN
+  13. [**DNCNN**](http://ieeexplore.ieee.org/document/7839189/) (*This is for denoise*) *https://github.com/cszn/DnCNN*
+  14. Deep CNN
 with Skip Connection: [**DCSCN**](https://arxiv.org/abs/1707.05425) *https://github.com/jiny2001/dcscn-super-resolution*
 
 All these models are implemented in **ONE** framework.
@@ -87,7 +88,6 @@ You can also use [pre-made](./Train/train.py) script to train the models in VSR 
 See [readme](./Train/README.md) for details.
 
 ## Todo
-- [x] DRRN
-- [x] LapSRN
 - [ ] MemNet
-- [ ] DBPN
+- [ ] EDSR
+- [x] DBPN

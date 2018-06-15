@@ -84,6 +84,12 @@ def bicubic_rescale(img, scale):
         return tf.image.resize_bicubic(img, shape_enlarge[1:3])
 
 
+def prelu(x, name=None):
+    with tf.name_scope('PReLU'):
+        alphas = tf.Variable(tf.constant(0.1, shape=[x.shape[-1]]), name=name)
+        return tf.nn.relu(x) + tf.multiply(alphas, (x - tf.abs(x))) * 0.5
+
+
 def guassian_kernel(kernel_size, width):
     """generate a guassian kernel"""
 
