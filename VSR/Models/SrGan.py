@@ -12,16 +12,20 @@ from VSR.Framework.SuperResolution import SuperResolution
 from VSR.Util.Utility import *
 
 import tensorflow as tf
-import numpy as np
 
 
 class SRGAN(SuperResolution):
 
-    def __init__(self, glayers, dlayers, vgg_layer, init=False, name='srgan', **kwargs):
+    def __init__(self, glayers, dlayers, vgg_layer, init_steps=10000,
+                 mse_weight=1, gan_weight=1e-3, vgg_weight=2e-6,
+                 name='srgan', **kwargs):
         self.g_layers = glayers
         self.d_layers = dlayers
         self.vgg_layer = to_list(vgg_layer, 2)
-        self.init = init
+        self.init_steps = init_steps
+        self.mse_weight = mse_weight
+        self.gan_weight = gan_weight
+        self.vgg_weight = vgg_weight
         self.name = name
         super(SRGAN, self).__init__(**kwargs)
 
@@ -31,53 +35,51 @@ class SRGAN(SuperResolution):
 
     def summary(self):
         super(SRGAN, self).summary()
-        if self.init:
+        if self.global_steps.eval() <= self.init_steps:
             print('Initializing model using mse loss...')
         else:
             print('Training model using GAN loss...')
 
     def build_graph(self):
-        with tf.variable_scope(self.name):
+        with tf.variable_scope(self.name, reuse=tf.AUTO_REUSE):
             super(SRGAN, self).build_graph()
             x = self._build_generative(self.inputs_preproc[-1])
             self.outputs.append(x)
-            _, x = self._build_adversial(x)
-            self.outputs.append(x)
 
     def build_loss(self):
+        self.label.append(tf.placeholder(tf.float32, [None, None, None, 1]))
+        y_true = self.label[-1]
+        y_pred = self.outputs[-1]
+        with tf.variable_scope(self.name, reuse=tf.AUTO_REUSE):
+            _, y_fake = self._build_adversial(y_pred)
+            _, y_real = self._build_adversial(y_true)
         with tf.variable_scope('loss'):
-            self.label.append(tf.placeholder(tf.uint8, [None, None, None, 1]))
-            y_true = tf.cast(self.label[-1], tf.float32)
-            mse = tf.losses.mean_squared_error(y_true, self.outputs[0])
-            gan_loss = tf.losses.sigmoid_cross_entropy(tf.ones_like(self.outputs[1]), self.outputs[1], weights=1e-3)
-            vgg_label = self.vgg(y_true, self.vgg_layer[0], self.vgg_layer[1])
-            vgg_sr = self.vgg(self.outputs[0], self.vgg_layer[0], self.vgg_layer[1])
-            vgg_loss = tf.losses.mean_squared_error(vgg_label, vgg_sr, weights=2e-6)
-            generative_loss = mse + gan_loss + vgg_loss
-            g_init_loss = mse
-            _, reallogit = self._build_adversial(y_true)
-            discriminator_loss = tf.losses.sigmoid_cross_entropy(tf.ones_like(reallogit), reallogit) + \
-                                 tf.losses.sigmoid_cross_entropy(tf.zeros_like(self.outputs[1]), self.outputs[1])
+            mse = tf.losses.mean_squared_error(y_true, y_pred)
+            gan_loss = tf.losses.sigmoid_cross_entropy(tf.ones_like(y_fake), y_fake)
+            vgg_true = self.vgg(y_true, self.vgg_layer[0], self.vgg_layer[1])
+            vgg_pred = self.vgg(y_pred, self.vgg_layer[0], self.vgg_layer[1])
+            vgg_loss = tf.losses.mean_squared_error(vgg_true, vgg_pred)
+            generative_loss = [mse * self.mse_weight, gan_loss * self.gan_weight, vgg_loss * self.vgg_weight] + \
+                              tf.losses.get_regularization_losses(scope=f'{self.name}/Generative')
+            generative_loss = tf.add_n(generative_loss)
+            discriminator_loss = tf.losses.sigmoid_cross_entropy(tf.ones_like(y_real), y_real) + \
+                                 tf.losses.sigmoid_cross_entropy(tf.zeros_like(y_fake), y_fake)
+            discriminator_loss = tf.add_n([discriminator_loss] + \
+                                          tf.losses.get_regularization_losses(f'{self.name}/Adversarial'))
             update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
             with tf.control_dependencies(update_ops):
                 opt_g = tf.train.AdamOptimizer(self.learning_rate)
                 opt_d = tf.train.AdamOptimizer(self.learning_rate)
-                loss = [opt_g.minimize(g_init_loss, self.global_steps,
-                                       var_list=tf.trainable_variables(f'{self.name}/Generative')),
-                        opt_g.minimize(generative_loss, self.global_steps,
-                                       var_list=tf.trainable_variables(f'{self.name}/Generative')),
-                        opt_d.minimize(discriminator_loss, self.global_steps,
-                                       var_list=tf.trainable_variables(f'{self.name}/Adversarial'))]
-                if self.init:
-                    self.loss = loss[0:1]
-                else:
-                    self.loss = loss[1:]
-            if self.init:
-                self.train_metric['init_loss'] = g_init_loss
-            else:
-                self.train_metric['g_loss'] = gan_loss
-                self.train_metric['d_loss'] = discriminator_loss
-                self.train_metric['mse'] = mse
+                self.loss.append(opt_g.minimize(mse, self.global_steps,
+                                                var_list=tf.trainable_variables(f'{self.name}/Generative')))
+                self.loss.append(opt_g.minimize(generative_loss, self.global_steps,
+                                                var_list=tf.trainable_variables(f'{self.name}/Generative')))
+                self.loss.append(opt_d.minimize(discriminator_loss, self.global_steps,
+                                                var_list=tf.trainable_variables(f'{self.name}/Adversarial')))
+
+            self.train_metric['g_loss'] = generative_loss
+            self.train_metric['d_loss'] = discriminator_loss
+            self.train_metric['init_loss'] = mse
             self.metrics['mse'] = mse
             self.metrics['gan_loss'] = gan_loss
             self.metrics['vgg_loss'] = vgg_loss
@@ -92,6 +94,24 @@ class SRGAN(SuperResolution):
         tf.summary.scalar('loss/dis', self.metrics['d_loss'])
         tf.summary.scalar('psnr', self.metrics['psnr'])
         tf.summary.scalar('ssim', self.metrics['ssim'])
+
+    def train_batch(self, feature, label, learning_rate=1e-4, **kwargs):
+        feature = to_list(feature)
+        label = to_list(label)
+        feed_dict = {self.training_phase: True, self.learning_rate: learning_rate}
+        for i in range(len(self.inputs)):
+            feed_dict[self.inputs[i]] = feature[i]
+        for i in range(len(self.label)):
+            feed_dict[self.label[i]] = label[i]
+        if self.global_steps.eval() <= self.init_steps:
+            loss_op = self.loss[:1]
+        else:
+            loss_op = self.loss[1:]
+        loss = tf.get_default_session().run(list(self.train_metric.values()) + loss_op, feed_dict=feed_dict)
+        ret = {}
+        for k, v in zip(self.train_metric, loss):
+            ret[k] = v
+        return ret
 
     def _build_generative(self, inputs):
         with tf.variable_scope('Generative'):
@@ -120,7 +140,7 @@ class SRGAN(SuperResolution):
             return x
 
     def _build_adversial(self, inputs):
-        with tf.variable_scope('Adversarial', reuse=tf.AUTO_REUSE):
+        with tf.variable_scope('Adversarial'):
             x = self.conv2d(inputs, 64, 3, activation=tf.nn.leaky_relu, kernel_initializer='he_normal')
             filter = 64
             assert self.d_layers % 2 == 0

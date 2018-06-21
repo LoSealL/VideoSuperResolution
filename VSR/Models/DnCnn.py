@@ -16,9 +16,10 @@ import tensorflow as tf
 
 class DnCNN(SuperResolution):
 
-    def __init__(self, layers=20, name='dncnn', **kwargs):
+    def __init__(self, layers=20, use_bn=True, name='dncnn', **kwargs):
         self.name = name
         self.layers = layers
+        self.use_bn = use_bn
         if 'scale' in kwargs:
             kwargs.pop('scale')
         super(DnCNN, self).__init__(scale=1, **kwargs)
@@ -27,16 +28,16 @@ class DnCNN(SuperResolution):
         with tf.variable_scope(self.name):
             super(DnCNN, self).build_graph()  # build inputs placeholder
             # build layers
-            x = self.inputs_preproc[-1]  # use channel Y only
+            x = self.inputs_preproc[-1] / 255  # use channel Y only
             x = self.conv2d(x, 64, 3, activation='relu', kernel_initializer='he_normal', kernel_regularizer='l2')
             for i in range(1, self.layers - 1):
-                x = self.conv2d(x, 64, 3, activation='relu', use_batchnorm=True, use_bias=False,
+                x = self.conv2d(x, 64, 3, activation='relu', use_batchnorm=self.use_bn, use_bias=False,
                                 kernel_initializer='he_normal', kernel_regularizer='l2')
             # the last layer w/o BN and ReLU
             x = self.conv2d(x, 1, 3, kernel_initializer='he_normal', kernel_regularizer='l2')
             # residual training
-            outputs = self.inputs_preproc[-1] - x
-            self.outputs.append(outputs)
+            outputs = self.inputs_preproc[-1] / 255 - x
+            self.outputs.append(outputs * 255)
 
     def build_loss(self):
         with tf.variable_scope('loss'):

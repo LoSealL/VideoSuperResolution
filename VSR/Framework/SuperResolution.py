@@ -17,14 +17,13 @@ from ..Util.Utility import to_list, prelu
 class SuperResolution(object):
     r"""A utility class helps for building SR architectures easily
 
-    ==============
     Usage:
         Inherit from `SuperResolution` and implement:
-          - build_graph()
-          - build_loss()
-          - build_summary()
+          >>> build_graph()
+          >>> build_loss()
+          >>> build_summary()
         If you want to export gragh as a protobuf (say model.pb), implement:
-          - export_model_pb()
+          >>> export_model_pb()
         and call its super method at the end
     """
 

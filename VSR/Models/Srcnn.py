@@ -9,9 +9,12 @@ SRCNN mainly for framework tests
 Ref https://arxiv.org/abs/1501.00092
 """
 from ..Framework.SuperResolution import SuperResolution
-from ..Util.Utility import bicubic_rescale
+from ..Util.Utility import bicubic_rescale, to_list, ConvolutionDeltaOrthogonal
 import tensorflow as tf
 
+SCALE = 1
+SHIFT = 0
+convolutional_delta_orthogonal = ConvolutionDeltaOrthogonal
 
 class SRCNN(SuperResolution):
 
@@ -19,25 +22,39 @@ class SRCNN(SuperResolution):
         self.name = name
         self.layers = layers
         self.filters = filters
-        self.kernel_size = kernel
+        self.kernel_size = to_list(kernel)
+        if len(self.kernel_size) < self.layers:
+            self.kernel_size += to_list(kernel[-1], self.layers - len(self.kernel_size))
         super(SRCNN, self).__init__(scale=scale, **kwargs)
 
     def build_graph(self):
         with tf.variable_scope(self.name):
             super(SRCNN, self).build_graph()
-            x = bicubic_rescale(self.inputs_preproc[-1], self.scale)
+            x = self.inputs_preproc[-1] * SCALE + SHIFT
+            x = bicubic_rescale(x, self.scale)
             f = self.filters
             ks = self.kernel_size
-            x = self.conv2d(x, f, ks[0], activation='relu', kernel_regularizer='l2', kernel_initializer='he_normal')
+            x = self.conv2d(x, f, ks[0], activation='relu', use_batchnorm=False, kernel_regularizer='l2',
+                            kernel_initializer=convolutional_delta_orthogonal())
             for i in range(1, self.layers - 1):
-                x = self.conv2d(x, f, ks[i], activation='relu', kernel_regularizer='l2',
-                                kernel_initializer='he_normal')
-            x = self.conv2d(x, 1, ks[-1], kernel_regularizer='l2', kernel_initializer='he_normal')
-            self.outputs.append(x)
+                x = self.conv2d(x, f, ks[i], activation='relu', use_batchnorm=False, kernel_regularizer='l2',
+                                kernel_initializer=convolutional_delta_orthogonal())
+            x = self.conv2d(x, 1, ks[-1], use_batchnorm=False, kernel_regularizer='l2',
+                            kernel_initializer='he_normal')
+            self.outputs.append((x - SHIFT) / SCALE)
 
     def build_loss(self):
         with tf.variable_scope('loss'):
-            mse, loss = super(SRCNN, self).build_loss()
+            self.label.append(tf.placeholder(tf.float32, [None, None, None, 1], name='label'))
+            y_pred = self.outputs[-1] * SCALE + SHIFT
+            y_true = self.label[-1] * SCALE + SHIFT
+            opt = tf.train.AdamOptimizer(self.learning_rate)
+            mse = tf.losses.mean_squared_error(y_true, y_pred)
+            loss = tf.losses.get_total_loss()
+            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+            with tf.control_dependencies(update_ops):
+                self.loss.append(opt.minimize(loss, self.global_steps))
+            self.exp_loss()
             self.train_metric['loss'] = loss
             self.metrics['mse'] = mse
             self.metrics['psnr'] = tf.reduce_mean(tf.image.psnr(self.label[-1], self.outputs[-1], max_val=255))
@@ -48,3 +65,10 @@ class SRCNN(SuperResolution):
         tf.summary.scalar('loss/mse', self.metrics['mse'])
         tf.summary.scalar('psnr', self.metrics['psnr'])
         tf.summary.scalar('ssim', self.metrics['ssim'])
+        self.exp_summary()
+
+    def exp_loss(self):
+        pass
+
+    def exp_summary(self):
+        pass

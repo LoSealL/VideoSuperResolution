@@ -155,12 +155,12 @@ class Environment:
                     feature = fn(feature)
                 for fn in self.label_callbacks:
                     label = fn(label)
-                metrics, summary_op = self.model.validate_batch(feature=feature, label=label)
+                metrics, val_summary_op = self.model.validate_batch(feature=feature, label=label)
                 for k, v in metrics.items():
                     if k not in val_metrics:
                         val_metrics[k] = []
                     val_metrics[k] += [v]
-                summary_writer.add_summary(summary_op, global_step)
+                summary_writer.add_summary(val_summary_op, global_step)
             for k, v in val_metrics.items():
                 print(f'{k}: {np.asarray(v).mean():.6f}', end=', ')
             print('')

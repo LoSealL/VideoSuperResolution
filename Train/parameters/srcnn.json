@@ -1,3 +1,4 @@
 {
-  "layers": 3
+  "layers": 20,
+  "kernel": [3]
 }

@@ -1,0 +1,8 @@
+{
+  "glayers": 16,
+  "dlayers": 8,
+  "vgg_layer": [2, 2],
+  "init_steps": 1000,
+  "vgg_weight": 1,
+  "mse_weight": 0
+}

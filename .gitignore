@@ -4,6 +4,7 @@ seafile-ignore.txt
 __pycache__/
 *.egg-info/
 Results/
+Exp/
 UTest/**/
 .png
 .jpg

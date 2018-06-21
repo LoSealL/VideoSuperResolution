@@ -17,22 +17,22 @@ from ..Util.ImageProcess import array_to_img, img_to_array, bicubic_rescale
 
 
 def _sub_residual(**kwargs):
-    img = kwargs['input'] if 'input' in kwargs else None
-    res = kwargs['output'] if 'output' in kwargs else np.zeros_like(img)
+    img = kwargs.get('input')
+    res = kwargs.get('output') or np.zeros_like(img)
     res = res[0] if isinstance(res, list) else res
     return img - res
 
 
-def _save_model_predicted_images(**kwargs):
-    img = kwargs['output'] if 'output' in kwargs else None
-    save_dir = kwargs['save_dir'] if 'save_dir' in kwargs else '.'
-    step = kwargs['step'] if 'step' in kwargs else 0
-    if img is not None:
-        img = img[0] if isinstance(img, list) else img
+def _save_model_predicted_images(output, index, **kwargs):
+    save_dir = kwargs.get('save_dir') or '.'
+    step = kwargs.get('step') or 0
+    if output is not None:
+        img = output[index] if isinstance(output, list) else output
         img = _to_normalized_image(img)
         path = Path(f'{save_dir}/{step:03d}-predict.png')
         path.parent.mkdir(parents=True, exist_ok=True)
         img.convert('RGB').save(str(path))
+    return output
 
 
 def _colored_grayscale_image(output, input, label, **kwargs):
@@ -72,6 +72,11 @@ def _add_noise(feature, stddev, mean):
     return np.clip(x, 0, 255).astype('uint8')
 
 
+def _add_noise2(feature, stddev, mean):
+    x = feature.astype('float') + np.random.normal(mean, stddev, feature.shape)
+    return x
+
+
 def _add_random_noise(feature, low, high, step, mean):
     n = list(range(low, high, step))
     i = np.random.randint(len(n))
@@ -106,8 +111,8 @@ def _eval_psnr(output, label, **kwargs):
     print(f'PSNR = {psnr:.2f}dB')
 
 
-def save_image(save_dir='.'):
-    return partial(_save_model_predicted_images, save_dir=save_dir)
+def save_image(save_dir='.', output_index=0):
+    return partial(_save_model_predicted_images, save_dir=save_dir, index=output_index)
 
 
 def print_psnr():
@@ -137,7 +142,7 @@ def to_uv():
 
 
 def add_noise(sigma, mean=0):
-    return partial(_add_noise, stddev=sigma, mean=mean)
+    return partial(_add_noise2, stddev=sigma, mean=mean)
 
 
 def add_random_noise(low, high, step=1, mean=0):

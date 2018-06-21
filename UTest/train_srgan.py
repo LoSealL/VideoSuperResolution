@@ -1,4 +1,4 @@
-from Exp.SrGan import SRGAN
+from VSR.Models.SrGan import SRGAN
 from VSR.DataLoader.Dataset import load_datasets
 from VSR.Framework.Envrionment import Environment
 from VSR.Framework.Callbacks import *

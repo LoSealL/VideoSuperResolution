@@ -10,5 +10,6 @@ __all__ = [
     'LapSrn',
     'Drrn',
     'Dbpn',
-    'Edsr'
+    'Edsr',
+    'SrGan'
 ]

@@ -35,6 +35,7 @@ def main(*args, **kwargs):
     args.add_argument('--retrain', type=int, default=0, help='retrain the model from scratch')
     args.add_argument('--lr', type=float, default=1e-4, help='initial learning rate')
     args.add_argument('--lr_decay', type=float, default=1, help='learning rate decay')
+    args.add_argument('--lr_decay_step', type=int, default=1000, help='learning rate decay step')
     args.add_argument('--add_noise', type=float, default=None,
                       help='if not None, add noise with given stddev to input features')
     args.add_argument('--add_random_noise', type=list, default=None,
@@ -63,7 +64,9 @@ def main(*args, **kwargs):
 
         env.fit(args.batch, args.epochs, dataset, restart=args.retrain,
                 learning_rate=args.lr,
-                learning_rate_schedule=lr_decay('stair', args.lr, decay_step=1000, decay_rate=args.lr_decay))
+                learning_rate_schedule=lr_decay('stair', args.lr,
+                                                decay_step=args.lr_decay_step,
+                                                decay_rate=args.lr_decay))
         if args.test:
             # use callback to generate colored images from grayscale ones
             # all models inputs is gray image1 however
