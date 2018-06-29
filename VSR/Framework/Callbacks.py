@@ -67,22 +67,29 @@ def _to_normalized_image(img):
         raise ValueError('Invalid img data, must be an array of 2D image1 with channel less than 3')
 
 
-def _add_noise(feature, stddev, mean):
-    x = feature.astype('int32') + np.random.normal(mean, stddev, feature.shape)
-    return np.clip(x, 0, 255).astype('uint8')
-
-
-def _add_noise2(feature, stddev, mean):
+def _add_noise(feature, stddev, mean, clip):
     x = feature.astype('float') + np.random.normal(mean, stddev, feature.shape)
-    return x
+    return np.clip(x, 0, 255) if clip else x
 
 
-def _add_random_noise(feature, low, high, step, mean):
+def _add_random_noise(feature, low, high, step, mean, clip):
     n = list(range(low, high, step))
     i = np.random.randint(len(n))
     stddev = n[i]
-    x = feature.astype('int32') + np.random.normal(mean, stddev, feature.shape)
-    return np.clip(x, 0, 255).astype('uint8')
+    return _add_noise(feature, stddev, mean, clip)
+
+
+def _gaussian_blur(feature, width, size):
+    from scipy.ndimage.filters import gaussian_filter as gf
+
+    y = []
+    for img in np.split(feature, feature.shape[0]):
+        c = []
+        for channel in np.split(img, img.shape[-1]):
+            channel = np.squeeze(channel).astype('float')
+            c.append(gf(channel, width, mode='constant', truncate=(size // 2) / width))
+        y.append(np.stack(c, axis=-1))
+    return np.stack(y)
 
 
 def _exponential_decay(lr, start_lr, epochs, steps, decay_step, decay_rate):
@@ -141,12 +148,12 @@ def to_uv():
     return _uv_colored_image
 
 
-def add_noise(sigma, mean=0):
-    return partial(_add_noise2, stddev=sigma, mean=mean)
+def add_noise(sigma, mean=0, clip=False):
+    return partial(_add_noise, stddev=sigma, mean=mean, clip=clip)
 
 
-def add_random_noise(low, high, step=1, mean=0):
-    return partial(_add_random_noise, low=low, high=high, step=step, mean=mean)
+def add_random_noise(low, high, step=1, mean=0, clip=False):
+    return partial(_add_random_noise, low=low, high=high, step=step, mean=mean, clip=clip)
 
 
 def lr_decay(method, lr, **kwargs):
@@ -158,3 +165,7 @@ def lr_decay(method, lr, **kwargs):
         return partial(_stair_decay, start_lr=lr, **kwargs)
     else:
         raise ValueError('invalid decay method!')
+
+
+def blur(kernel_width, kernel_size, method='gaussian'):
+    return partial(_gaussian_blur, width=kernel_width, size=kernel_size)

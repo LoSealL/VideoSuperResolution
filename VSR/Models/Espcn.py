@@ -51,7 +51,7 @@ class ESPCN(SuperResolution):
             self.outputs.append(x * 255.0)
 
     def build_loss(self):
-        with tf.variable_scope('loss'):
+        with tf.name_scope('loss'):
             mse, loss = super(ESPCN, self).build_loss()
             self.train_metric['loss'] = loss
             self.metrics['mse'] = mse

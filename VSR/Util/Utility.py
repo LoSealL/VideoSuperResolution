@@ -202,7 +202,7 @@ class ConvolutionDeltaOrthogonal(tf.keras.initializers.Initializer):
         q, r = tf.qr(a, full_matrices=False)
         # Make Q uniform
         d = tf.diag_part(r)
-        # ph = d / math_ops.abs(d)
+        # ph = D / math_ops.abs(D)
         q *= tf.sign(d)
         q = q[:shape[-2], :]
         q *= tf.sqrt(tf.cast(self.gain, dtype=dtype))

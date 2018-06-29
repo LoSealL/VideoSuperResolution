@@ -53,7 +53,7 @@ class DBPN(SuperResolution):
             self.outputs.append(x)
 
     def build_loss(self):
-        with tf.variable_scope('loss'):
+        with tf.name_scope('loss'):
             mse, loss = super(DBPN, self).build_loss()
             self.train_metric['loss'] = loss
             self.metrics['mse'] = mse

@@ -35,7 +35,7 @@ class VDSR(SuperResolution):
             self.outputs.append(x + bic)
 
     def build_loss(self):
-        with tf.variable_scope('loss'):
+        with tf.name_scope('loss'):
             mse, loss = super(VDSR, self).build_loss()
             self.train_metric['loss'] = loss
             self.metrics['mse'] = mse

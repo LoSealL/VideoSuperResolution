@@ -117,14 +117,15 @@ class Environment:
         if learning_rate_schedule and callable(learning_rate_schedule):
             lr = learning_rate_schedule(lr, epochs=init_epoch, steps=global_step)
         train_loader = BatchLoader(batch, dataset, 'train', scale=self.model.scale, **kwargs)
-        val_loader = BatchLoader(1, dataset, 'val', scale=self.model.scale, crop=False, **kwargs)
+        dataset.setattr(random=True, max_patches=batch)
+        val_loader = BatchLoader(batch, dataset, 'val', scale=self.model.scale, crop=True, **kwargs)
         for epoch in range(init_epoch, epochs + 1):
             train_loader.reset()
             total_steps = len(train_loader)
-            equal_length_mod = total_steps // 20
+            equal_length_mod = max(total_steps // 20, 1)
             step_in_epoch = 0
             start_time = time.time()
-            date = time.strftime('%Y-%m-%d %T', time.localtime())
+            date = time.strftime('%Y-%m-%D %T', time.localtime())
             print(f'| {date} | Epoch: {epoch}/{epochs} | LR: {lr} |')
             for img in train_loader:
                 feature, label = img[self.fi], img[self.li]
@@ -193,7 +194,7 @@ class Environment:
                 feature = fn(feature)
             for fn in self.label_callbacks:
                 label = fn(label)
-            outputs = self.model.test_batch(feature, label)
+            outputs = self.model.test_batch(feature, None)
             for fn in self.output_callbacks:
                 outputs = fn(output=outputs, input=img[self.fi], label=img[self.li], step=step)
             step += 1

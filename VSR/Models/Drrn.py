@@ -40,7 +40,7 @@ class DRRN(SuperResolution):
             self.outputs.append(x + bic)
 
     def build_loss(self):
-        with tf.variable_scope('loss'):
+        with tf.name_scope('loss'):
             self.label.append(tf.placeholder(tf.float32, [None, None, None, 1]))
             y_true = self.label[-1]
             y_pred = self.outputs[-1]

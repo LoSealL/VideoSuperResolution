@@ -53,7 +53,7 @@ class SRGAN(SuperResolution):
         with tf.variable_scope(self.name, reuse=tf.AUTO_REUSE):
             _, y_fake = self._build_adversial(y_pred)
             _, y_real = self._build_adversial(y_true)
-        with tf.variable_scope('loss'):
+        with tf.name_scope('loss'):
             mse = tf.losses.mean_squared_error(y_true, y_pred)
             gan_loss = tf.losses.sigmoid_cross_entropy(tf.ones_like(y_fake), y_fake)
             vgg_true = self.vgg(y_true, self.vgg_layer[0], self.vgg_layer[1])

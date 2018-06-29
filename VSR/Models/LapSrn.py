@@ -52,7 +52,7 @@ class LapSRN(SuperResolution):
             self.outputs.reverse()
 
     def build_loss(self):
-        with tf.variable_scope('loss'):
+        with tf.name_scope('loss'):
             self.label.append(tf.placeholder(tf.float32, [None, None, None, 1]))
             y_true = [self.label[-1]]
             for _ in range(1, self.level):

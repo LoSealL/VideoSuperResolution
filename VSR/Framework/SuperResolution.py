@@ -273,7 +273,7 @@ class SuperResolution(object):
             if isinstance(activation, str):
                 if activation == 'relu':
                     activator = tf.nn.relu
-                elif activator == 'tanh':
+                elif activation == 'tanh':
                     activator = tf.nn.tanh
                 elif activation == 'prelu':
                     activator = prelu

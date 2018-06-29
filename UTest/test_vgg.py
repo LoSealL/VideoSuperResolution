@@ -5,7 +5,11 @@ from VSR.DataLoader.Loader import BatchLoader
 import tensorflow as tf
 import numpy as np
 
-data = load_datasets('../Data/datasets.json')['91-IMAGE']
+try:
+    DATASETS = load_datasets('./Data/datasets.json')
+except FileNotFoundError:
+    DATASETS = load_datasets('../Data/datasets.json')
+data = DATASETS['91-IMAGE']
 loader = BatchLoader(1, data, 'test', convert_to_gray=True, crop=False, scale=1)
 
 m = Vgg(input_shape=[None, None, 3], type='vgg19')

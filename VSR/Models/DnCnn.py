@@ -40,7 +40,7 @@ class DnCNN(SuperResolution):
             self.outputs.append(outputs * 255)
 
     def build_loss(self):
-        with tf.variable_scope('loss'):
+        with tf.name_scope('loss'):
             mse, loss = super(DnCNN, self).build_loss()
             self.train_metric['loss'] = loss
             self.metrics['mse'] = mse

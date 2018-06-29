@@ -21,15 +21,15 @@ if __name__ == '__main__':
         try:
             Loader(d, 'train')
         except ValueError as ex:
-            print(f'{d.name} load training set failed: {ex}')
+            print(f'{D.name} load training set failed: {ex}')
         try:
             Loader(d, 'val')
         except ValueError as ex:
-            print(f'{d.name} load validation set failed: {ex}')
+            print(f'{D.name} load validation set failed: {ex}')
         try:
             Loader(d, 'test')
         except ValueError as ex:
-            print(f'{d.name} load test set failed: {ex}')
+            print(f'{D.name} load test set failed: {ex}')
 
     # Test Reset
     loader = BatchLoader(1, DATASETS['91-IMAGE'], 'train', 3)

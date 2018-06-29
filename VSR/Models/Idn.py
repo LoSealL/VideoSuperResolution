@@ -62,7 +62,7 @@ class InformationDistillationNetwork(SuperResolution):
 
         """
 
-        with tf.variable_scope('loss'):
+        with tf.name_scope('loss'):
             self.label.append(tf.placeholder(tf.float32, shape=[None, None, None, 1]))
             y_true = self.label[-1]
             y_pred = self.outputs[-1]
@@ -93,7 +93,7 @@ class InformationDistillationNetwork(SuperResolution):
             Args:
                 inputs: input feature maps
                 D3: filters of the 3rd conv2d
-                d: according to paper, d = D3 - D1 = D1 - D2 = D6 - D4 = D4 - D5,
+                d: according to paper, D = D3 - D1 = D1 - D2 = D6 - D4 = D4 - D5,
                    where D3=D4, D_{i} is the filters of i-th conv2d
                 s: s is the number of channels sliced out from the 3rd conv2d
         """
