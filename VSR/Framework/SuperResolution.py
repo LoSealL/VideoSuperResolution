@@ -27,16 +27,18 @@ class SuperResolution(object):
         and call its super method at the end
     """
 
-    def __init__(self, scale, weight_decay=1e-4, rgb_input=False, **kwargs):
+    def __init__(self, scale, channel=1, weight_decay=1e-4, rgb_input=False, **kwargs):
         r"""Common initialize parameters
 
         Args:
             scale: the scale factor, can be a list of 2 integer to specify different stretch in width and height
+            channel: input color channel
             weight_decay: decay of L2 regularization on trainable weights
             rgb_input: if True, specify inputs as RGBA with 4 channels, otherwise the input is grayscale image1
         """
 
         self.scale = to_list(scale, repeat=2)
+        self.channel = channel
         self.weight_decay = weight_decay
         self.rgba = rgb_input
 
@@ -93,14 +95,14 @@ class SuperResolution(object):
         """
         if not self.rgba:
             self.inputs.append(tf.placeholder(tf.float32, shape=[None, None, None, None], name='input/lr/gray'))
-            self.inputs_preproc.append(self.inputs[-1][..., 1:])
-            self.inputs_preproc.append(self.inputs[-1][..., :1])
-            self.inputs_preproc[-1].set_shape([None, None, None, 1])
+            self.inputs_preproc.append(self.inputs[-1][..., self.channel:])
+            self.inputs_preproc.append(self.inputs[-1][..., :self.channel])
+            self.inputs_preproc[-1].set_shape([None, None, None, self.channel])
         else:
-            self.inputs.append(tf.placeholder(tf.uint8, shape=[None, None, None, 4], name='input/lr/rgba'))
+            self.inputs.append(tf.placeholder(tf.uint8, shape=[None, None, None, None], name='input/lr/rgba'))
             yuv = tf.cast(self.inputs[-1], tf.float32) / 255.0
-            yuv = tf.image.rgb_to_yuv(yuv[..., :-1])  # discard alpha channel
-            self.inputs_preproc.append(yuv[..., 1:])  # unscaled UV channel
+            yuv = tf.image.rgb_to_yuv(yuv[..., 0:3])  # discard alpha channel
+            self.inputs_preproc.append(yuv[..., 1:3])  # unscaled UV channel
             self.inputs_preproc.append(yuv[..., 0:1] * 255)  # scaled Y channel
 
     def build_loss(self):
@@ -112,7 +114,7 @@ class SuperResolution(object):
             You can also suppress this method and build your own loss function from scratch
         """
 
-        self.label.append(tf.placeholder(tf.float32, [None, None, None, 1], name='label'))
+        self.label.append(tf.placeholder(tf.float32, [None, None, None, self.channel], name='label'))
         opt = tf.train.AdamOptimizer(self.learning_rate)
         mse = tf.losses.mean_squared_error(self.label[-1], self.outputs[-1])
         loss = tf.losses.get_total_loss()

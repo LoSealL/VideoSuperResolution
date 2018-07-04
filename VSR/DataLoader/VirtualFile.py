@@ -32,11 +32,13 @@ class File:
         self.length = dict()
         mode = 'rb'  # mode must be 'rb'
         if self.path.is_file():
+            self.name = self.path.stem
             self.file = [self.path]
             with self.path.open(mode) as fd:
                 fd.seek(0, SEEK_END)
                 self.length[self.path.name] = fd.tell()
         elif self.path.is_dir():
+            self.name = self.path.stem  # TODO: is this right?
             for _file in self.path.glob('*'):
                 self.file.append(_file)
                 with _file.open(mode) as fd:

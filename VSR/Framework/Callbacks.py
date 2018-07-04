@@ -25,27 +25,28 @@ def _sub_residual(**kwargs):
 
 def _save_model_predicted_images(output, index, **kwargs):
     save_dir = kwargs.get('save_dir') or '.'
-    step = kwargs.get('step') or 0
+    name = kwargs.get('name')
     if output is not None:
         img = output[index] if isinstance(output, list) else output
         img = _to_normalized_image(img)
-        path = Path(f'{save_dir}/{step:03d}-predict.png')
+        path = Path(f'{save_dir}/{name}_PR.png')
         path.parent.mkdir(parents=True, exist_ok=True)
         img.convert('RGB').save(str(path))
     return output
 
 
-def _colored_grayscale_image(output, input, label, **kwargs):
-    img = output[0] if isinstance(output, list) else output
-    assert img.shape[-1] == 1
-    scale = np.array(img.shape[1:3]) // np.array(input.shape[1:3])
-    uv = array_to_img(input[0], 'YCbCr')
-    uv = bicubic_rescale(uv, scale)
-    uv = img_to_array(uv)[..., 1:]
-    img = np.concatenate([img[0], uv], axis=-1)
-    img = np.clip(img, 0, 255)
-    img = array_to_img(img, 'YCbCr')
-    return img
+def _colored_grayscale_image(outputs, input, **kwargs):
+    ret = []
+    for img in outputs:
+        assert img.shape[-1] == 1
+        scale = np.array(img.shape[1:3]) // np.array(input.shape[1:3])
+        uv = array_to_img(input[0], 'YCbCr')
+        uv = bicubic_rescale(uv, scale)
+        uv = img_to_array(uv)[..., 1:]
+        img = np.concatenate([img[0], uv], axis=-1)
+        img = np.clip(img, 0, 255)
+        ret.append(array_to_img(img, 'YCbCr'))
+    return ret
 
 
 def _to_normalized_image(img):
@@ -67,19 +68,19 @@ def _to_normalized_image(img):
         raise ValueError('Invalid img data, must be an array of 2D image1 with channel less than 3')
 
 
-def _add_noise(feature, stddev, mean, clip):
+def _add_noise(feature, stddev, mean, clip, **kwargs):
     x = feature.astype('float') + np.random.normal(mean, stddev, feature.shape)
     return np.clip(x, 0, 255) if clip else x
 
 
-def _add_random_noise(feature, low, high, step, mean, clip):
+def _add_random_noise(feature, low, high, step, mean, clip, **kwargs):
     n = list(range(low, high, step))
     i = np.random.randint(len(n))
     stddev = n[i]
     return _add_noise(feature, stddev, mean, clip)
 
 
-def _gaussian_blur(feature, width, size):
+def _gaussian_blur(feature, width, size, **kwargs):
     from scipy.ndimage.filters import gaussian_filter as gf
 
     y = []
@@ -135,15 +136,15 @@ def to_rgb(**kwargs):
 
 
 def to_gray():
-    def _gray_colored_image(input):
-        return input[..., 0:1]
+    def _gray_colored_image(inputs, **kwargs):
+        return inputs[..., 0:1]
 
     return _gray_colored_image
 
 
 def to_uv():
-    def _uv_colored_image(input):
-        return input[..., 1:]
+    def _uv_colored_image(inputs, **kwargs):
+        return inputs[..., 1:]
 
     return _uv_colored_image
 

@@ -57,7 +57,7 @@ class Environment:
         self.label_callbacks = label_callbacks or []
         self.output_callbacks = output_callbacks or []
         self.fi = feature_index if feature_index is not None else 1
-        self.li = label_index if feature_index is not None else 0
+        self.li = label_index if label_index is not None else 0
 
     def __enter__(self):
         """Create session of tensorflow and build model graph"""
@@ -128,11 +128,11 @@ class Environment:
             date = time.strftime('%Y-%m-%D %T', time.localtime())
             print(f'| {date} | Epoch: {epoch}/{epochs} | LR: {lr} |')
             for img in train_loader:
-                feature, label = img[self.fi], img[self.li]
+                feature, label, name = img[self.fi], img[self.li], str(img[-1])
                 for fn in self.feature_callbacks:
-                    feature = fn(feature)
+                    feature = fn(feature, name=name)
                 for fn in self.label_callbacks:
-                    label = fn(label)
+                    label = fn(label, name=name)
                 loss = self.model.train_batch(feature=feature, label=label, learning_rate=lr)
                 step_in_epoch += 1
                 global_step = self.model.global_steps.eval()
@@ -151,11 +151,11 @@ class Environment:
             val_metrics = {}
             val_loader.reset()
             for img in val_loader:
-                feature, label = img[self.fi], img[self.li]
+                feature, label, name = img[self.fi], img[self.li], str(img[-1])
                 for fn in self.feature_callbacks:
-                    feature = fn(feature)
+                    feature = fn(feature, name=name)
                 for fn in self.label_callbacks:
-                    label = fn(label)
+                    label = fn(label, name=name)
                 metrics, val_summary_op = self.model.validate_batch(feature=feature, label=label)
                 for k, v in metrics.items():
                     if k not in val_metrics:
@@ -187,17 +187,15 @@ class Environment:
         print('===================================')
         self.saver.restore(sess, str(ckpt_last))
         loader = BatchLoader(1, dataset, 'test', scale=self.model.scale, crop=False, **kwargs)
-        step = 0
         for img in loader:
-            feature, label = img[self.fi], img[self.li]
+            feature, label, name = img[self.fi], img[self.li], str(img[-1])
             for fn in self.feature_callbacks:
-                feature = fn(feature)
+                feature = fn(feature, name=name)
             for fn in self.label_callbacks:
-                label = fn(label)
+                label = fn(label, name=name)
             outputs = self.model.test_batch(feature, None)
             for fn in self.output_callbacks:
-                outputs = fn(output=outputs, input=img[self.fi], label=img[self.li], step=step)
-            step += 1
+                outputs = fn(outputs, input=img[self.fi], label=img[self.li], name=name)
 
     def predict(self, files, mode='pil-image1', depth=1, **kwargs):
         r"""Predict output for frames
@@ -215,17 +213,13 @@ class Environment:
         files = [Path(file) for file in to_list(files)]
         data = Dataset(test=files, mode=mode, depth=depth, **kwargs)
         loader = BatchLoader(1, data, 'test', scale=self.model.scale, crop=False, **kwargs)
-        step = 0
         for img in loader:
-            feature, label = img[self.fi], img[self.li]
+            feature, label, name = img[self.fi], img[self.li], str(img[-1])
             for fn in self.feature_callbacks:
-                feature = fn(feature)
-            for fn in self.label_callbacks:
-                label = fn(label)
-            outputs = self.model.test_batch(feature, label)
+                feature = fn(feature, name=name)
+            outputs = self.model.test_batch(feature, None)
             for fn in self.output_callbacks:
-                outputs = fn(output=outputs, input=feature, label=label, step=step)
-            step += 1
+                outputs = fn(outputs, input=img[self.fi], label=img[self.li], name=name)
 
     def export(self, export_dir='.'):
         """Export model as protobuf

@@ -25,10 +25,11 @@ The hyperlink directs to paper site, follows the official codes if the authors o
   10. Residual Dense Network: [**RDN**](https://arxiv.org/abs/1802.08797) *https://github.com/yulunzhang/RDN*
   11. Super-Resolution Network for Multiple Degradations: [**SRMD**](https://arxiv.org/abs/1712.06116) *https://github.com/cszn/SRMD*
   12. Deep Back-Projection Networks: [**DBPN**](https://arxiv.org/abs/1803.02735) https://github.com/alterzero/DBPN-Pytorch
+  13. Zero-Shot Super-Resolution: [**ZSSR**](http://www.wisdom.weizmann.ac.il/~vision/zssr/) https://github.com/assafshocher/ZSSR
 - Others
 
-  13. [**DNCNN**](http://ieeexplore.ieee.org/document/7839189/) (*This is for denoise*) *https://github.com/cszn/DnCNN*
-  14. Deep CNN
+  14. [**DNCNN**](http://ieeexplore.ieee.org/document/7839189/) (*This is for denoise*) *https://github.com/cszn/DnCNN*
+  15. Deep CNN
 with Skip Connection: [**DCSCN**](https://arxiv.org/abs/1707.05425) *https://github.com/jiny2001/dcscn-super-resolution*
 
 All these models are implemented in **ONE** framework.
@@ -89,5 +90,5 @@ See [readme](./Train/README.md) for details.
 
 ## Todo
 - [ ] MemNet
-- [ ] EDSR
-- [x] DBPN
+- [ ] ZSSR
+- [ ] SRMD

@@ -78,7 +78,7 @@ def main(*args, **kwargs):
             env.test(dataset, convert_to_gray=False)  # load image1 with 3 channels
     if args.export_pb:
         model = get_model(args.name)(scale=args.scale, rgb_input=True)
-        with Environment(model, f'../Results/{model.name}/save', f'../Results/{model.name}/log') as env:
+        with Environment(model, f'../Results/{model.name}/save_sc{args.scale}', f'../Results/{model.name}/log') as env:
             env.export(args.export_pb)
 
 

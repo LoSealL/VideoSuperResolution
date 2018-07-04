@@ -16,7 +16,9 @@
     "MCL-V": "d:/Datasets/MCL-V/train/*.yuv",
     "WATERLOO": "d:/Datasets/exploration_database_and_code/pristine_images/",
     "DIV2K-Train": "d:/Datasets/DIV2K/DIV2K_train_HR/",
-    "DIV2K-Val": "d:/Datasets/DIV2K/DIV2K_valid_HR/"
+    "DIV2K-Val": "d:/Datasets/DIV2K/DIV2K_valid_HR/",
+    "PIRM-SelfVal": "d:/Datasets/PIRM/PIRM_Self-Val_set/HR",
+    "PIRM-Val": "d:/Datasets/PIRM/PIRM_Self-Val_set/LR"
   },
   "Dataset": {
     "BSD": {
@@ -41,8 +43,13 @@
     },
     "DIV2K": {
       "train": "DIV2K-Train",
-      "val": ["SET5", "SET14"],
-      "test": ["DIV2K-Val"]
+      "val": ["DIV2K-Val"],
+      "test": ["SET5", "SET14"]
+    },
+    "PIRM": {
+      "train": ["DIV2K-Train"],
+      "val": ["PIRM-SelfVal"],
+      "test": ["PIRM-Val"]
     },
     "MCL-V": {
       "train": "MCL-V",
