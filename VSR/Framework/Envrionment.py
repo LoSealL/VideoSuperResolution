@@ -66,7 +66,7 @@ class Environment:
         sess.__enter__()
         if not self.model.compiled:
             self.model.compile()
-        self.saver = tf.train.Saver()
+        self.saver = tf.train.Saver(max_to_keep=10, allow_empty=True)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -107,6 +107,7 @@ class Environment:
         sess.run(tf.global_variables_initializer())
         ckpt_last = self._find_last_ckpt() if not restart else None
         init_epoch = self._parse_ckpt_name(ckpt_last) + 1
+        # saver = tf.train.Saver(var_list=tf.trainable_variables('psrn/ResGen'))
         if ckpt_last:
             print(f'Restoring from last epoch {ckpt_last}')
             self.saver.restore(sess, str(ckpt_last))
@@ -188,14 +189,14 @@ class Environment:
         self.saver.restore(sess, str(ckpt_last))
         loader = BatchLoader(1, dataset, 'test', scale=self.model.scale, crop=False, **kwargs)
         for img in loader:
-            feature, label, name = img[self.fi], img[self.li], str(img[-1])
+            feature, _, name = img[self.fi], img[self.li], str(img[-1])
             for fn in self.feature_callbacks:
                 feature = fn(feature, name=name)
-            for fn in self.label_callbacks:
-                label = fn(label, name=name)
+            # for fn in self.label_callbacks:
+            #     label = fn(label, name=name)
             outputs = self.model.test_batch(feature, None)
             for fn in self.output_callbacks:
-                outputs = fn(outputs, input=img[self.fi], label=img[self.li], name=name)
+                outputs = fn(outputs, input=img[self.fi], label=img[self.li], name=name, mode=loader.color_format)
 
     def predict(self, files, mode='pil-image1', depth=1, **kwargs):
         r"""Predict output for frames
@@ -219,7 +220,7 @@ class Environment:
                 feature = fn(feature, name=name)
             outputs = self.model.test_batch(feature, None)
             for fn in self.output_callbacks:
-                outputs = fn(outputs, input=img[self.fi], label=img[self.li], name=name)
+                outputs = fn(outputs, input=img[self.fi], label=img[self.li], name=name, mode=loader.color_format)
 
     def export(self, export_dir='.'):
         """Export model as protobuf

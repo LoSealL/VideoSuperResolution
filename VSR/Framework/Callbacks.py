@@ -23,12 +23,12 @@ def _sub_residual(**kwargs):
     return img - res
 
 
-def _save_model_predicted_images(output, index, **kwargs):
+def _save_model_predicted_images(output, index, mode='YCbCr', **kwargs):
     save_dir = kwargs.get('save_dir') or '.'
     name = kwargs.get('name')
     if output is not None:
         img = output[index] if isinstance(output, list) else output
-        img = _to_normalized_image(img)
+        img = _to_normalized_image(img, mode)
         path = Path(f'{save_dir}/{name}_PR.png')
         path.parent.mkdir(parents=True, exist_ok=True)
         img.convert('RGB').save(str(path))
@@ -49,7 +49,7 @@ def _colored_grayscale_image(outputs, input, **kwargs):
     return ret
 
 
-def _to_normalized_image(img):
+def _to_normalized_image(img, mode):
     img = np.asarray(img)
     # squeeze to [H, W, C]
     for i in range(np.ndim(img)):
@@ -57,16 +57,10 @@ def _to_normalized_image(img):
             img = np.squeeze(img, i)
         except ValueError:
             pass
-    if img.dtype == np.float32 and img.max() <= 1.0:
-        img = img * 255.0
     img = np.clip(img, 0, 255)
-    if img.ndim == 2:
-        return array_to_img(img, 'L')
-    elif img.ndim == 3:
-        return array_to_img(img, 'YCbCr')
-    else:
+    if img.ndim < 2 or img.ndim > 3:
         raise ValueError('Invalid img data, must be an array of 2D image1 with channel less than 3')
-
+    return array_to_img(img, mode)
 
 def _add_noise(feature, stddev, mean, clip, **kwargs):
     x = feature.astype('float') + np.random.normal(mean, stddev, feature.shape)
@@ -105,26 +99,27 @@ def _stair_decay(lr, start_lr, epochs, steps, decay_step, decay_rate):
     return start_lr * decay_rate ** (steps // decay_step)
 
 
-def _eval_psnr(output, label, **kwargs):
-    if isinstance(output, Image):
-        output = img_to_array(output.convert('RGB'))
+def _eval_psnr(outputs, label, max_val, name, **kwargs):
+    if not isinstance(outputs, list):
+        outputs = [outputs]
     if isinstance(label, Image):
         label = img_to_array(label.convert('RGB'))
-    if label.ndim == 4:
-        label = label[0]
-    assert output.shape == label.shape
-
-    mse = np.mean(np.square(output - label))
-    psnr = 20 * np.log10(255 / np.sqrt(mse))
-    print(f'PSNR = {psnr:.2f}dB')
-
-
-def save_image(save_dir='.', output_index=0):
-    return partial(_save_model_predicted_images, save_dir=save_dir, index=output_index)
+    for outp in outputs:
+        if isinstance(outp, Image):
+            outp = img_to_array(outp.convert('RGB'))
+        label = np.squeeze(label)
+        outp = np.squeeze(outp)
+        mse = np.mean(np.square(outp - label))
+        psnr = 20 * np.log10(max_val / np.sqrt(mse))
+        print(f'{name}\'s PSNR = {psnr:.2f}dB')
 
 
-def print_psnr():
-    return _eval_psnr
+def save_image(save_dir='.', output_index=0, **kwargs):
+    return partial(_save_model_predicted_images, save_dir=save_dir, index=output_index, **kwargs)
+
+
+def print_psnr(max_val=255.0):
+    return partial(_eval_psnr, max_val=max_val)
 
 
 def reduce_residual(**kwargs):

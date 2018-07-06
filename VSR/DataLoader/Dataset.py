@@ -70,7 +70,9 @@ def load_datasets(json_file):
         for name, value in config["Dataset"].items():
             assert isinstance(value, dict)
             datasets[name] = Dataset()
-            for i in ('train', 'val', 'test'):
+            for i in value:
+                if not i in ('train', 'val', 'test'):
+                    continue
                 sets = []
                 for j in to_list(value[i]):
                     try:

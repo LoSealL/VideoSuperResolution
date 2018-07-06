@@ -47,7 +47,6 @@ class SRGAN(SuperResolution):
             self.outputs.append(x)
 
     def build_loss(self):
-        self.label.append(tf.placeholder(tf.float32, [None, None, None, 1]))
         y_true = self.label[-1]
         y_pred = self.outputs[-1]
         with tf.variable_scope(self.name, reuse=tf.AUTO_REUSE):

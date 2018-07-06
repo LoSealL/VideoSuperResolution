@@ -63,7 +63,6 @@ class InformationDistillationNetwork(SuperResolution):
         """
 
         with tf.name_scope('loss'):
-            self.label.append(tf.placeholder(tf.float32, shape=[None, None, None, 1]))
             y_true = self.label[-1]
             y_pred = self.outputs[-1]
             mse = tf.losses.mean_squared_error(y_true, y_pred)

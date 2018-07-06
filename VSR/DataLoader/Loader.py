@@ -34,6 +34,7 @@ class Loader(object):
         self.scale = dataset.scale  # scale factor
         self.strides = dataset.strides  # crop strides when cropping in grid
         self.depth = dataset.depth  # the length of a video sequence
+        self.modcrop = dataset.modcrop or True
         self.loop = loop  # infinite iterate
         self.random = dataset.random and not (method == 'test')  # random crop, or gridded crop
         self.max_patches = dataset.max_patches  # max random crop patches
@@ -124,7 +125,7 @@ class Loader(object):
 
         for vf in self.dataset:
             for _ in range(vf.frames // self.depth):
-                frames_hr = [ImageProcess.shrink_to_multiple_scale(img, self.scale) for img in
+                frames_hr = [ImageProcess.shrink_to_multiple_scale(img, self.scale) if self.modcrop else img for img in
                              vf.read_frame(self.depth)]
                 frames_lr = [ImageProcess.bicubic_rescale(img, np.ones(2) / self.scale) for img in frames_hr]
                 self.frames.append((frames_hr, frames_lr, vf.name))
@@ -171,7 +172,7 @@ class BatchLoader:
             method: 'train', 'val', or 'test', each for different frames in datasets
             scale: scale factor
             loop: if True, iterates infinitely
-            convert_to: can be either 'gray', 'rgb' or 'yuv', case insensitive
+            convert_to: can be either 'gray', 'rgb' or 'ycbcr', case insensitive
             kwargs: you can override attribute in the dataset
         """
 

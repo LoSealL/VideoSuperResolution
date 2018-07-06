@@ -53,7 +53,6 @@ class LapSRN(SuperResolution):
 
     def build_loss(self):
         with tf.name_scope('loss'):
-            self.label.append(tf.placeholder(tf.float32, [None, None, None, 1]))
             y_true = [self.label[-1]]
             for _ in range(1, self.level):
                 y_true.append(bicubic_rescale(y_true[-1], 0.5))

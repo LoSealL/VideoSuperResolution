@@ -45,7 +45,6 @@ class SRCNN(SuperResolution):
 
     def build_loss(self):
         with tf.name_scope('loss'):
-            self.label.append(tf.placeholder(tf.float32, [None, None, None, 1], name='label'))
             y_pred = self.outputs[-1] * SCALE + SHIFT
             y_true = self.label[-1] * SCALE + SHIFT
             opt = tf.train.AdamOptimizer(self.learning_rate)

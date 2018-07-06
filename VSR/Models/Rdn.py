@@ -69,7 +69,6 @@ class ResidualDenseNetwork(SuperResolution):
     def build_loss(self):
         """In paper, authors use L1 loss instead of MSE error. Claimed a better perf."""
         with tf.name_scope('loss'):
-            self.label.append(tf.placeholder(tf.float32, shape=[None, None, None, 1]))
             y_true = self.label[-1]
             y_pred = self.outputs[-1]
             mae = tf.losses.absolute_difference(y_true, y_pred)

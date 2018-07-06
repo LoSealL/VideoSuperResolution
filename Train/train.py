@@ -75,7 +75,7 @@ def main(*args, **kwargs):
             if args.output_color == 'RGB':
                 env.output_callbacks += [to_rgb()]
             env.output_callbacks += [save_image(f'../Results/{model.name}/test')]
-            env.test(dataset, convert_to_gray=False)  # load image1 with 3 channels
+            env.test(dataset, convert_to='YUV')  # load image1 with 3 channels
     if args.export_pb:
         model = get_model(args.name)(scale=args.scale, rgb_input=True)
         with Environment(model, f'../Results/{model.name}/save_sc{args.scale}', f'../Results/{model.name}/log') as env:

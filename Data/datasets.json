@@ -18,9 +18,11 @@
     "DIV2K-Train": "d:/Datasets/DIV2K/DIV2K_train_HR/",
     "DIV2K-Val": "d:/Datasets/DIV2K/DIV2K_valid_HR/",
     "PIRM-SelfVal": "d:/Datasets/PIRM/PIRM_Self-Val_set/HR",
-    "PIRM-Val": "d:/Datasets/PIRM/PIRM_Self-Val_set/LR"
+    "PIRM-Test": "d:/Datasets/PIRM/PIRM_Self-Val_set/LR",
+    "PIRM-Val": "d:/Datasets/PIRM/PIRM_Val_set/LR"
   },
   "Dataset": {
+    "TEST": {"test": "SET14"},
     "BSD": {
       "train": ["BSD100"],
       "val": ["SET5"],

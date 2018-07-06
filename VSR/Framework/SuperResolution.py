@@ -104,6 +104,7 @@ class SuperResolution(object):
             yuv = tf.image.rgb_to_yuv(yuv[..., 0:3])  # discard alpha channel
             self.inputs_preproc.append(yuv[..., 1:3])  # unscaled UV channel
             self.inputs_preproc.append(yuv[..., 0:1] * 255)  # scaled Y channel
+        self.label.append(tf.placeholder(tf.float32, shape=[None, None, None, self.channel], name='label/hr'))
 
     def build_loss(self):
         """help to build mse loss via self.label[-1] and self.outputs[-1] for simplicity
@@ -114,7 +115,6 @@ class SuperResolution(object):
             You can also suppress this method and build your own loss function from scratch
         """
 
-        self.label.append(tf.placeholder(tf.float32, [None, None, None, self.channel], name='label'))
         opt = tf.train.AdamOptimizer(self.learning_rate)
         mse = tf.losses.mean_squared_error(self.label[-1], self.outputs[-1])
         loss = tf.losses.get_total_loss()
@@ -279,6 +279,8 @@ class SuperResolution(object):
                     activator = tf.nn.tanh
                 elif activation == 'prelu':
                     activator = prelu
+                elif activation == 'lrelu':
+                    activator = tf.nn.leaky_relu
             elif callable(activation):
                 activator = activation
             else:

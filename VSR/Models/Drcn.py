@@ -43,7 +43,6 @@ class DRCN(SuperResolution):
 
     def build_loss(self):
         with tf.name_scope('loss'):
-            self.label.append(tf.placeholder(tf.float32, [None, None, None, 1]))
             y_true = self.label[-1]
             mse_n = []
             for y_pred in self.outputs[1:]:
