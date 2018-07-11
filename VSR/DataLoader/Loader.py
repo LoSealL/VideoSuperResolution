@@ -34,7 +34,7 @@ class Loader(object):
         self.scale = dataset.scale  # scale factor
         self.strides = dataset.strides  # crop strides when cropping in grid
         self.depth = dataset.depth  # the length of a video sequence
-        self.modcrop = dataset.modcrop or True
+        self.modcrop = dataset.modcrop
         self.loop = loop  # infinite iterate
         self.random = dataset.random and not (method == 'test')  # random crop, or gridded crop
         self.max_patches = dataset.max_patches  # max random crop patches

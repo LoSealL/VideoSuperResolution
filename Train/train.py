@@ -55,7 +55,8 @@ def main(*args, **kwargs):
     dataset.setattr(patch_size=args.patch_size, strides=args.strides, depth=args.depth)
     if args.random_patches:
         dataset.setattr(random=True, max_patches=args.batch * args.random_patches)
-    with Environment(model, f'{args.savedir}/{model.name}/save', f'{args.savedir}/{model.name}/log',
+    save_root = f'{args.savedir}/{model.name}/sc{args.scale}'
+    with Environment(model, f'{save_root}/save', f'{save_root}/log',
                      feature_index=model.feature_index, label_index=model.label_index) as env:
         if args.add_noise:
             env.feature_callbacks = [add_noise(args.add_noise)]
@@ -74,11 +75,12 @@ def main(*args, **kwargs):
             env.label_callbacks = [to_gray()]
             if args.output_color == 'RGB':
                 env.output_callbacks += [to_rgb()]
-            env.output_callbacks += [save_image(f'../Results/{model.name}/test')]
+            env.output_callbacks += [save_image(f'{save_root}/test')]
             env.test(dataset, convert_to='YUV')  # load image1 with 3 channels
     if args.export_pb:
         model = get_model(args.name)(scale=args.scale, rgb_input=True)
-        with Environment(model, f'../Results/{model.name}/save_sc{args.scale}', f'../Results/{model.name}/log') as env:
+        with Environment(model, f'{save_root}/save', f'{save_root}/log',
+                         feature_index=model.feature_index, label_index=model.label_index) as env:
             env.export(args.export_pb)
 
 

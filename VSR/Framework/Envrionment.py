@@ -107,6 +107,8 @@ class Environment:
         sess.run(tf.global_variables_initializer())
         ckpt_last = self._find_last_ckpt() if not restart else None
         init_epoch = self._parse_ckpt_name(ckpt_last) + 1
+        if init_epoch > epochs:
+            return
         # saver = tf.train.Saver(var_list=tf.trainable_variables('psrn/ResGen'))
         if ckpt_last:
             print(f'Restoring from last epoch {ckpt_last}')
@@ -184,7 +186,7 @@ class Environment:
         sess.run(tf.global_variables_initializer())
         ckpt_last = self._find_last_ckpt()
         print('===================================')
-        print(f'Testing model: {self.model.name}')
+        print(f'Testing model: {self.model.name} by {ckpt_last}')
         print('===================================')
         self.saver.restore(sess, str(ckpt_last))
         loader = BatchLoader(1, dataset, 'test', scale=self.model.scale, crop=False, **kwargs)

@@ -31,6 +31,10 @@ def _save_model_predicted_images(output, index, mode='YCbCr', **kwargs):
         img = _to_normalized_image(img, mode)
         path = Path(f'{save_dir}/{name}_PR.png')
         path.parent.mkdir(parents=True, exist_ok=True)
+        rep = 1
+        while path.exists():
+            path = Path(f'{save_dir}/{name}_PR_{rep}.png')
+            rep += 1
         img.convert('RGB').save(str(path))
     return output
 
@@ -61,6 +65,7 @@ def _to_normalized_image(img, mode):
     if img.ndim < 2 or img.ndim > 3:
         raise ValueError('Invalid img data, must be an array of 2D image1 with channel less than 3')
     return array_to_img(img, mode)
+
 
 def _add_noise(feature, stddev, mean, clip, **kwargs):
     x = feature.astype('float') + np.random.normal(mean, stddev, feature.shape)

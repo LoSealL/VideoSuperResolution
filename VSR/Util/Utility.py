@@ -119,7 +119,7 @@ class Vgg:
     to obtain outputs of specific layers
     """
 
-    def __init__(self, include_top=False, input_shape=None, type='vgg16'):
+    def __init__(self, include_top=False, input_shape=None, type='vgg19'):
         with tf.variable_scope('VGG'):
             if np.size(input_shape) > 3:
                 input_shape = input_shape[-3:]
