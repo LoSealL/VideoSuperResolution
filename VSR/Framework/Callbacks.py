@@ -13,7 +13,7 @@ from functools import partial
 import numpy as np
 from PIL.Image import Image
 
-from ..Util.ImageProcess import array_to_img, img_to_array, bicubic_rescale
+from ..Util.ImageProcess import array_to_img, img_to_array, imresize
 
 
 def _sub_residual(**kwargs):
@@ -45,7 +45,7 @@ def _colored_grayscale_image(outputs, input, **kwargs):
         assert img.shape[-1] == 1
         scale = np.array(img.shape[1:3]) // np.array(input.shape[1:3])
         uv = array_to_img(input[0], 'YCbCr')
-        uv = bicubic_rescale(uv, scale)
+        uv = imresize(uv, scale)
         uv = img_to_array(uv)[..., 1:]
         img = np.concatenate([img[0], uv], axis=-1)
         img = np.clip(img, 0, 255)

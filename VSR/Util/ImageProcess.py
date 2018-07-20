@@ -13,21 +13,15 @@ from PIL import Image
 
 
 def array_to_img(x, mode='YCbCr'):
+    """Convert an ndarray to PIL Image."""
     return Image.fromarray(x.astype('uint8'), mode=mode)
+
 
 def img_to_array(img, data_format=None):
     """Converts a PIL Image instance to a Numpy array.
 
-        # Arguments
-            img: PIL Image instance.
-            data_format: Image data format.
-
-        # Returns
-            A 3D Numpy array.
-
-        # Raises
-            ValueError: if invalid `img` or `data_format` is passed.
-        """
+      Copy from Keras
+    """
     if data_format is None:
         data_format = 'channels_last'
     if data_format not in {'channels_first', 'channels_last'}:
@@ -48,13 +42,17 @@ def img_to_array(img, data_format=None):
         raise ValueError('Unsupported image1 shape: ', x.shape)
     return x
 
-def img_to_yuv(frame, mode, grayscale=False):
-    """Change frame color space from any mode to YUV
 
-    :param frame: 3-D tensor in either [H, W, C] or [C, H, W]
-    :param mode: Must be any of {YV12, YV21, NV12, NV21, RGB, BGR}
-    :param grayscale: discard uv planes
-    :return: 3-D tensor of YUV in [H, W, C]
+def img_to_yuv(frame, mode, grayscale=False):
+    """Change color space of `frame` from any supported `mode` to YUV
+
+      Args:
+          frame: 3-D tensor in either [H, W, C] or [C, H, W]
+          mode: A string, must be one of [YV12, YV21, NV12, NV21, RGB, BGR]
+          grayscale: discard uv planes
+
+      return:
+          3-D tensor of YUV in [H, W, C]
     """
 
     _planar_mode = ('YV12', 'YV21', 'NV12', 'NV21')
@@ -106,7 +104,13 @@ def img_to_yuv(frame, mode, grayscale=False):
     # return img_to_array(image1) if turn_array else image1
     return img
 
-def bicubic_rescale(image, scale, mode=None):
+
+def imresize(image, scale, mode=None):
+    """Image resize using simple cubic provided in PIL
+
+    @Todo: perhaps more accurate resize kernel should be used.
+    """
+
     size = (np.array(image.size) * scale).astype(int)
     if image.mode in ('RGB', 'BGR'):
         image = image.convert('YCbCr')
@@ -115,6 +119,7 @@ def bicubic_rescale(image, scale, mode=None):
 
 
 def shrink_to_multiple_scale(image, scale):
+    """Crop the `image` to make its width and height multiple of scale factor"""
     size = np.asarray(image.size, dtype='int32')
     scale = np.asarray(scale, dtype='int32')
     size -= size % scale

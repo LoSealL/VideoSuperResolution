@@ -85,6 +85,7 @@ class Environment:
             learning_rate=1e-4,
             learning_rate_schedule=None,
             restart=False,
+            validate_every_n_epoch=1,
             **kwargs):
         """Train the model.
 
@@ -130,6 +131,7 @@ class Environment:
             start_time = time.time()
             date = time.strftime('%Y-%m-%D %T', time.localtime())
             print(f'| {date} | Epoch: {epoch}/{epochs} | LR: {lr} |')
+            avg_meas = {}
             for img in train_loader:
                 feature, label, name = img[self.fi], img[self.li], str(img[-1])
                 for fn in self.feature_callbacks:
@@ -145,12 +147,17 @@ class Environment:
                 n_dots = total_steps // equal_length_mod - n_equals
                 bar = f'{step_in_epoch}/{total_steps} [' + '=' * n_equals + '.' * n_dots + ']'
                 for k, v in loss.items():
+                    avg_meas[k] = avg_meas[k] + v if avg_meas.get(k) else v
                     bar += f' {k}={v:.4f}'
                 print(bar, flush=True, end='\r')
             consumed_time = time.time() - start_time
-            print(f'\n| Time: {consumed_time:.4f}s, time per batch: {consumed_time * 1e3 / step_in_epoch:.4f}ms/b |',
-                  flush=True)
+            print()
+            for k, v in avg_meas.items():
+                print(f'| Epoch average {k} = {v / step_in_epoch:.6f} |')
+            print(f'| Time: {consumed_time:.4f}s, time per batch: {consumed_time * 1e3 / step_in_epoch:.4f}ms/b |', flush=True)
 
+            if epoch % validate_every_n_epoch:
+                continue
             val_metrics = {}
             val_loader.reset()
             for img in val_loader:

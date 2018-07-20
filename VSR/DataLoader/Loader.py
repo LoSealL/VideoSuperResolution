@@ -127,7 +127,7 @@ class Loader(object):
             for _ in range(vf.frames // self.depth):
                 frames_hr = [ImageProcess.shrink_to_multiple_scale(img, self.scale) if self.modcrop else img for img in
                              vf.read_frame(self.depth)]
-                frames_lr = [ImageProcess.bicubic_rescale(img, np.ones(2) / self.scale) for img in frames_hr]
+                frames_lr = [ImageProcess.imresize(img, np.ones(2) / self.scale) for img in frames_hr]
                 self.frames.append((frames_hr, frames_lr, vf.name))
             vf.reopen()
         print('files load finished, generating cropping meshes...')

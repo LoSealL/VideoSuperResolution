@@ -51,6 +51,7 @@ class SuperResolution(object):
         self.loss = []
         self.train_metric = {}
         self.metrics = {}
+        self.feed_dict = {}
         self.global_steps = None
         self.summary_op = None
         self.summary_writer = None
@@ -143,12 +144,12 @@ class SuperResolution(object):
 
         feature = to_list(feature)
         label = to_list(label)
-        feed_dict = {self.training_phase: True, self.learning_rate: learning_rate}
+        self.feed_dict.update({self.training_phase: True, self.learning_rate: learning_rate})
         for i in range(len(self.inputs)):
-            feed_dict[self.inputs[i]] = feature[i]
+            self.feed_dict[self.inputs[i]] = feature[i]
         for i in range(len(self.label)):
-            feed_dict[self.label[i]] = label[i]
-        loss = tf.get_default_session().run(list(self.train_metric.values()) + self.loss, feed_dict=feed_dict)
+            self.feed_dict[self.label[i]] = label[i]
+        loss = tf.get_default_session().run(list(self.train_metric.values()) + self.loss, feed_dict=self.feed_dict)
         ret = {}
         for k, v in zip(self.train_metric, loss):
             ret[k] = v
@@ -168,12 +169,12 @@ class SuperResolution(object):
 
         feature = to_list(feature)
         label = to_list(label)
-        feed_dict = {self.training_phase: False}
+        self.feed_dict.update({self.training_phase: False})
         for i in range(len(self.inputs)):
-            feed_dict[self.inputs[i]] = feature[i]
+            self.feed_dict[self.inputs[i]] = feature[i]
         for i in range(len(self.label)):
-            feed_dict[self.label[i]] = label[i]
-        metrics = tf.get_default_session().run(list(self.metrics.values()) + [self.summary_op], feed_dict=feed_dict)
+            self.feed_dict[self.label[i]] = label[i]
+        metrics = tf.get_default_session().run(list(self.metrics.values()) + [self.summary_op], feed_dict=self.feed_dict)
         ret = {}
         for k, v in zip(self.metrics, metrics[:-1]):
             ret[k] = v
@@ -193,15 +194,15 @@ class SuperResolution(object):
 
         feature = to_list(inputs)
         label = to_list(label)
-        feed_dict = {self.training_phase: False}
+        self.feed_dict.update({self.training_phase: False})
         for i in range(len(self.inputs)):
-            feed_dict[self.inputs[i]] = feature[i]
+            self.feed_dict[self.inputs[i]] = feature[i]
         if label:
             for i in range(len(self.label)):
-                feed_dict[self.label[i]] = label[i]
-            return tf.get_default_session().run(self.outputs + list(self.metrics.values()), feed_dict=feed_dict)
+                self.feed_dict[self.label[i]] = label[i]
+            return tf.get_default_session().run(self.outputs + list(self.metrics.values()), feed_dict=self.feed_dict)
         else:
-            return tf.get_default_session().run(self.outputs, feed_dict=feed_dict)
+            return tf.get_default_session().run(self.outputs, feed_dict=self.feed_dict)
 
     def export_model_pb(self, export_dir='.', export_name='model.pb', **kwargs):
         r"""export model as protobuf

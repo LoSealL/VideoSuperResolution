@@ -51,7 +51,11 @@
     "PIRM": {
       "train": ["DIV2K-Train"],
       "val": ["PIRM-SelfVal"],
-      "test": ["PIRM-Val"]
+      "test": ["PIRM-Test"]
+    },
+    "PIRM2018": {
+      "test": ["PIRM-Val"],
+      "param": {"modcrop": false}
     },
     "MCL-V": {
       "train": "MCL-V",
