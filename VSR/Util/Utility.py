@@ -138,20 +138,6 @@ def imfilter(image, kernel, name=None):
         return tf.nn.conv2d(image, _k, strides=[1, 1, 1, 1], padding='SAME', name=name)
 
 
-def wgan_gp(y_true, y_pred, discriminator, lamb=10):
-    """W-GAN Gradient penalty"""
-
-    if not callable(discriminator):
-        raise TypeError('Discriminator is not a callable!')
-    diff = y_pred - y_true
-    alpha = tf.random_uniform(tf.shape(diff), minval=0., maxval=1.)
-    interp = y_true + alpha * diff
-    gradients = tf.gradients(discriminator(interp), [interp])
-    slopes = tf.sqrt(tf.reduce_sum(tf.square(gradients[0]), reduction_indices=[1]))
-    gp = tf.reduce_mean((slopes - 1.) ** 2.)
-    return lamb * gp
-
-
 def pixel_norm(images, epsilon=1.0e-8, scale=1.0, bias=0):
     """Pixel normalization.
 

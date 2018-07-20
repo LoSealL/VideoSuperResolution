@@ -65,6 +65,7 @@ class SRGAN(SuperResolution):
                                  tf.losses.sigmoid_cross_entropy(tf.zeros_like(y_fake), y_fake)
             discriminator_loss = tf.add_n([discriminator_loss] + \
                                           tf.losses.get_regularization_losses(f'{self.name}/Adversarial'))
+
             update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
             with tf.control_dependencies(update_ops):
                 opt_g = tf.train.AdamOptimizer(self.learning_rate)
