@@ -6,7 +6,6 @@ VERSION = '0.2.14'
 REQUIRED_PACKAGES = [
     'numpy',
     'Image',
-    # 'tensorflow',
 ]
 
 if __name__ == '__main__':
@@ -18,6 +17,6 @@ if __name__ == '__main__':
         packages=find_packages(),
         install_requires=REQUIRED_PACKAGES,
         license='MIT',
-        maintainer='Wenyi Tang',
-        maintainer_email='wenyitang@outlook.com'
+        author='Wenyi Tang',
+        author_email='wenyitang@outlook.com'
     )
