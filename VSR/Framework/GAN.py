@@ -11,6 +11,11 @@ for generative adversarial networks
 from .SuperResolution import SuperResolution
 
 import tensorflow as tf
+import functools
+import numpy as np
+
+logging = tf.logging
+tfgan_eval = tf.contrib.gan.eval
 
 
 def Discriminator(net, input_shape=None, scope='Critic', use_bias=False):
@@ -147,3 +152,4 @@ def loss_relative_lsgan(y_true, y_pred, discriminator, average=False):
         d_loss = tf.reduce_mean((y_real - y_fake - 1) ** 2)
         g_loss = tf.reduce_mean((y_fake - y_real - 1) ** 2)
     return g_loss, d_loss
+

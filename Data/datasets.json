@@ -18,7 +18,8 @@
     "DIV2K-Train": "d:/Datasets/DIV2K/DIV2K_train_HR/",
     "DIV2K-Val": "d:/Datasets/DIV2K/DIV2K_valid_HR/",
     "PIRM-SelfVal": "d:/Datasets/PIRM/PIRM_Self-Val_set/HR",
-    "PIRM-Test": "d:/Datasets/PIRM/PIRM_Self-Val_set/LR",
+    "PIRM-SelfTest": "d:/Datasets/PIRM/PIRM_Self-Val_set/LR",
+    "PIRM-Test": "d:/Datasets/PIRM/PIRM_Test/LR",
     "PIRM-Val": "d:/Datasets/PIRM/PIRM_Val_set/LR"
   },
   "Dataset": {
@@ -51,10 +52,10 @@
     "PIRM": {
       "train": ["DIV2K-Train"],
       "val": ["PIRM-SelfVal"],
-      "test": ["PIRM-Test"]
+      "test": ["PIRM-SelfTest"]
     },
     "PIRM2018": {
-      "test": ["PIRM-Val"],
+      "test": ["PIRM-Test"],
       "param": {"modcrop": false}
     },
     "MCL-V": {

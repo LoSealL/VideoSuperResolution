@@ -24,6 +24,7 @@ class Dataset:
         # default attr
         self._args['mode'] = 'pil-image1' if not 'mode' in kwargs else kwargs['mode']
         self._args['depth'] = 1 if not 'depth' in kwargs else kwargs['depth']
+        self._args['modcrop'] = True if not 'modcrop' in kwargs else kwargs['depth']
 
     def __getattr__(self, item):
         if item in self._args:

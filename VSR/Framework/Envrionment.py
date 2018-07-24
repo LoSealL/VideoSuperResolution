@@ -85,6 +85,7 @@ class Environment:
             learning_rate=1e-4,
             learning_rate_schedule=None,
             restart=False,
+            validate_numbers=1,
             validate_every_n_epoch=1,
             **kwargs):
         """Train the model.
@@ -97,6 +98,7 @@ class Environment:
             learning_rate_schedule: a callable to adjust learning rate. The signature is
                                     `fn(learning_rate, epochs, steps, loss)`
             restart: if True, start training from scratch, regardless of saved checkpoints
+            validate_every_n_epoch: run validation every n epochs
         """
 
         sess = tf.get_default_session()
@@ -121,7 +123,7 @@ class Environment:
         if learning_rate_schedule and callable(learning_rate_schedule):
             lr = learning_rate_schedule(lr, epochs=init_epoch, steps=global_step)
         train_loader = BatchLoader(batch, dataset, 'train', scale=self.model.scale, **kwargs)
-        dataset.setattr(random=True, max_patches=batch)
+        dataset.setattr(random=True, max_patches=batch * validate_numbers)
         val_loader = BatchLoader(batch, dataset, 'val', scale=self.model.scale, crop=True, **kwargs)
         for epoch in range(init_epoch, epochs + 1):
             train_loader.reset()
@@ -138,7 +140,7 @@ class Environment:
                     feature = fn(feature, name=name)
                 for fn in self.label_callbacks:
                     label = fn(label, name=name)
-                loss = self.model.train_batch(feature=feature, label=label, learning_rate=lr)
+                loss = self.model.train_batch(feature=feature, label=label, learning_rate=lr, epochs=epoch)
                 step_in_epoch += 1
                 global_step = self.model.global_steps.eval()
                 if learning_rate_schedule and callable(learning_rate_schedule):
@@ -166,7 +168,7 @@ class Environment:
                     feature = fn(feature, name=name)
                 for fn in self.label_callbacks:
                     label = fn(label, name=name)
-                metrics, val_summary_op = self.model.validate_batch(feature=feature, label=label)
+                metrics, val_summary_op = self.model.validate_batch(feature=feature, label=label, epochs=epoch)
                 for k, v in metrics.items():
                     if k not in val_metrics:
                         val_metrics[k] = []
