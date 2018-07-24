@@ -75,10 +75,11 @@ class Loader(object):
         while True:
             np.random.shuffle(self.grid)
             for frames_hr, frames_lr, x, y, name in self.grid:
+                assert x % self.scale[0] == 0 and y % self.scale[1] == 0
                 patch_size = self.patch_size or frames_hr[0].size
-                box = np.array([x, y, x + patch_size[0] // self.scale[0], y + patch_size[1] // self.scale[1]])
-                crop_hr = [img.crop(box * [*self.scale, *self.scale]) for img in frames_hr]
-                crop_lr = [img.crop(box) for img in frames_lr]
+                box = np.array([x, y, x + patch_size[0], y + patch_size[1]])
+                crop_hr = [img.crop(box) for img in frames_hr]
+                crop_lr = [img.crop(box // [*self.scale, *self.scale]) for img in frames_lr]
                 yield crop_hr, crop_lr, name
             if not self.loop:
                 break
@@ -92,12 +93,12 @@ class Loader(object):
                 rand_index = np.random.randint(len(self.frames), size=self.max_patches)
                 for i in rand_index:
                     hr, lr, name = self.frames[i]
-                    _w, _h = lr[0].width, lr[0].height
+                    _w, _h = hr[0].width, hr[0].height
                     _pw, _ph = self.patch_size or [_w, _h]
-                    _pw //= self.scale[0]
-                    _ph //= self.scale[1]
                     x = np.random.randint(0, _w - _pw + 1)
+                    x -= x % self.scale[0]
                     y = np.random.randint(0, _h - _ph + 1)
+                    y -= y % self.scale[1]
                     self.grid.append((hr, lr, x, y, name))
             self.batch_iterator = self._build_iter()
         self.built = True
@@ -138,22 +139,18 @@ class Loader(object):
             rand_index = np.random.randint(len(self.frames), size=self.max_patches)
             for i in rand_index:
                 hr, lr, name = self.frames[i]
-                _w, _h = lr[0].width, lr[0].height
+                _w, _h = hr[0].width, hr[0].height
                 _pw, _ph = self.patch_size or [_w, _h]
-                _pw //= self.scale[0]
-                _ph //= self.scale[1]
                 x = np.random.randint(0, _w - _pw + 1)
+                x -= x % self.scale[0]
                 y = np.random.randint(0, _h - _ph + 1)
+                y -= y % self.scale[1]
                 self.grid.append((hr, lr, x, y, name))
         else:
             for hr, lr, name in self.frames:
-                _w, _h = lr[0].width, lr[0].height
+                _w, _h = hr[0].width, hr[0].height
                 _sw, _sh = self.strides or [_w, _h]
                 _pw, _ph = self.patch_size or [_w, _h]
-                _sw //= self.scale[0]
-                _sh //= self.scale[1]
-                _pw //= self.scale[0]
-                _ph //= self.scale[1]
                 x, y = np.mgrid[0:_w - _pw - (_w - _pw) % _sw + _sw:_sw,
                        0:_h - _ph - (_h - _ph) % _sh + _sh:_sh]
                 self.grid += [(hr, lr, _x, _y, name) for _x, _y in zip(x.flatten(), y.flatten())]
