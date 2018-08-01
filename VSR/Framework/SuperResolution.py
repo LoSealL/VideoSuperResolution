@@ -8,10 +8,9 @@ Updated Date: June 15th 2018
 Framework for network model (tensorflow)
 """
 import tensorflow as tf
-import numpy as np
 from pathlib import Path
 
-from ..Util.Utility import to_list, prelu
+from ..Util.Utility import to_list, prelu, pixel_shift
 
 
 class SuperResolution(object):
@@ -149,7 +148,8 @@ class SuperResolution(object):
             self.feed_dict[self.inputs[i]] = feature[i]
         for i in range(len(self.label)):
             self.feed_dict[self.label[i]] = label[i]
-        loss = tf.get_default_session().run(list(self.train_metric.values()) + self.loss, feed_dict=self.feed_dict)
+        loss = kwargs.get('loss') or self.loss
+        loss = tf.get_default_session().run(list(self.train_metric.values()) + loss, feed_dict=self.feed_dict)
         ret = {}
         for k, v in zip(self.train_metric, loss):
             ret[k] = v
@@ -308,3 +308,51 @@ class SuperResolution(object):
         elif kernel_regularizer:
             raise ValueError('invalid kernel regularizer!')
         return ki, kr
+
+    def upscale(self, image, method='espcn', **kwargs):
+        """Image up-scale layer"""
+        _allowed_method = ('espcn', 'nearest', 'deconv')
+        assert str(method).lower() in _allowed_method
+        method = str(method).lower()
+        act = kwargs.get('activator')
+
+        scale_x, scale_y = self.scale
+        while scale_x > 1 or scale_y > 1:
+            if scale_x % 2 == 1 or scale_y % 2 == 1:
+                if method == 'espcn':
+                    image = pixel_shift(self.conv2d(
+                        image, self.channel * scale_x * scale_y, 3,
+                        kernel_initializer='he_normal',
+                        kernel_regularizer='l2'), self.scale, self.channel)
+                elif method == 'nearest':
+                    image = pixel_shift(
+                        tf.concat([image] * self.scale[0] * self.scale[1], -1),
+                        self.scale,
+                        image.shape[-1])
+                elif method == 'deconv':
+                    image = self.deconv2d(image, self.channel, 3,
+                                          strides=self.scale,
+                                          kernel_initializer='he_normal')
+                if act:
+                    image = act(image)
+                break
+            else:
+                scale_x //= 2
+                scale_y //= 2
+                if method == 'espcn':
+                    image = pixel_shift(self.conv2d(
+                        image, self.channel * 4, 3,
+                        kernel_initializer='he_normal',
+                        kernel_regularizer='l2'), [2, 2], self.channel)
+                elif method == 'nearest':
+                    image = pixel_shift(
+                        tf.concat([image] * 4, -1),
+                        [2, 2],
+                        image.shape[-1])
+                elif method == 'deconv':
+                    image = self.deconv2d(image, self.channel, 3,
+                                          strides=2,
+                                          kernel_initializer='he_normal')
+                if act:
+                    image = act(image)
+        return image

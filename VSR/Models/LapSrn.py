@@ -37,12 +37,14 @@ class LapSRN(SuperResolution):
             with tf.variable_scope('FeatureExtraction'):
                 for lv in range(self.level):
                     for _ in range(self.layers[lv] - 1):
-                        x = self.conv2d(x, 64, 3, activation=tf.nn.leaky_relu, kernel_initializer='he_normal',
+                        x = self.conv2d(x, 64, 3, activation='lrelu',
+                                        kernel_initializer='he_normal',
                                         kernel_regularizer='l2')
-                    x = tf.layers.conv2d_transpose(x, 64, 4, 2, padding='same', activation=tf.nn.leaky_relu,
-                                                   kernel_initializer=tf.keras.initializers.he_normal(),
-                                                   kernel_regularizer=tf.keras.regularizers.l2(self.weight_decay))
-                    x = self.conv2d(x, 1, 3, kernel_initializer='he_normal', kernel_regularizer='l2')
+                    x = self.deconv2d(x, 64, 4, 2, activation='lrelu',
+                                      kernel_initializer='he_normal',
+                                      kernel_regularizer='l2')
+                    x = self.conv2d(x, self.channel, 3,
+                                    kernel_initializer='he_normal', kernel_regularizer='l2')
                     residual.append(x)
             with tf.name_scope('Reconstruction'):
                 y = self.inputs_preproc[-1]

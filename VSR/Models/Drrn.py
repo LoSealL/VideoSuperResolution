@@ -36,7 +36,7 @@ class DRRN(SuperResolution):
             x = bic
             for i in range(self.rb):
                 x = self._make_resblock(i, x)
-            x = self.conv2d(x, 1, 3, kernel_initializer='he_normal', kernel_regularizer='l2')
+            x = self.conv2d(x, self.channel, 3, kernel_initializer='he_normal', kernel_regularizer='l2')
             self.outputs.append(x + bic)
 
     def build_loss(self):

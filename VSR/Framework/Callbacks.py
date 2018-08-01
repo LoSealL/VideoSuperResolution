@@ -119,7 +119,7 @@ def _eval_psnr(outputs, label, max_val, name, **kwargs):
         print(f'{name}\'s PSNR = {psnr:.2f}dB')
 
 
-def save_image(save_dir='.', output_index=0, **kwargs):
+def save_image(save_dir='.', output_index=-1, **kwargs):
     return partial(_save_model_predicted_images, save_dir=save_dir, index=output_index, **kwargs)
 
 

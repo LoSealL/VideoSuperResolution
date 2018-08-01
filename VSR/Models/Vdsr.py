@@ -31,19 +31,25 @@ class VDSR(SuperResolution):
             for _ in range(self.layers - 1):
                 x = self.conv2d(x, self.filters, 3, activation='relu', kernel_initializer='he_normal',
                                 kernel_regularizer='l2')
-            x = self.conv2d(x, 1, 3, kernel_initializer='he_normal', kernel_regularizer='l2')
+            x = self.conv2d(x, self.channel, 3, kernel_initializer='he_normal', kernel_regularizer='l2')
             self.outputs.append(x + bic)
 
     def build_loss(self):
         with tf.name_scope('loss'):
-            mse, loss = super(VDSR, self).build_loss()
+            opt = tf.train.AdamOptimizer(self.learning_rate)
+            mae = tf.losses.absolute_difference(self.label[-1], self.outputs[-1])
+            loss = tf.losses.get_total_loss()
+            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+            with tf.control_dependencies(update_ops):
+                self.loss.append(opt.minimize(loss, self.global_steps))
+
             self.train_metric['loss'] = loss
-            self.metrics['mse'] = mse
+            self.metrics['mae'] = mae
             self.metrics['psnr'] = tf.reduce_mean(tf.image.psnr(self.label[-1], self.outputs[-1], max_val=255))
             self.metrics['ssim'] = tf.reduce_mean(tf.image.ssim(self.label[-1], self.outputs[-1], max_val=255))
 
     def build_summary(self):
         tf.summary.scalar('loss/training', self.train_metric['loss'])
-        tf.summary.scalar('loss/mse', self.metrics['mse'])
+        tf.summary.scalar('loss/mae', self.metrics['mae'])
         tf.summary.scalar('psnr', self.metrics['psnr'])
         tf.summary.scalar('ssim', self.metrics['ssim'])

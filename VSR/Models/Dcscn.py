@@ -64,15 +64,13 @@ class DCSCN(SuperResolution):
                 b2 = self.conv2d(b1, self.nin_filter[1], 3, activation='relu', use_batchnorm=True,
                                  kernel_initializer='he_normal', kernel_regularizer='l2')
             concat_nin = tf.concat([a1, b2], axis=-1)
-            ps = self.conv2d(concat_nin, self.scale[0] * self.scale[1], 3, kernel_initializer='he_normal',
-                             kernel_regularizer='l2')
-            ps = pixel_shift(ps, self.scale, 1)
+            ps = self.upscale(concat_nin)
             with tf.variable_scope('Reconstruction'):
                 for i in range(self.reconstruction_layers - 1):
                     ps = self.conv2d(ps, self.reconst_filter, 3, activation='relu', kernel_initializer='he_normal',
                                      kernel_regularizer='l2')
                     ps = tf.nn.dropout(ps, drop_out)
-                outputs = self.conv2d(ps, 1, 3, kernel_initializer='he_normal', kernel_regularizer='l2')
+                outputs = self.conv2d(ps, self.channel, 3, kernel_initializer='he_normal', kernel_regularizer='l2')
             self.outputs.append(outputs + bic)
 
     def build_loss(self):

@@ -6,8 +6,8 @@ import tensorflow as tf
 from scipy import linalg
 import pathlib
 
-PTH1 = "D:/works/pywork/VideoSuperResolution/Results/Exp/Rdn/rlsgan_batch_crop_feat/test"
-PTH2 = "D:/Datasets/DIV2K/DIV2K_train_HR"
+PTH1 = "d:/Works/pywork/VideoSuperResolution/Results/vdsr/sc4/output"
+PTH2 = "D:/Datasets/91-image/"
 INP = "D:/works/pywork/VideoSuperResolution/Data/"
 
 
@@ -198,8 +198,8 @@ def _handle_path(path, sess):
         f.close()
     else:
         path = pathlib.Path(path)
-        files = list(path.glob('*.jpg')) + list(path.glob('*.png'))
-        images = Dataset(train=files, patch_size=96, random=True, max_patches=200 * 50)
+        files = list(path.glob('*.jpg')) + list(path.glob('*.png')) + list(path.glob('*.bmp'))
+        images = Dataset(train=files, patch_size=48, strides=48)
         loader = BatchLoader(50, images, 'train', 1, convert_to='RGB')
         x = np.concatenate([img[0] for img in loader])
         m, s = calculate_activation_statistics(x, sess)
@@ -227,9 +227,7 @@ if __name__ == "__main__":
     from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--gpu", default="", type=str,
-                        help='GPU to use (leave blank for CPU only)')
+    parser.add_argument('pth', type=str, help="input path")
     args = parser.parse_args()
-    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
-    fid_value = calculate_fid_given_paths([PTH1, PTH2], INP)
+    fid_value = calculate_fid_given_paths([args.pth, PTH2], INP)
     print("FID: ", fid_value)

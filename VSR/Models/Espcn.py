@@ -27,27 +27,13 @@ class ESPCN(SuperResolution):
             super(ESPCN, self).build_graph()
             tf.summary.image('input', self.inputs[-1], 1)
             x = self.inputs_preproc[-1] / 255.0
-            y_near = tf.concat([x] * self.scale[0] * self.scale[1], -1)
-            y_near = Utility.pixel_shift(y_near, self.scale, 1)
             x = self.conv2d(x, 64, 5, activation=tf.nn.tanh,
                             kernel_initializer='he_normal',
                             kernel_regularizer='l2')
-            for i in range(64):
-                tf.summary.image('layer/0', x[..., i:i + 1], 1)
             for _ in range(1, self.layers - 1):
                 x = self.conv2d(x, 32, 3, activation=tf.nn.tanh, kernel_initializer='he_normal',
                                 kernel_regularizer='l2')
-                for i in range(32):
-                    tf.summary.image(f'layer/{_}', x[..., i:i + 1], 1)
-
-            x = self.conv2d(x, self.scale[0] * self.scale[1], 3, kernel_initializer='he_normal',
-                            kernel_regularizer='l2')
-            for i in range(self.scale[0] * self.scale[1]):
-                tf.summary.image('layer/99', x[..., i:i + 1], 1)
-            x = Utility.pixel_shift(x, self.scale, 1)
-            # x = tf.nn.tanh(x)
-            x += y_near
-            tf.summary.image('feature/output', x, 1)
+            x = self.upscale(x)
             self.outputs.append(x * 255.0)
 
     def build_loss(self):

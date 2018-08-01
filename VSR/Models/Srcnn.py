@@ -16,6 +16,7 @@ SCALE = 1
 SHIFT = 0
 convolutional_delta_orthogonal = ConvolutionDeltaOrthogonal
 
+
 class SRCNN(SuperResolution):
 
     def __init__(self, scale, layers=3, filters=64, kernel=(9, 5, 5), name='srcnn', **kwargs):
@@ -39,7 +40,7 @@ class SRCNN(SuperResolution):
             for i in range(1, self.layers - 1):
                 x = self.conv2d(x, f, ks[i], activation='relu', use_batchnorm=False, kernel_regularizer='l2',
                                 kernel_initializer=convolutional_delta_orthogonal())
-            x = self.conv2d(x, 1, ks[-1], use_batchnorm=False, kernel_regularizer='l2',
+            x = self.conv2d(x, self.channel, ks[-1], use_batchnorm=False, kernel_regularizer='l2',
                             kernel_initializer='he_normal')
             self.outputs.append((x - SHIFT) / SCALE)
 

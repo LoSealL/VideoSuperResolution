@@ -17,10 +17,9 @@ import numpy as np
 
 class DRCN(SuperResolution):
 
-    def __init__(self, recur=16, filters=256, alpha=0.9, name='drcn', **kwargs):
+    def __init__(self, recur=16, filters=256, name='drcn', **kwargs):
         self.recur = recur
         self.filters = filters
-        self.alpha = alpha
         self.name = name
         super(DRCN, self).__init__(**kwargs)
 
@@ -50,7 +49,7 @@ class DRCN(SuperResolution):
             loss1 = tf.reduce_mean(mse_n)
             loss2 = tf.losses.mean_squared_error(y_true, self.outputs[0])
             regularization = tf.add_n(tf.losses.get_regularization_losses())
-            alpha = self.alpha
+            alpha = tf.placeholder(tf.float32, name='alpha')
             loss = alpha * loss1 + (1.0 - alpha) * loss2 + regularization
             optimizer = tf.train.AdamOptimizer(self.learning_rate)
             self.loss.append(optimizer.minimize(loss, self.global_steps))
@@ -70,6 +69,16 @@ class DRCN(SuperResolution):
         tf.summary.scalar('psnr', tf.reduce_mean(self.metrics['psnr']))
         tf.summary.scalar('ssim', tf.reduce_mean(self.metrics['ssim']))
 
+    def train_batch(self, feature, label, learning_rate=1e-4, **kwargs):
+        epoch = kwargs.get('epochs')
+        if epoch < 50:
+            self.feed_dict.update({'alpha:0': 1.0})
+        elif epoch < 100:
+            self.feed_dict.update({'alpha:0': 1 - (epoch - 50) / 50})
+        else:
+            self.feed_dict.update({'alpha:0': 0})
+        super(DRCN, self).train_batch(feature, label, learning_rate, **kwargs)
+
     def _build_embedding(self, inputs):
         with tf.variable_scope('embedding'):
             x = self.conv2d(inputs, self.filters, 3, activation='relu',
@@ -88,5 +97,5 @@ class DRCN(SuperResolution):
         with tf.variable_scope('reconstruct', reuse=tf.AUTO_REUSE):
             x = self.conv2d(inputs, self.filters, 3, activation='relu',
                             kernel_initializer='he_normal', kernel_regularizer='l2')
-            x = self.conv2d(x, 1, 3, kernel_initializer='he_normal', kernel_regularizer='l2')
+            x = self.conv2d(x, self.channel, 3, kernel_initializer='he_normal', kernel_regularizer='l2')
             return x

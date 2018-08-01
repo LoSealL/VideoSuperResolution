@@ -44,10 +44,8 @@ class ResidualDenseNetwork(SuperResolution):
                 gf1 = self.conv2d(gf0, self.gfilter, 3, kernel_regularizer='l2', kernel_initializer='he_normal')
             dense_feature = sf0 + gf1
             # use pixel shift in ESPCN to upscale
-            upscaled = self.conv2d(dense_feature, self.scale[0] * self.scale[1] * self.channel, 3,
-                                   kernel_regularizer='l2', kernel_initializer='he_normal')
-            upscaled = pixel_shift(upscaled, self.scale, self.channel)
-            hr = self.conv2d(upscaled, 1, 3, kernel_initializer=tf.keras.initializers.he_normal())
+            upscaled = self.upscale(dense_feature, 'espcn')
+            hr = self.conv2d(upscaled, self.channel, 3, kernel_initializer=tf.keras.initializers.he_normal())
             self.outputs.append(hr)
 
     def build_loss(self):

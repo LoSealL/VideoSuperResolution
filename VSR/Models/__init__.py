@@ -11,5 +11,6 @@ __all__ = [
     'Drrn',
     'Dbpn',
     'Edsr',
-    'SrGan'
+    'SrGan',
+    'Exp',
 ]

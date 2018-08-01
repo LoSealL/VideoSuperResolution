@@ -38,10 +38,8 @@ class EDSR(SuperResolution):
                 x += x_old
             x = self.conv2d(x, self.filters, 3, kernel_initializer='he_normal', kernel_regularizer='l2')
             x += fe
-            x = self.conv2d(x, self.scale[0] * self.scale[1], 3, kernel_initializer='he_normal',
-                            kernel_regularizer='l2')
-            x = pixel_shift(x, self.scale, 1)
-            x = self.conv2d(x, 1, 3, kernel_initializer='he_normal', kernel_regularizer='l2')
+            x = self.upscale(x)
+            x = self.conv2d(x, self.channel, 3, kernel_initializer='he_normal', kernel_regularizer='l2')
             self.outputs.append(x)
 
     def build_loss(self):

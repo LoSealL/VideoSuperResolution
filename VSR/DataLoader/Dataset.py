@@ -24,7 +24,7 @@ class Dataset:
         # default attr
         self._args['mode'] = 'pil-image1' if not 'mode' in kwargs else kwargs['mode']
         self._args['depth'] = 1 if not 'depth' in kwargs else kwargs['depth']
-        self._args['modcrop'] = True if not 'modcrop' in kwargs else kwargs['depth']
+        self._args['modcrop'] = True if not 'modcrop' in kwargs else kwargs['modcrop']
 
     def __getattr__(self, item):
         if item in self._args:
@@ -56,9 +56,11 @@ def _glob_absolute_pattern(url):
             break
         url_p = url_p.parent
     url_r = url.relative_to(url_p)
-    if str(url_r) == '.':
-        return url_p.iterdir()
-    return url_p.glob(str(url_r))
+    if url_p.is_dir():
+        if str(url_r) == '.':
+            return url_p.iterdir()
+        return url_p.glob(str(url_r))
+    return [url_p]
 
 
 def load_datasets(json_file):

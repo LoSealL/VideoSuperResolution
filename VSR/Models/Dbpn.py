@@ -49,7 +49,7 @@ class DBPN(SuperResolution):
                 H.append(self._up_projection(self.bp, t, self.dense))
             x = tf.concat(H, axis=-1)
             with tf.variable_scope('ReconNet'):
-                x = self.conv2d(x, 1, 3, kernel_initializer='he_normal', kernel_regularizer='l2')
+                x = self.conv2d(x, self.channel, 3, kernel_initializer='he_normal', kernel_regularizer='l2')
             self.outputs.append(x)
 
     def build_loss(self):

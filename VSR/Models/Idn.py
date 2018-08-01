@@ -48,7 +48,7 @@ class InformationDistillationNetwork(SuperResolution):
                 for i in range(self.blocks):
                     x = self._make_idn(i, x, self.D, self.d, self.s)
             with tf.variable_scope('reconstruction'):
-                x = self.deconv2d(x, 1, 17, strides=self.scale, kernel_regularizer='l2', kernel_initializer='he_normal')
+                x = self.deconv2d(x, self.channel, 17, strides=self.scale, kernel_regularizer='l2', kernel_initializer='he_normal')
             self.outputs.append(x)
 
     def build_loss(self):

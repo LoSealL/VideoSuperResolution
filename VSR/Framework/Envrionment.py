@@ -200,11 +200,11 @@ class Environment:
         self.saver.restore(sess, str(ckpt_last))
         loader = BatchLoader(1, dataset, 'test', scale=self.model.scale, crop=False, **kwargs)
         for img in loader:
-            feature, _, name = img[self.fi], img[self.li], str(img[-1])
+            feature, label, name = img[self.fi], img[self.li], str(img[-1])
             for fn in self.feature_callbacks:
                 feature = fn(feature, name=name)
-            # for fn in self.label_callbacks:
-            #     label = fn(label, name=name)
+            for fn in self.label_callbacks:
+                label = fn(label, name=name)
             outputs = self.model.test_batch(feature, None)
             for fn in self.output_callbacks:
                 outputs = fn(outputs, input=img[self.fi], label=img[self.li], name=name, mode=loader.color_format)
@@ -223,7 +223,7 @@ class Environment:
         ckpt_last = self._find_last_ckpt()
         self.saver.restore(sess, str(ckpt_last))
         files = [Path(file) for file in to_list(files)]
-        data = Dataset(test=files, mode=mode, depth=depth, **kwargs)
+        data = Dataset(test=files, mode=mode, depth=depth, modcrop=False, **kwargs)
         loader = BatchLoader(1, data, 'test', scale=self.model.scale, crop=False, **kwargs)
         for img in loader:
             feature, label, name = img[self.fi], img[self.li], str(img[-1])
