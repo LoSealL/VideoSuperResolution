@@ -72,12 +72,12 @@ class DRCN(SuperResolution):
     def train_batch(self, feature, label, learning_rate=1e-4, **kwargs):
         epoch = kwargs.get('epochs')
         if epoch < 50:
-            self.feed_dict.update({'alpha:0': 1.0})
+            self.feed_dict.update({'loss/alpha:0': 1.0})
         elif epoch < 100:
-            self.feed_dict.update({'alpha:0': 1 - (epoch - 50) / 50})
+            self.feed_dict.update({'loss/alpha:0': 1 - (epoch - 50) / 50})
         else:
-            self.feed_dict.update({'alpha:0': 0})
-        super(DRCN, self).train_batch(feature, label, learning_rate, **kwargs)
+            self.feed_dict.update({'loss/alpha:0': 0})
+        return super(DRCN, self).train_batch(feature, label, learning_rate, **kwargs)
 
     def _build_embedding(self, inputs):
         with tf.variable_scope('embedding'):

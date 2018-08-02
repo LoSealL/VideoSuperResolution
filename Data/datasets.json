@@ -23,7 +23,10 @@
     "PIRM-Val": "d:/Datasets/PIRM/PIRM_Val_set/LR"
   },
   "Dataset": {
-    "TEST": {"val": "SET14", "test": "SET14"},
+    "TEST": {
+      "train": "d:/Datasets/FUCK",
+      "val": "SET14", "test": "SET14"
+    },
     "BSD": {
       "train": ["BSD100"],
       "val": ["SET5"],
