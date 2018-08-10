@@ -72,6 +72,7 @@ def DiscAE(net,
            filters=64,
            depth=3,
            scope='Critic', use_bias=False):
+    raise DeprecationWarning("This is not right")
     assert isinstance(net, SuperResolution)
 
     def critic(inputs):
@@ -109,14 +110,8 @@ def DiscAE(net,
     return critic
 
 
-def loss_gan(y_true, y_pred, discriminator):
+def loss_bce_gan(y_real, y_fake):
     """Original GAN loss with BCE"""
-
-    if not callable(discriminator):
-        raise TypeError('Discriminator is not a callable!')
-
-    y_real = discriminator(y_true)
-    y_fake = discriminator(y_pred)
 
     d_loss = tf.losses.sigmoid_cross_entropy(tf.ones_like(y_real), y_real) + \
              tf.losses.sigmoid_cross_entropy(tf.zeros_like(y_fake), y_fake)
@@ -154,7 +149,7 @@ def loss_wgan_gp(y_true, y_pred, discriminator, lamb=10):
 
 
 def loss_lsgan(y_real, y_fake):
-    """LSGAN"""
+    """Least-Square GAN"""
 
     d_loss = tf.reduce_mean((y_real - 1) ** 2) + tf.reduce_mean(y_fake ** 2)
     g_loss = tf.reduce_mean((y_fake - 1) ** 2)
@@ -174,3 +169,7 @@ def loss_relative_lsgan(y_real, y_fake, average=False):
         d_loss = tf.reduce_mean((y_real - y_fake - 1) ** 2)
         g_loss = tf.reduce_mean((y_fake - y_real - 1) ** 2)
     return g_loss, d_loss
+
+
+def loss_sensitive_gan(y_real, y_fake):
+    raise NotImplementedError

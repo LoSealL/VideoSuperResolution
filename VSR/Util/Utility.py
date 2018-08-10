@@ -155,6 +155,22 @@ def pixel_norm(images, epsilon=1.0e-8, scale=1.0, bias=0):
         tf.reduce_mean(tf.square(images), axis=3, keepdims=True) + epsilon) + bias
 
 
+def color_consistency(feature, label, lambd=5):
+    """Color consistency regularization (from StackGAN++)
+
+    See: https://arxiv.org/abs/1710.10916
+    """
+
+    m1, m2 = tf.reduce_mean(feature, [1, 2], True), tf.reduce_mean(label, [1, 2], True)
+    B, H, W, C = tf.shape(feature)[0], tf.shape(feature)[1], tf.shape(feature)[2], tf.shape(feature)[3]
+    f_hat = tf.reshape(feature - m1, [B, -1, C])
+    l_hat = tf.reshape(label - m2, [B, -1, C])
+    c1 = tf.matmul(f_hat, f_hat, True) / tf.cast(H * W, tf.float32)
+    c2 = tf.matmul(l_hat, l_hat, True) / tf.cast(H * W, tf.float32)
+    cc = tf.losses.mean_squared_error(m1, m2) + tf.losses.mean_squared_error(c1, c2, lambd)
+    return cc
+
+
 class Vgg:
     """use pre-trained VGG network from keras.application.vgg16
     to obtain outputs of specific layers

@@ -10,6 +10,7 @@ Image processing tools
 
 import numpy as np
 from PIL import Image
+from .Utility import to_list
 
 
 def array_to_img(x, mode='YCbCr'):
@@ -124,3 +125,72 @@ def shrink_to_multiple_scale(image, scale):
     scale = np.asarray(scale, dtype='int32')
     size -= size % scale
     return image.crop([0, 0, *size])
+
+
+def imread(url, mode='RGB'):
+    """Read image from file to ndarray"""
+
+    img = Image.open(url)
+    return img_to_array(img.convert(mode))
+
+
+def random_crop_batch_image(image, batch, shape, seed=None):
+    h, w = image.shape[:2]
+    b = []
+    np.random.seed(seed)
+    for _ in range(batch):
+        y = np.random.randint(0, h - shape[1])
+        x = np.random.randint(0, w - shape[0])
+        b.append(image[y:y + shape[1], x:x + shape[0], :])
+    return np.stack(b)
+
+
+import tensorflow as tf
+
+"""
+Functions that start with `tf_` process image(s) using TF functions,
+this intends to speed up image procession.
+
+But I personally thought `tf.image` is hard to use
+"""
+
+
+def tf_decode_image_file(url, dtype=None):
+    """Decode image from file
+      Args:
+          url: path to image
+          dtype: target image type
+
+      Return:
+          A 4-D tensor image with shape [len(url), H, W, C]
+    """
+    url = to_list(url)
+    with tf.name_scope('DecodeImageFile'):
+        images = []
+        for _url in url:
+            with open(_url, 'rb') as fp:
+                img = tf.image.decode_image(fp.read())
+                img = tf.image.convert_image_dtype(img, dtype)
+            images.append(img)
+        return tf.concat(images, 0)
+
+
+def tf_random_crop_batch_image(image, batch, shape, seed=None, name=None):
+    """Randomly crop a single image into `batch` pieces
+
+      Args:
+          image: A 3-D tensor with shape [H, W, C]
+          batch: A scalar of type UINT
+          shape: A 3-D tensor with crop shape
+          seed: seed of random op
+          name: op name
+
+      Return:
+          A 4-D tensor image with shape [batch, *shape]
+    """
+
+    with tf.name_scope('RandomCropBatchImage'):
+        image = tf.expand_dims(image, 0)
+        op = tf.random_crop(image, [1, shape[0], shape[1], shape[2]], seed, name)
+        image = tf.tile(op, [batch, 1, 1, 1])
+    return image

@@ -63,4 +63,5 @@ def chessboard(inputs, **kwargs):
 
 
 def noisy(inputs, **kwargs):
-    x = np.zeros_like(inputs)
+    shape = inputs.shape
+    return np.random.normal(0, 1, [shape[0], 1, 1, 128])

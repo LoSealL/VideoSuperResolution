@@ -14,7 +14,8 @@ __all__ = {
     'dbpn': Dbpn.DBPN,
     'edsr': Edsr.EDSR,
     'srgan': SrGan.SRGAN,
-    'exp': Exp.EXP
+    'exp': Exp.EXP,
+    'exp2': Exp.EXP2
 }
 
 
