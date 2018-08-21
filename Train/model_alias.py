@@ -1,3 +1,4 @@
+# Export model objects
 from VSR.Models import *
 
 __all__ = {
@@ -13,9 +14,7 @@ __all__ = {
     'drrn': Drrn.DRRN,
     'dbpn': Dbpn.DBPN,
     'edsr': Edsr.EDSR,
-    'srgan': SrGan.SRGAN,
-    'exp': Exp.EXP,
-    'exp2': Exp.EXP2
+    'srgan': SrGan.SRGAN
 }
 
 

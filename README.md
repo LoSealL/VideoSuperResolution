@@ -26,10 +26,13 @@ The hyperlink directs to paper site, follows the official codes if the authors o
   11. Super-Resolution Network for Multiple Degradations: [**SRMD**](https://arxiv.org/abs/1712.06116) *https://github.com/cszn/SRMD*
   12. Deep Back-Projection Networks: [**DBPN**](https://arxiv.org/abs/1803.02735) https://github.com/alterzero/DBPN-Pytorch
   13. Zero-Shot Super-Resolution: [**ZSSR**](http://www.wisdom.weizmann.ac.il/~vision/zssr/) https://github.com/assafshocher/ZSSR
+  14. Frame-Recurrent Video Super-Resolution [**FRVSR**](https://arxiv.org/abs/1801.04590) https://github.com/msmsajjadi/FRVSR
+  15. Video Super-Resolution with Dynamic Upsampling Filters [**DUF**](http://openaccess.thecvf.com/content_cvpr_2018/papers/Jo_Deep_Video_Super-Resolution_CVPR_2018_paper.pdf) https://github.com/yhjo09/VSR-DUF
+  
 - Others
 
-  14. [**DNCNN**](http://ieeexplore.ieee.org/document/7839189/) (*This is for denoise*) *https://github.com/cszn/DnCNN*
-  15. Deep CNN
+  16. [**DNCNN**](http://ieeexplore.ieee.org/document/7839189/) (*This is for denoise*) *https://github.com/cszn/DnCNN*
+  17. Deep CNN
 with Skip Connection: [**DCSCN**](https://arxiv.org/abs/1707.05425) *https://github.com/jiny2001/dcscn-super-resolution*
 
 All these models are implemented in **ONE** framework.
@@ -82,6 +85,7 @@ For config file, see [here](./Data/datasets.json) as a sample, and [here](./Data
 - [DIV2K](https://data.vision.ee.ethz.ch/cvl/DIV2K/)
 - [Waterloo](https://ece.uwaterloo.ca/~k29ma/dataset/exploration_database_and_code.rar)
 - [MCL-V](http://mcl.usc.edu/mcl-v-database/) *This is video datasets*
+- [VID4](https://people.csail.mit.edu/celiu/CVPR2011/videoSR.zip) *Video test set* 
 
 ## Training
 You can either train via `Environment` object or via your own script.
@@ -92,3 +96,4 @@ See [readme](./Train/README.md) for details.
 - [ ] MemNet
 - [ ] ZSSR
 - [ ] SRMD
+- [ ] FRVSR

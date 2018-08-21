@@ -70,11 +70,12 @@ def load_datasets(json_file):
     with open(json_file, 'r') as fd:
         config = json.load(fd)
         all_set_path = config["Path"]
+        all_set_path.update(config["Path_Tracked"])
         for name, value in config["Dataset"].items():
             assert isinstance(value, dict)
             datasets[name] = Dataset()
             for i in value:
-                if not i in ('train', 'val', 'test'):
+                if not i in ('train', 'val', 'test', 'pred'):
                     continue
                 sets = []
                 for j in to_list(value[i]):
@@ -86,4 +87,8 @@ def load_datasets(json_file):
             if 'param' in value:
                 for k, v in value['param'].items():
                     datasets[name].__setitem__(k, v)
+        for name, path in config["Path_Tracked"].items():
+            if not name in datasets:
+                datasets[name] = Dataset()
+                datasets[name].__setitem__('test', list(_glob_absolute_pattern(path)))
     return datasets

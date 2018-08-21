@@ -10,7 +10,7 @@ Framework for network model (tensorflow)
 import tensorflow as tf
 from pathlib import Path
 
-from ..Util.Utility import to_list, prelu, pixel_shift
+from ..Util.Utility import to_list, prelu, pixel_shift, SpectralNorm
 
 
 class SuperResolution(object):
@@ -79,9 +79,7 @@ class SuperResolution(object):
     def summary(self):
         """print model information"""
 
-        print('===================================')
-        print(f'Training model: {self.name.upper()}')
-        print('===================================', flush=True)
+        pass
 
     def build_graph(self):
         """this super method create 2 kinds of input placeholder:
@@ -149,6 +147,7 @@ class SuperResolution(object):
         for i in range(len(self.label)):
             self.feed_dict[self.label[i]] = label[i]
         loss = kwargs.get('loss') or self.loss
+        loss = to_list(loss)
         loss = tf.get_default_session().run(list(self.train_metric.values()) + loss, feed_dict=self.feed_dict)
         ret = {}
         for k, v in zip(self.train_metric, loss):
@@ -229,15 +228,20 @@ class SuperResolution(object):
                activation=None,
                use_bias=True,
                use_batchnorm=False,
+               use_sn=False,
                kernel_initializer=None,
                kernel_regularizer=None,
                **kwargs):
         """wrap a convolution for common use case"""
 
         ki, kr = self._kernel(kernel_initializer, kernel_regularizer)
-        x = tf.layers.conv2d(x, filters, kernel_size, strides=strides, padding=padding, data_format=data_format,
-                             dilation_rate=dilation_rate, use_bias=use_bias, kernel_initializer=ki,
-                             kernel_regularizer=kr, **kwargs)
+        nn = tf.layers.Conv2D(filters, kernel_size, strides=strides, padding=padding, data_format=data_format,
+                              dilation_rate=dilation_rate, use_bias=use_bias,
+                              kernel_initializer=ki, kernel_regularizer=kr, **kwargs)
+        nn.build(x.shape.as_list())
+        if use_sn:
+            nn.kernel = SpectralNorm()(nn.kernel)
+        x = nn(x)
         if use_batchnorm:
             x = tf.layers.batch_normalization(x, training=self.training_phase)
         activator = self._act(activation)
@@ -254,15 +258,20 @@ class SuperResolution(object):
                  activation=None,
                  use_bias=True,
                  use_batchnorm=False,
+                 use_sn=False,
                  kernel_initializer=None,
                  kernel_regularizer=None,
                  **kwargs):
         """warp a conv2d_transpose op for simplicity usage"""
 
         ki, kr = self._kernel(kernel_initializer, kernel_regularizer)
-        x = tf.layers.conv2d_transpose(x, filters, kernel_size, strides=strides, padding=padding,
+        nn = tf.layers.Conv2DTranspose(filters, kernel_size, strides=strides, padding=padding,
                                        data_format=data_format, use_bias=use_bias,
                                        kernel_initializer=ki, kernel_regularizer=kr, **kwargs)
+        nn.build(x.shape.as_list())
+        if use_sn:
+            nn.kernel = SpectralNorm()(nn.kernel)
+        x = nn(x)
         if use_batchnorm:
             x = tf.layers.batch_normalization(x, training=self.training_phase)
         activator = self._act(activation)
@@ -309,29 +318,40 @@ class SuperResolution(object):
             raise ValueError('invalid kernel regularizer!')
         return ki, kr
 
-    def upscale(self, image, method='espcn', **kwargs):
-        """Image up-scale layer"""
+    def upscale(self, image, method='espcn', scale=None, direct_output=True, **kwargs):
+        """Image up-scale layer
+
+        Upsample `image` width and height by scale factor `scale[0]` and `scale[1]`.
+        Perform upsample progressively: i.e. x12:= x2->x2->x3
+
+        Args:
+            image: tensors to upsample
+            method: method could be 'espcn', 'nearest' or 'deconv'
+            scale: None or int or [int, int]. If None, `scale`=`self.scale`
+            direct_output: output channel is the desired RGB or Grayscale, if False, keep the same channels as `image`
+        """
         _allowed_method = ('espcn', 'nearest', 'deconv')
         assert str(method).lower() in _allowed_method
         method = str(method).lower()
         act = kwargs.get('activator')
 
-        scale_x, scale_y = self.scale
+        scale_x, scale_y = to_list(scale, 2) or self.scale
+        features = self.channel if direct_output else image.shape.as_list()[-1]
         while scale_x > 1 or scale_y > 1:
             if scale_x % 2 == 1 or scale_y % 2 == 1:
                 if method == 'espcn':
                     image = pixel_shift(self.conv2d(
-                        image, self.channel * scale_x * scale_y, 3,
+                        image, features * scale_x * scale_y, 3,
                         kernel_initializer='he_normal',
-                        kernel_regularizer='l2'), self.scale, self.channel)
+                        kernel_regularizer='l2'), [scale_x, scale_y], features)
                 elif method == 'nearest':
                     image = pixel_shift(
-                        tf.concat([image] * self.scale[0] * self.scale[1], -1),
-                        self.scale,
+                        tf.concat([image] * scale_x * scale_y, -1),
+                        [scale_x, scale_y],
                         image.shape[-1])
                 elif method == 'deconv':
-                    image = self.deconv2d(image, self.channel, 3,
-                                          strides=self.scale,
+                    image = self.deconv2d(image, features, 3,
+                                          strides=[scale_y, scale_x],
                                           kernel_initializer='he_normal')
                 if act:
                     image = act(image)
@@ -341,16 +361,16 @@ class SuperResolution(object):
                 scale_y //= 2
                 if method == 'espcn':
                     image = pixel_shift(self.conv2d(
-                        image, self.channel * 4, 3,
+                        image, features * 4, 3,
                         kernel_initializer='he_normal',
-                        kernel_regularizer='l2'), [2, 2], self.channel)
+                        kernel_regularizer='l2'), [2, 2], features)
                 elif method == 'nearest':
                     image = pixel_shift(
                         tf.concat([image] * 4, -1),
                         [2, 2],
                         image.shape[-1])
                 elif method == 'deconv':
-                    image = self.deconv2d(image, self.channel, 3,
+                    image = self.deconv2d(image, features, 3,
                                           strides=2,
                                           kernel_initializer='he_normal')
                 if act:

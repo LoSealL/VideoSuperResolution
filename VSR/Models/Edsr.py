@@ -44,14 +44,23 @@ class EDSR(SuperResolution):
 
     def build_loss(self):
         with tf.name_scope('loss'):
-            mse, loss = super(EDSR, self).build_loss()
+            opt = tf.train.AdamOptimizer(self.learning_rate)
+            mse = tf.losses.mean_squared_error(self.label[-1], self.outputs[-1])
+            mae = tf.losses.absolute_difference(self.label[-1], self.outputs[-1])
+            loss = tf.add_n([mae] + tf.losses.get_regularization_losses(), name='total_loss')
+            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+            with tf.control_dependencies(update_ops):
+                self.loss.append(opt.minimize(loss, self.global_steps))
+
             self.train_metric['loss'] = loss
             self.metrics['mse'] = mse
+            self.metrics['mae'] = mae
             self.metrics['psnr'] = tf.reduce_mean(tf.image.psnr(self.label[-1], self.outputs[-1], max_val=255))
             self.metrics['ssim'] = tf.reduce_mean(tf.image.ssim(self.label[-1], self.outputs[-1], max_val=255))
 
     def build_summary(self):
         tf.summary.scalar('loss/training', self.train_metric['loss'])
         tf.summary.scalar('loss/mse', self.metrics['mse'])
+        tf.summary.scalar('loss/mae', self.metrics['mae'])
         tf.summary.scalar('psnr', self.metrics['psnr'])
         tf.summary.scalar('ssim', self.metrics['ssim'])

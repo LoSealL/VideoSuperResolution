@@ -30,6 +30,7 @@ class Environment:
                  output_callbacks=None,
                  feature_index=None,
                  label_index=None,
+                 verbose=tf.logging.DEBUG,
                  **kwargs):
         """Initiate the object
 
@@ -45,6 +46,7 @@ class Environment:
                               the signature of this callable is `fn(input, output, save_dir, step)->output`
             feature_index: the index to access in the return list of BatchLoader, default the 2nd item in list
             label_index: the index to access in the return list of BatchLoader, default the 1st item in list
+            verbose: tf logger level
         """
         assert isinstance(model, SuperResolution)
 
@@ -58,6 +60,7 @@ class Environment:
         self.output_callbacks = output_callbacks or []
         self.fi = feature_index if feature_index is not None else 1
         self.li = label_index if label_index is not None else 0
+        tf.logging.set_verbosity(verbose)
 
     def __enter__(self):
         """Create session of tensorflow and build model graph"""
@@ -105,17 +108,19 @@ class Environment:
         if sess is None:
             raise RuntimeError('No session initialized')
         if not self.model.compiled:
-            print('[Warning] model not compiled, compiling now...')
+            tf.logging.warning('[Warning] model not compiled, compiling now...')
             self.model.compile()
         sess.run(tf.global_variables_initializer())
         ckpt_last = self._find_last_ckpt() if not restart else None
         init_epoch = self._parse_ckpt_name(ckpt_last) + 1
         if init_epoch > epochs:
             return
-        # saver = tf.train.Saver(var_list=tf.trainable_variables('psrn/ResGen'))
         if ckpt_last:
-            print(f'Restoring from last epoch {ckpt_last}')
+            tf.logging.info(f'Restoring from last epoch {ckpt_last}')
             self.saver.restore(sess, str(ckpt_last))
+        print('===================================')
+        print(f'Training model: {self.model.name.upper()}')
+        print('===================================')
         self.model.summary()
         summary_writer = tf.summary.FileWriter(str(self.logdir), graph=tf.get_default_graph())
         lr = learning_rate
@@ -198,9 +203,11 @@ class Environment:
         print(f'Testing model: {self.model.name} by {ckpt_last}')
         print('===================================')
         self.saver.restore(sess, str(ckpt_last))
-        loader = BatchLoader(1, dataset, 'test', scale=self.model.scale, crop=False, **kwargs)
+        loader = BatchLoader(1, dataset, 'test', scale=self.model.scale,
+                             crop=False, augmentation=False, **kwargs)
         for img in loader:
             feature, label, name = img[self.fi], img[self.li], str(img[-1])
+            tf.logging.debug('output: ' + name)
             for fn in self.feature_callbacks:
                 feature = fn(feature, name=name)
             for fn in self.label_callbacks:
@@ -221,12 +228,17 @@ class Environment:
         sess = tf.get_default_session()
         sess.run(tf.global_variables_initializer())
         ckpt_last = self._find_last_ckpt()
+        print('===================================')
+        print(f'Predicting model: {self.model.name} by {ckpt_last}')
+        print('===================================')
         self.saver.restore(sess, str(ckpt_last))
         files = [Path(file) for file in to_list(files)]
         data = Dataset(test=files, mode=mode, depth=depth, modcrop=False, **kwargs)
-        loader = BatchLoader(1, data, 'test', scale=self.model.scale, crop=False, **kwargs)
+        loader = BatchLoader(1, data, 'test', scale=self.model.scale,
+                             crop=False, augmentation=False, **kwargs)
         for img in loader:
             feature, label, name = img[self.fi], img[self.li], str(img[-1])
+            tf.logging.debug('output: ' + name)
             for fn in self.feature_callbacks:
                 feature = fn(feature, name=name)
             outputs = self.model.test_batch(feature, None)

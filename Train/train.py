@@ -4,7 +4,8 @@ Author: Wenyi Tang
 Email: wenyi.tang@intel.com
 Created Date: May 25th 2018
 
-Train models
+Train models, the examples can be
+found in `run.*` scripts
 """
 
 import argparse, json
@@ -22,38 +23,48 @@ try:
 except ImportError:
     from custom_api import *
 
+
 def main(*args, **kwargs):
     args = argparse.ArgumentParser()
     args.add_argument('name', type=str, choices=list_supported_models(), help='the model name can be found in model_alias.py')
-    args.add_argument('--scale', type=int, default=3, help='scale factor, default 3')
-    args.add_argument('--channel', type=int, default=1, help='image channels, default 1')
+    # basic options
+    args.add_argument('--scale', type=int, default=4, help='scale factor, default 4')
+    args.add_argument('--channel', type=int, default=3, help='image channels, default 3')
+    args.add_argument('--batch', type=int, default=16, help='training batch size, default 16')
+    args.add_argument('--epochs', type=int, default=200, help='training epochs, default 200')
+    args.add_argument('--retrain', type=bool, default=False, help='retrain the model from scratch')
+    # dataset options
     args.add_argument('--dataconfig', type=str, default='../Data/datasets.json', help='the path to dataset config json file')
     args.add_argument('--dataset', type=str, default='91-IMAGE', help='specified dataset name(as described in config file, default 91-image')
-    args.add_argument('--batch', type=int, default=64, help='training batch size, default 64')
-    args.add_argument('--epochs', type=int, default=200, help='training epochs, default 200')
     args.add_argument('--patch_size', type=int, default=48, help='patch size of cropped training and validating sub-images, default 48')
     args.add_argument('--strides', type=int, default=48, help='crop stride if random_patches is set 0, default 48')
-    args.add_argument('--depth', type=int, default=1, help='image1 depth used for video sources, default 1')
-    args.add_argument('--random_patches', type=int, default=0, help='if set more than 0, use random crop to generate `random_patches` sub-image1 batches')
-    args.add_argument('--retrain', type=int, default=0, help='retrain the model from scratch, default 0')
+    args.add_argument('--depth', type=int, default=1, help='image depth used for video sources, default 1')
+    args.add_argument('--random_patches', type=int, default=0, help='if set more than 0, use random crop to generate `random_patches` per batches')
+    # learning options
     args.add_argument('--lr', type=float, default=1e-4, help='initial learning rate, default 1e-4')
     args.add_argument('--lr_decay', type=float, default=1, help='learning rate decay, default 1')
     args.add_argument('--lr_decay_step', type=int, default=1000, help='learning rate decay step')
-    args.add_argument('--add_noise', type=float, default=None, help='if not None, add noise with given stddev to input features')
-    args.add_argument('--add_random_noise', type=list, default=None, help='if not None, add random noise with given stddev bound [low, high, step=1]')
+    # output options
     args.add_argument('--test', type=str, default=None, help='specify a dataset used to test, or use --dataset values if None')
     args.add_argument('--predict', type=str, default=None, help='evaluate model on given files')
     args.add_argument('--savedir', type=str, default='../Results', help='directory to save model checkpoints, default ../Results')
     args.add_argument('--output_color', type=str, default='RGB', choices=('RGB', 'L', 'GRAY', 'Y'), help='output color mode, default RGB')
     args.add_argument('--output_index', type=int, default=-1, help='access index of model outputs to save, default -1')
     args.add_argument('--export_pb', type=str, default=None, help='if not None, specify the path that export trained model into pb format')
-    args.add_argument('--comment', type=str, default=None)
-    args.add_argument('--custom_feature_cb', type=str, default=None)
+    args.add_argument('--comment', type=str, default=None, help='add a suffix to output dir to distinguish each experiments')
+    # callbacks
+    args.add_argument('--add_noise', type=float, default=None, help='if not None, add noise with given stddev to input features')
+    args.add_argument('--add_random_noise', type=list, default=None, help='if not None, add random noise with given stddev bound [low, high, step=1]')
+    args.add_argument('--custom_feature_cb', type=str, default=None, help='customized callbacks, defined in `custom_api.py`')
 
     args = args.parse_args()
-    model_args = json.load(open(f'parameters/{args.name}.json', mode='r'))
-
+    if Path(f'parameters/{args.name}.json').exists():
+        model_args = json.load(open(f'parameters/{args.name}.json', mode='r'))
+    else:
+        print(f'[warning] no model parameter file found, use default parameters')
+        model_args = dict()
     model = get_model(args.name)(scale=args.scale, channel=args.channel, **model_args)
+
     dataset = load_datasets(args.dataconfig)[args.dataset.upper()]
     dataset.setattr(patch_size=args.patch_size, strides=args.strides, depth=args.depth)
     if args.random_patches:
@@ -61,7 +72,8 @@ def main(*args, **kwargs):
     save_root = f'{args.savedir}/{model.name}_sc{args.scale}_c{args.channel}'
     if args.comment:
         save_root += '_' + args.comment
-    with Environment(model, f'{save_root}/save', f'{save_root}/log', feature_index=model.feature_index, label_index=model.label_index) as env:
+    with Environment(model, f'{save_root}/save', f'{save_root}/log',
+                     feature_index=model.feature_index, label_index=model.label_index) as env:
         if args.add_noise:
             env.feature_callbacks = [add_noise(args.add_noise)]
         if args.add_random_noise:
@@ -83,7 +95,7 @@ def main(*args, **kwargs):
         else:
             fit_fn(convery_to='GRAY')
             # use callback to generate colored images from grayscale ones
-            # all models inputs is gray image1 however
+            # all models inputs is gray image however
             test_format = 'YUV'
             env.feature_callbacks += [to_gray()]
             env.label_callbacks = [to_gray()]
@@ -95,15 +107,25 @@ def main(*args, **kwargs):
         else:
             test_set = dataset
         env.output_callbacks += [save_image(f'{save_root}/test', args.output_index)]
-        env.test(test_set, convert_to=test_format)  # load image1 with 3 channels
+        env.test(test_set, convert_to=test_format)  # load image with 3 channels
         if args.predict:
             pth = Path(args.predict)
             if not pth.exists():
                 raise ValueError('[Error] File path does not exist')
-            images = pth.rglob('*')
+            if pth.is_dir():
+                images = list(pth.glob('*'))
+                if not images:
+                    images = pth.iterdir()
+            elif pth.is_file():
+                images = pth
             env.fi, fi_old = 0, env.fi  # upscale directly
             env.output_callbacks[-1] = save_image(f'{save_root}/output', args.output_index)
             env.predict(images, convert_to=test_format)
+            env.fi = fi_old
+        elif test_set.pred:
+            env.fi, fi_old = 0, env.fi  # upscale directly
+            env.output_callbacks[-1] = save_image(f'{save_root}/output', args.output_index)
+            env.predict(test_set.pred, convert_to=test_format)
             env.fi = fi_old
     if args.export_pb:
         model = get_model(args.name)(scale=args.scale, rgb_input=True)

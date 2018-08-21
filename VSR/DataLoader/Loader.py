@@ -9,6 +9,7 @@ Load frames with specified filter in given directories,
 and provide inheritable API for specific loaders.
 """
 import numpy as np
+import tensorflow as tf
 
 from .Dataset import Dataset
 from .VirtualFile import RawFile, ImageFile, _ALLOWED_RAW_FORMAT
@@ -16,15 +17,15 @@ from ..Util import ImageProcess, Utility
 
 
 class Loader(object):
+    """Build am iterative loader
+
+      Args:
+          dataset: `Dataset` object, see Dataset.py
+          method: 'train', 'val', or 'test'
+          loop: if True, read data infinitely
+    """
 
     def __init__(self, dataset, method, loop=False):
-        """Initiate loader for given path `path`
-
-        Args:
-            dataset: dataset object, see Dataset.py
-            method: 'train', 'val', or 'test'
-            loop: if True, read data infinitely
-        """
         if not isinstance(dataset, Dataset):
             raise TypeError('dataset must be Dataset object')
 
@@ -34,7 +35,7 @@ class Loader(object):
         self.scale = dataset.scale  # scale factor
         self.strides = dataset.strides  # crop strides when cropping in grid
         self.depth = dataset.depth  # the length of a video sequence
-        self.modcrop = dataset.modcrop
+        self.modcrop = dataset.modcrop  # crop boarder pixels can't be divided by scale
         self.loop = loop  # infinite iterate
         self.random = dataset.random and not (method == 'test')  # random crop, or gridded crop
         self.max_patches = dataset.max_patches  # max random crop patches
@@ -73,7 +74,8 @@ class Loader(object):
 
     def _build_iter(self):
         while True:
-            np.random.shuffle(self.grid)
+            if self.method == 'train':
+                np.random.shuffle(self.grid)
             for frames_hr, frames_lr, x, y, name in self.grid:
                 assert x % self.scale[0] == 0 and y % self.scale[1] == 0
                 patch_size = self.patch_size or frames_hr[0].size
@@ -84,7 +86,7 @@ class Loader(object):
             if not self.loop:
                 break
 
-    def reset(self, **kwargs):
+    def reset(self, *args, **kwargs):
         if not self.built:
             self.build_loader(**kwargs)
         else:
@@ -127,13 +129,17 @@ class Loader(object):
         self.strides = Utility.shrink_mod_scale(self.strides, self.scale) if crop else None
 
         for vf in self.dataset:
-            for _ in range(vf.frames // self.depth):
+            tf.logging.debug('loading ' + vf.name)
+            depth = self.depth
+            # read all frames if depth is set to -1
+            if depth == -1: depth = vf.frames
+            for _ in range(vf.frames // depth):
                 frames_hr = [ImageProcess.shrink_to_multiple_scale(img, self.scale) if self.modcrop else img for img in
-                             vf.read_frame(self.depth)]
+                             vf.read_frame(depth)]
                 frames_lr = [ImageProcess.imresize(img, np.ones(2) / self.scale) for img in frames_hr]
                 self.frames.append((frames_hr, frames_lr, vf.name))
             vf.reopen()
-        print('files load finished, generating cropping meshes...')
+        tf.logging.debug('all files load finished, generating cropping meshes...')
         self.random = self.random and crop
         if self.random:
             rand_index = np.random.randint(len(self.frames), size=self.max_patches)
@@ -154,12 +160,24 @@ class Loader(object):
                 x, y = np.mgrid[0:_w - _pw - (_w - _pw) % _sw + _sw:_sw,
                        0:_h - _ph - (_h - _ph) % _sh + _sh:_sh]
                 self.grid += [(hr, lr, _x, _y, name) for _x, _y in zip(x.flatten(), y.flatten())]
-        print('data loader ready!')
+        tf.logging.info('data loader is ready!')
         self.batch_iterator = self._build_iter()
         self.built = True
 
 
 class BatchLoader:
+    """Build an iterator to load datasets in batch mode
+
+      Args:
+          batch_size: an integer, the size of a batch
+          dataset: an instance of Dataset, see DataLoader.Dataset
+          method: 'train', 'val', or 'test', each for different frames in datasets
+          scale: scale factor
+          loop: if True, iterates infinitely
+          convert_to: can be either 'gray', 'rgb' or 'ycbcr', case insensitive
+          augmentation: augment dataset by randomly rotate and flip
+          kwargs: you can override attribute in the dataset
+    """
 
     def __init__(self,
                  batch_size,
@@ -168,22 +186,12 @@ class BatchLoader:
                  scale,
                  loop=False,
                  convert_to='gray',
+                 augmentation=True,
                  **kwargs):
-        """Build an iterable to load datasets in batch size
-
-        Args:
-            batch_size: an integer, the size of a batch
-            dataset: an instance of Dataset, see DataLoader.Dataset
-            method: 'train', 'val', or 'test', each for different frames in datasets
-            scale: scale factor
-            loop: if True, iterates infinitely
-            convert_to: can be either 'gray', 'rgb' or 'ycbcr', case insensitive
-            kwargs: you can override attribute in the dataset
-        """
-
-        print(f'Loading {method} data files...')
+        tf.logging.debug(f'Loading {method} data files...')
         self.loader = Loader(dataset, method, loop)
         self.loader.build_loader(scale=scale, **kwargs)
+        self.aug = augmentation
         self.batch = batch_size
         if convert_to.lower() in ('gray', 'l'):
             self.color_format = 'L'
@@ -192,7 +200,7 @@ class BatchLoader:
         elif convert_to.lower() == 'rgb':
             self.color_format = 'RGB'
         else:
-            print(f'Unknown format {convert_to}, use grayscale by default')
+            tf.logging.warning(f'Unknown format {convert_to}, use grayscale by default')
             self.color_format = 'L'
 
     def __iter__(self):
@@ -212,14 +220,28 @@ class BatchLoader:
         steps = np.ceil(len(self.loader) / self.batch)
         return int(steps)
 
+    def _augment(self, image, op):
+        if op[0]:
+            image = np.rot90(image, 1)
+        if op[1]:
+            image = np.fliplr(image)
+        if op[2]:
+            image = np.flipud(image)
+        return image
+
     def _load_batch(self):
         batch_hr, batch_lr = [], []
         batch_name = []
         for hr, lr, name in self.loader:
             hr = [img.convert(self.color_format) for img in hr]
             lr = [img.convert(self.color_format) for img in lr]
-            batch_hr.append(np.stack([ImageProcess.img_to_array(img) for img in hr]))
-            batch_lr.append(np.stack([ImageProcess.img_to_array(img) for img in lr]))
+            to_stack_hr, to_stack_lr = [], []
+            for _hr, _lr in zip(hr, lr):
+                ops = np.random.randint(0, 2, [3]) if self.aug else [0, 0, 0]
+                to_stack_hr.append(self._augment(ImageProcess.img_to_array(_hr), ops))
+                to_stack_lr.append(self._augment(ImageProcess.img_to_array(_lr), ops))
+            batch_hr.append(np.stack(to_stack_hr))
+            batch_lr.append(np.stack(to_stack_lr))
             batch_name.append(name)
             if len(batch_hr) == self.batch:
                 return np.stack(batch_hr), np.stack(batch_lr), np.stack(batch_name)

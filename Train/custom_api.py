@@ -4,7 +4,11 @@ Author: Wenyi Tang
 Email: wenyi.tang@intel.com
 Created Date: July 31st 2018
 
-custom feature callback
+custom feature callback.
+Usage:
+    pass the function name to `train.py` args `--custom_feature_cb`.
+    During training and testing, the `Environment` will call the given
+    function to process input data
 """
 
 from PIL import Image
@@ -64,4 +68,4 @@ def chessboard(inputs, **kwargs):
 
 def noisy(inputs, **kwargs):
     shape = inputs.shape
-    return np.random.normal(0, 1, [shape[0], 1, 1, 128])
+    return np.random.normal(0, 1, shape)

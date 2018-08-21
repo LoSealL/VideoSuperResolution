@@ -16,7 +16,10 @@ def Discriminator(net,
                   input_shape=None,
                   filters=64,
                   depth=3,
-                  scope='Critic', use_bias=False):
+                  use_bias=False,
+                  use_bn=True,
+                  use_sn=False,
+                  scope='Critic'):
     """A simple D-net, for image generation usage
     
       Args:
@@ -26,8 +29,10 @@ def Discriminator(net,
                        global average pooling layer
           filters: the filter number in the 1st layer
           depth: layers = (depth + 1) * 2
-          scope: name of the scope
           use_bias: use bias in convolution
+          use_bn: use batch normalization
+          use_sn: use spectral normalization
+          scope: name of the scope
 
       Return:
           the **callable** which returns the prediction and feature maps of each layer
@@ -40,20 +45,24 @@ def Discriminator(net,
                 inputs = tf.reshape(inputs, input_shape)
             F = filters
             N = [net.conv2d(inputs, F, 3, activation='lrelu',
-                            use_bias=use_bias,
+                            use_bias=use_bias, use_sn=use_sn,
                             kernel_initializer='he_normal')]
             for _ in range(depth):
-                N.append(net.conv2d(N[-1], F, 4, strides=2,
-                                    activation='lrelu',
-                                    use_batchnorm=True, use_bias=use_bias,
+                N.append(net.conv2d(N[-1], F, 4, strides=2, activation='lrelu',
+                                    use_sn=use_sn,
+                                    use_batchnorm=use_bn,
+                                    use_bias=use_bias,
                                     kernel_initializer='he_normal'))
                 F *= 2
                 N.append(net.conv2d(N[-1], F, 4, activation='lrelu',
-                                    use_batchnorm=True, use_bias=use_bias,
+                                    use_batchnorm=use_bn,
+                                    use_sn=use_sn,
+                                    use_bias=use_bias,
                                     kernel_initializer='he_normal'))
-            N.append(net.conv2d(N[-1], F, 4, strides=2,
-                                activation='lrelu',
-                                use_batchnorm=True, use_bias=use_bias,
+            N.append(net.conv2d(N[-1], F, 4, strides=2, activation='lrelu',
+                                use_batchnorm=True,
+                                use_sn=use_sn,
+                                use_bias=use_bias,
                                 kernel_initializer='he_normal'))
             if input_shape[1] and input_shape[2]:
                 x = tf.layers.flatten(N[-1])

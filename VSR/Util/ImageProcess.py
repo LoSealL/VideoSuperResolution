@@ -106,13 +106,13 @@ def img_to_yuv(frame, mode, grayscale=False):
     return img
 
 
-def imresize(image, scale, mode=None):
+def imresize(image, scale, size=None, mode=None):
     """Image resize using simple cubic provided in PIL
 
     @Todo: perhaps more accurate resize kernel should be used.
     """
-
-    size = (np.array(image.size) * scale).astype(int)
+    if size is None:
+        size = (np.array(image.size) * scale).astype(int)
     if image.mode in ('RGB', 'BGR'):
         image = image.convert('YCbCr')
     mode = image.mode if not mode else mode

@@ -99,7 +99,9 @@ def bicubic_rescale(img, scale):
         scale = to_list(scale, 2)
         shape_enlarge = tf.cast(shape, tf.float32) * [1, *scale, 1]
         shape_enlarge = tf.cast(shape_enlarge, tf.int32)
-        return tf.image.resize_bicubic(img, shape_enlarge[1:3])
+        tf.logging.warning("tf.image.resize_bicubic behaves quite differently to PIL.Image.resize,\
+                even if align_corners is enabled or not")
+        return tf.image.resize_bicubic(img, shape_enlarge[1:3], align_corners=True)
 
 
 def prelu(x, name=None, scope='PRELU'):
@@ -294,3 +296,49 @@ class ConvolutionDeltaOrthogonal(tf.keras.initializers.Initializer):
 
     def get_config(self):
         return {"gain": self.gain, "seed": self.seed, "dtype": self.dtype.name}
+
+
+class SpectralNorm(tf.keras.constraints.Constraint):
+    """Spectral normalization constraint.
+      Ref: https://arxiv.org/pdf/1802.05957
+
+      Args:
+          iteration: power iteration, default 1
+      Note:
+          use SN as a kernel constraint seems not work well
+          I now use like this:
+          >>> nn = tf.layers.Conv2D(...)
+          >>> nn.build(input_shape=x.shape.as_list())
+          >>> if use_sn: nn.kernel = SpectralNorm()(nn.kernel)
+          >>> y = nn(x)
+    """
+
+    def __init__(self, iteration=1):
+        self.pi = iteration
+
+    def __call__(self, w):
+        scope = w.op.name + '/snorm'
+        with tf.variable_scope(scope):
+            w_shape = w.shape.as_list()
+            w = tf.reshape(w, [-1, w_shape[-1]])
+            u = tf.get_variable(
+                'u', [1, w_shape[-1]],
+                initializer=tf.truncated_normal_initializer(),
+                trainable=False)
+            u_hat = u
+            v_hat = None
+            for i in range(self.pi):
+                # power iteration
+                v_ = tf.matmul(u_hat, tf.transpose(w))
+                v_hat = v_ / tf.norm(v_, 2)
+                u_ = tf.matmul(v_hat, w)
+                u_hat = u_ / tf.norm(u_, 2)
+
+            sigma = tf.matmul(tf.matmul(v_hat, w), tf.transpose(u_hat))
+            w_norm = w / sigma
+            with tf.control_dependencies([u.assign(u_hat)]):
+                w_norm = tf.reshape(w_norm, w_shape)
+            return w_norm
+
+    def get_config(self):
+        return {"iteration": self.pi}
