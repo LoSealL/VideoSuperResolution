@@ -17,33 +17,26 @@ from ..Util.Utility import to_list
 
 
 class File:
+    """
+    If path is a file, File opens it and calculates its length.
+    If path is a folder, File organize each file in the folder as alphabet order
 
+    Args:
+         path: path to a node (can be a file or just a folder)
+         rewind: rewind the file when reaches EOF
+    """
     def __init__(self, path, rewind=False):
-        """
-        If path is a file, File opens it and calculates its length.
-        If path is a folder, File organize each file in the folder as alphabet order
-
-        Args:
-             path: path to a node (can be a file or just a folder)
-             rewind: rewind the file when reaches EOF
-        """
         self.path = Path(path)
         self.file = []
         self.length = dict()
-        mode = 'rb'  # mode must be 'rb'
+        self.name = self.path.stem
         if self.path.is_file():
-            self.name = self.path.stem
             self.file = [self.path]
-            with self.path.open(mode) as fd:
-                fd.seek(0, SEEK_END)
-                self.length[self.path.name] = fd.tell()
+            self.length[self.path.name] = self.path.stat().st_size
         elif self.path.is_dir():
-            self.name = self.path.stem  # TODO: is this right?
             for _file in self.path.glob('*'):
                 self.file.append(_file)
-                with _file.open(mode) as fd:
-                    fd.seek(0, SEEK_END)
-                    self.length[_file.name] = fd.tell()
+                self.length[_file.name] = _file.stat().st_size
         self.read_file = []
         self.read_pointer = 0
         self.end_pointer = sum(self.length.values())

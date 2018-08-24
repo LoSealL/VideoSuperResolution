@@ -9,6 +9,7 @@ See https://arxiv.org/abs/1801.04590
 """
 
 from ..Framework.SuperResolution import SuperResolution
+from ..Framework.Motion import warp
 from ..Util import *
 
 import tensorflow as tf
@@ -51,8 +52,8 @@ class FRVSR(SuperResolution):
             x = self.conv2d(x, self.channel, 3, kernel_initializer='he_normal')
             return x
 
-    def _warp(self, inputs, warp):
-        return inputs
+    def _warp(self, inputs, coord):
+        return warp(inputs, coord)
 
     def build_graph(self):
         with tf.variable_scope(self.name):

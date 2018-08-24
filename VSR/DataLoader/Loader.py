@@ -10,6 +10,7 @@ and provide inheritable API for specific loaders.
 """
 import numpy as np
 import tensorflow as tf
+import asyncio
 
 from .Dataset import Dataset
 from .VirtualFile import RawFile, ImageFile, _ALLOWED_RAW_FORMAT
@@ -235,13 +236,13 @@ class BatchLoader:
         for hr, lr, name in self.loader:
             hr = [img.convert(self.color_format) for img in hr]
             lr = [img.convert(self.color_format) for img in lr]
-            to_stack_hr, to_stack_lr = [], []
+            clip_hr, clip_lr = [], []
+            ops = np.random.randint(0, 2, [3]) if self.aug else [0, 0, 0]
             for _hr, _lr in zip(hr, lr):
-                ops = np.random.randint(0, 2, [3]) if self.aug else [0, 0, 0]
-                to_stack_hr.append(self._augment(ImageProcess.img_to_array(_hr), ops))
-                to_stack_lr.append(self._augment(ImageProcess.img_to_array(_lr), ops))
-            batch_hr.append(np.stack(to_stack_hr))
-            batch_lr.append(np.stack(to_stack_lr))
+                clip_hr.append(self._augment(ImageProcess.img_to_array(_hr), ops))
+                clip_lr.append(self._augment(ImageProcess.img_to_array(_lr), ops))
+            batch_hr.append(np.stack(clip_hr))
+            batch_lr.append(np.stack(clip_lr))
             batch_name.append(name)
             if len(batch_hr) == self.batch:
                 return np.stack(batch_hr), np.stack(batch_lr), np.stack(batch_name)
@@ -252,3 +253,111 @@ class BatchLoader:
     def reset(self, *args, **kwargs):
         """reset the iterator"""
         self.loader.reset(*args, **kwargs)
+
+
+class Select:
+    # each file is selected equally
+    EQUAL_FILE = 0
+    # each pixel is selected equally, that is,
+    # a larger image has a higher probability to
+    # be selected, and vice versa
+    EQUAL_PIXEL = 1
+
+
+class QuickLoader:
+    """Async data loader with high efficiency.
+
+    QuickLoader uses asyncio to prefetch data into memory every n iterations,
+    and provides several methods to select files. Unlike BatchLoader, QuickLoader
+    never loads all files in the dataset into memory.
+
+    """
+
+    def __init__(self, batch_size, dataset, method, scale, loop=False, modcrop=True,
+                 convert_to='gray', augmentation=False, **kwargs):
+        self.file_names = dataset.__getattr__(method.lower())
+        self.dataset = dataset
+        self.scale = Utility.to_list(scale, 2)
+        self.loop = loop
+        self.modcrop = modcrop
+        self.aug = augmentation
+        self.batch = batch_size
+        self.color_mode = convert_to.upper()
+        self.prob = self._read_file()._calc_select_prob()
+        self.frames = []  # pre-fetched frame buffer
+
+    def _read_file(self):
+        if self.dataset.mode.lower() == 'pil-image1':
+            self.file_objects = [ImageFile(fp, self.loop) for fp in self.file_names]
+        elif self.dataset.mode.upper() in _ALLOWED_RAW_FORMAT:
+            self.file_objects = [
+                RawFile(fp, self.dataset.mode, (self.dataset.width, self.dataset.height), self.loop) \
+                for fp in self.file_names]
+        return self
+
+    def _calc_select_prob(self, method=Select.EQUAL_PIXEL):
+        weights = []
+        for f in self.file_objects:
+            if method == Select.EQUAL_PIXEL:
+                weights += [np.prod(f.shape) * f.frames]
+            elif method == Select.EQUAL_FILE:
+                weights += [1]
+            else:
+                raise ValueError('unknown select method ' + str(method))
+        prob = np.array(weights, 'float32') / np.sum(weights, dtype='float32')
+        prob = np.cumsum(prob)
+        return prob
+
+    def _random_select(self, seed=None):
+        if seed:
+            np.random.seed(seed)
+        x = np.random.rand()
+        x *= np.ones_like(self.prob)
+        diff = self.prob >= x
+        index = diff.nonzero()[0].tolist()
+        if index:
+            return index[0]
+        return 0
+
+    def _process_at_file(self, vf):
+        assert isinstance(vf, (RawFile, ImageFile))
+
+        tf.logging.info('Prefetching ' + vf.name)
+        depth = self.dataset.depth
+        # read all frames if depth is set to -1
+        if depth == -1: depth = vf.frames
+        for i in range(vf.frames // depth):
+            print(i, flush=True)
+            frames_hr = [ImageProcess.shrink_to_multiple_scale(img, self.scale) \
+                             if self.modcrop else img for img in vf.read_frame(depth)]
+            frames_lr = [ImageProcess.imresize(img, np.ones(2) / self.scale) for img in frames_hr]
+            self.frames.append({"hr": frames_hr, "lr": frames_lr, "name": f'{vf.name}_{i:04d}'})
+        vf.reopen()  # necessary, rewind the file pointer
+
+    def change_select_method(self, method):
+        self.prob = self._calc_select_prob(method)
+
+    def prefetch(self, size):
+        """Prefetch `size` files and load into memory
+
+        Args:
+            size: if 0 < size < 1, size is the percentage of the fetched files.
+                  if size >= 1, size is the absolute amount of the fetched files.
+        """
+        if size <= 0:
+            raise ValueError('wrong prefetch size!')
+        elif size < 1:
+            size = len(self.file_objects) * size
+        elif size > len(self.file_objects):
+            size = len(self.file_objects)
+        size = int(np.round(size))
+        patch_size = Utility.to_list(self.dataset.patch_size, 2)
+        patch_size = Utility.shrink_mod_scale(patch_size, self.scale)
+
+        for _ in range(size):
+            index = self._random_select()
+            self._process_at_file(self.file_objects[index])
+        return self
+
+    def dump_info(self):
+        pass

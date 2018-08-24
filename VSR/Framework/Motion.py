@@ -7,9 +7,15 @@ Created Date: Aug 21st 2018
 Utility for motion compensation
 """
 import tensorflow as tf
+import numpy as np
+
+try:
+    import png
+except ImportError:
+    tf.logging.warning('Unable to import pypng, cannot read 16bit png')
 
 
-def _grid(width, height, bounds=(-1.0, 1.0)):
+def _grid_norm(width, height, bounds=(-1.0, 1.0)):
     """generate a normalized mesh grid
 
       Args:
@@ -28,24 +34,44 @@ def _grid(width, height, bounds=(-1.0, 1.0)):
     y_t = tf.matmul(tf.expand_dims(tf.linspace(*bounds, height), 1),
                     tf.ones(shape=tf.stack([1, width])))
 
-    # x_t_flat = tf.reshape(x_t, (1, -1))
-    # y_t_flat = tf.reshape(y_t, (1, -1))
-    #
-    # ones = tf.ones_like(x_t_flat)
-    # grid = tf.concat(axis=0, values=[x_t_flat, y_t_flat, ones])
     grid = tf.stack([x_t, y_t], axis=-1)
     return grid
 
 
+def _grid(width, height, batch=1, dtype=None, with_batch=False):
+    """generate a mesh grid
+
+      Args:
+          batch: batch size
+          width: width of the pixels(mesh)
+          height: height of the pixels
+      Return:
+          A grid of shape [B, H, W, 3]
+    """
+    b = tf.range(0, batch)
+    h = tf.range(0, height)
+    w = tf.range(0, width)
+    grid = tf.meshgrid(w, h, b)
+    grid.reverse()
+    grid = tf.stack(grid, -1)
+    grid = tf.transpose(grid, [2, 0, 1, 3])
+    if dtype:
+        grid = tf.cast(grid, dtype)
+    if with_batch:
+        return grid
+    return grid[..., 1:]
+
+
 def _sample(image, x, y):
-    """bilinear sample image at coord
+    """bilinear sample image at coordinate x, y
 
       Args:
           image: a 4-D tensor of shape [B H W C]
-          x, y: a 3-D tensor of shape [B H W]
+          x, y: a 3-D tensor of shape [B H W], pixel index of image
 
       Return:
-          sampled images
+          sampled images, that
+          output[i, j] = image[y[i], x[j]]
     """
 
     shape = tf.shape(image)
@@ -53,15 +79,18 @@ def _sample(image, x, y):
     H = shape[1]
     W = shape[2]
 
-    x0 = tf.cast(tf.floor(x), dtype=tf.int32)
-    y0 = tf.cast(tf.floor(y), dtype=tf.int32)
+    x = tf.to_float(x)
+    y = tf.to_float(y)
+    image = tf.to_float(image)
+    x0 = tf.to_int32(tf.floor(x))
+    y0 = tf.to_int32(tf.floor(y))
     x1 = x0 + 1
     y1 = y0 + 1
 
-    x0 = tf.clip_by_value(x0, 0, W - 1)
-    y0 = tf.clip_by_value(y0, 0, H - 1)
-    x1 = tf.clip_by_value(x1, 0, W - 1)
-    y1 = tf.clip_by_value(y1, 0, H - 1)
+    x0 = tf.clip_by_value(x0, 0, W)
+    y0 = tf.clip_by_value(y0, 0, H)
+    x1 = tf.clip_by_value(x1, 0, W)
+    y1 = tf.clip_by_value(y1, 0, H)
 
     batch_idx = tf.reshape(tf.range(0, B), [B, 1, 1])
     batch_idx = tf.tile(batch_idx, [1, H, W])
@@ -88,18 +117,111 @@ def _sample(image, x, y):
     return tf.add_n([p00, p01, p10, p11])
 
 
-def warp(image, coordinate, additive_warp=False):
+def _move(image, x, y):
+    """move source image to target coordinate x, y"""
     shape = tf.shape(image)
-    H = tf.cast(shape[1], tf.float32)
-    W = tf.cast(shape[2], tf.float32)
+    B = shape[0]
+    H = shape[1]
+    W = shape[2]
+
+    x = tf.to_float(x)
+    y = tf.to_float(y)
+    image = tf.to_float(image)
+    x0 = tf.to_int32(tf.floor(x))
+    y0 = tf.to_int32(tf.floor(y))
+    x1 = x0 + 1
+    y1 = y0 + 1
+
+    x0 = tf.clip_by_value(x0, 0, W)
+    y0 = tf.clip_by_value(y0, 0, H)
+    x1 = tf.clip_by_value(x1, 0, W)
+    y1 = tf.clip_by_value(y1, 0, H)
+
+    batch_idx = tf.reshape(tf.range(0, B), [B, 1, 1])
+    batch_idx = tf.tile(batch_idx, [1, H, W])
+    scatter_00 = tf.stack([batch_idx, y0, x0], axis=-1)
+    scatter_01 = tf.stack([batch_idx, y0, x1], axis=-1)
+    scatter_10 = tf.stack([batch_idx, y1, x0], axis=-1)
+    scatter_11 = tf.stack([batch_idx, y1, x1], axis=-1)
+
+    x0 = tf.cast(x0, tf.float32)
+    x1 = tf.cast(x1, tf.float32)
+    y0 = tf.cast(y0, tf.float32)
+    y1 = tf.cast(y1, tf.float32)
+
+    w00 = tf.expand_dims((x1 - x) * (y1 - y), -1)
+    w01 = tf.expand_dims((x - x0) * (y1 - y), -1)
+    w10 = tf.expand_dims((x1 - x) * (y - y0), -1)
+    w11 = tf.expand_dims((x - x0) * (y - y0), -1)
+
+    p00 = tf.scatter_nd(scatter_00, image * w00, shape)
+    p01 = tf.scatter_nd(scatter_01, image * w01, shape)
+    p10 = tf.scatter_nd(scatter_10, image * w10, shape)
+    p11 = tf.scatter_nd(scatter_11, image * w11, shape)
+
+    return tf.add_n([p00, p01, p10, p11])
+
+
+def warp(image, u, v, additive_warp=False, normalized=False):
+    shape = tf.shape(image)
+    B, H, W = shape[0], shape[1], shape[2]
+
+    if normalized:
+        if not additive_warp:
+            u = (u + 1) * 0.5
+            v = (v + 1) * 0.5
+        u *= tf.to_float(W)
+        v *= tf.to_float(H)
 
     if additive_warp:
-        coordinate += _grid(W, H)
+        G = _grid(W, H, dtype=tf.float32)
+        u += G[..., 1]
+        v += G[..., 0]
 
-    warp_pos = (coordinate + 1) * 0.5  # [0, 1]
-    x = warp_pos[..., 0]
-    y = warp_pos[..., 1]
-    x *= (W - 1)
-    y *= (H - 1)
+    return _sample(image, u, v)
 
-    return _sample(image, x, y)
+
+def open_flo(fn):
+    """ Read .flo file in Middlebury format"""
+    # Code adapted from:
+    # http://stackoverflow.com/questions/28013200/reading-middlebury-flow-files-with-python-bytes-array-numpy
+
+    # WARNING: this will work on little-endian architectures (eg Intel x86) only!
+    # print 'fn = %s'%(fn)
+    with open(fn, 'rb') as f:
+        magic = np.fromfile(f, np.float32, count=1)
+        if 202021.25 != magic:
+            print('Magic number incorrect. Invalid .flo file')
+            return None
+        else:
+            w = np.fromfile(f, np.int32, count=1)[0]
+            h = np.fromfile(f, np.int32, count=1)[0]
+            # print 'Reading %d x %d flo file\n' % (w, h)
+            data = np.fromfile(f, np.float32, count=2 * w * h)
+            # Reshape data into 3D array (columns, rows, bands)
+            # The reshape here is for visualization, the original code is (w,h,2)
+            return np.resize(data, (int(h), int(w), 2))
+
+
+def open_png16(fn):
+    """Read 16bit png file"""
+
+    reader = png.Reader(fn)
+    data = reader.asDirect()
+    pixels = []
+    for row in data[2]:
+        row = np.reshape(np.asarray(row), [-1, 3])
+        pixels += [row]
+    return np.stack(pixels, 0)
+
+
+class KITTI:
+    @staticmethod
+    def open_flow(fn):
+        flow = open_png16(fn)
+        valid = flow[..., -1]
+        u = flow[..., 0].astype('float32')
+        v = flow[..., 1].astype('float32')
+        u = (u - 2 ** 15) / 64 * valid
+        v = (v - 2 ** 15) / 64 * valid
+        return np.stack([u, v], -1)
