@@ -16,7 +16,7 @@ m = Vgg(input_shape=[None, None, 3], type='vgg19')
 with tf.Session() as sess:
     # m = Vgg(input_shape=[None, None, 3], type='vgg19')
     for hr, lr in loader:
-        y = m(hr, [2,3], [2,3])
+        y = m(hr, [2, 3], [2, 3])
         break
 
 tf.reset_default_graph()
@@ -24,7 +24,7 @@ m = Vgg(input_shape=[None, None, 3], type='vgg19')
 with tf.Session() as sess:
     # m = Vgg(input_shape=[None, None, 3], type='vgg19')
     for hr, lr in loader:
-        y = m(hr, [2,3], [2,3])
+        y = m(hr, [2, 3], [2, 3])
         break
 
 # Error for not reusing VGG variables

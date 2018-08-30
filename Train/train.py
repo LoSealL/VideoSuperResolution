@@ -32,14 +32,15 @@ def main(*args, **kwargs):
     args.add_argument('--channel', type=int, default=3, help='image channels, default 3')
     args.add_argument('--batch', type=int, default=16, help='training batch size, default 16')
     args.add_argument('--epochs', type=int, default=200, help='training epochs, default 200')
+    args.add_argument('--steps_per_epoch', type=int, default=200, help='training steps each epoch, default 200')
     args.add_argument('--retrain', type=bool, default=False, help='retrain the model from scratch')
     # dataset options
     args.add_argument('--dataconfig', type=str, default='../Data/datasets.json', help='the path to dataset config json file')
     args.add_argument('--dataset', type=str, default='91-IMAGE', help='specified dataset name(as described in config file, default 91-image')
     args.add_argument('--patch_size', type=int, default=48, help='patch size of cropped training and validating sub-images, default 48')
-    args.add_argument('--strides', type=int, default=48, help='crop stride if random_patches is set 0, default 48')
     args.add_argument('--depth', type=int, default=1, help='image depth used for video sources, default 1')
-    args.add_argument('--random_patches', type=int, default=0, help='if set more than 0, use random crop to generate `random_patches` per batches')
+    args.add_argument('--parallel', type=int, default=1, help='number of cores used to load training sets in parallel')
+    args.add_argument('--memory', type=str, default=None, help='limit the memory usage. i.e. 4GB, 100MB')
     # learning options
     args.add_argument('--lr', type=float, default=1e-4, help='initial learning rate, default 1e-4')
     args.add_argument('--lr_decay', type=float, default=1, help='learning rate decay, default 1')
@@ -66,9 +67,7 @@ def main(*args, **kwargs):
     model = get_model(args.name)(scale=args.scale, channel=args.channel, **model_args)
 
     dataset = load_datasets(args.dataconfig)[args.dataset.upper()]
-    dataset.setattr(patch_size=args.patch_size, strides=args.strides, depth=args.depth)
-    if args.random_patches:
-        dataset.setattr(random=True, max_patches=args.batch * args.random_patches)
+    dataset.setattr(patch_size=args.patch_size, depth=args.depth)
     save_root = f'{args.savedir}/{model.name}_sc{args.scale}_c{args.channel}'
     if args.comment:
         save_root += '_' + args.comment
@@ -82,13 +81,16 @@ def main(*args, **kwargs):
             func = args.custom_feature_cb.split(' ')
             for f_name in func:
                 env.feature_callbacks += [globals()[f_name]]
-        fit_fn = partial(env.fit, args.batch, args.epochs, dataset,
+        fit_fn = partial(env.fit, args.batch, args.epochs, args.steps_per_epoch, dataset,
+                         augmentation=True,
                          restart=args.retrain,
                          learning_rate=args.lr,
                          learning_rate_schedule=lr_decay('stair',
                                                          args.lr,
                                                          decay_step=args.lr_decay_step,
-                                                         decay_rate=args.lr_decay))
+                                                         decay_rate=args.lr_decay),
+                         parallel=args.parallel,
+                         memory_usage=args.memory)
         if model.channel > 1:
             fit_fn(convert_to='RGB')
             test_format = 'RGB'
@@ -103,7 +105,7 @@ def main(*args, **kwargs):
                 env.output_callbacks += [to_rgb()]
         if args.test:
             test_set = load_datasets(args.dataconfig)[args.test.upper()]
-            test_set.setattr(patch_size=args.patch_size, strides=args.strides, depth=args.depth)
+            test_set.setattr(patch_size=args.patch_size, depth=args.depth)
         else:
             test_set = dataset
         env.output_callbacks += [save_image(f'{save_root}/test', args.output_index)]

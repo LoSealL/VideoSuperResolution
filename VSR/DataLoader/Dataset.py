@@ -17,6 +17,20 @@ class Dataset:
     """Dataset provides training/validation/testing data for neural network.
 
     This is a simple wrapper provides train, val, test and additional properties
+
+    Args:
+        train: a list of file path, representing train set.
+        val: a list of file path, representing validation set.
+        test: a list of file path, representing test set.
+        mode: a string representing data format. 'pil-image' for formatted image,
+          or ('YV12', 'NV12', 'RGB', 'BGR'...) for raw data. See `VirtualFile._ALLOWED_RAW_FORMAT`
+        depth: an int scalar to specify consecutive image numbers
+        modcrop: A boolean to specify whether to crop the edge of images to be divisible
+          by `scale`. It's useful when to provide batches with original shapes.
+        patch_size:
+        strides:
+        random:
+        max_patches:
     """
 
     def __init__(self, **kwargs):

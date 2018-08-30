@@ -31,6 +31,37 @@ def to_list(x, repeat=1):
         return []
 
 
+def str_to_bytes(s):
+    """convert string to byte unit. Case insensitive.
+
+    >>> str_to_bytes('2GB')
+      2147483648
+    >>> str_to_bytes('1kb')
+      1024
+    """
+    s = s.replace(' ', '')
+    if s[-1].isalpha() and s[-2].isalpha():
+        _unit = s[-2:].upper()
+        _num = s[:-2]
+    elif s[-1].isalpha():
+        _unit = s[-1].upper()
+        _num = s[:-1]
+    else:
+        return float(s)
+    if not _unit in ('B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'):
+        raise ValueError('invalid unit', _unit)
+    carry = {'B': 1,
+             'KB': 1024,
+             'MB': 1024 ** 2,
+             'GB': 1024 ** 3,
+             'TB': 1024 ** 4,
+             'PB': 1024 ** 5,
+             'EB': 1024 ** 6,
+             'ZB': 1024 ** 7,
+             'YB': 1024 ** 8}
+    return float(_num) * carry[_unit]
+
+
 def shrink_mod_scale(x, scale):
     """clip each dim of x to multiple of scale"""
     return [_x - _x % _s for _x, _s in zip(x, to_list(scale, 2))]

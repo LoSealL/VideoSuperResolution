@@ -13,13 +13,28 @@ import time
 from pathlib import Path
 
 from .SuperResolution import SuperResolution
-from ..DataLoader.Loader import BatchLoader
+from ..DataLoader.Loader import BatchLoader, MpLoader, QuickLoader
 from ..DataLoader.Dataset import Dataset
 from ..Util.Utility import to_list
 
 
 class Environment:
-    """A model wrapper like tf.Estimator"""
+    """A model wrapper like tf.Estimator
+
+    Args:
+        model: the compiled model object. Have to call model.compile explicitly
+        save_dir: the dir to save training checkpoints
+        log_dir: the dir to save tensorboard log events
+        feature_callbacks: a list of callable called in turn to process features.
+                           the signature of this callable is `fn(x)->x`
+        label_callbacks: a list of callable called in turn to process labels
+                         the signature of this callable is `fn(x)->x`
+        output_callbacks: a list of callable called in turn to post-process outputs
+                          the signature of this callable is `fn(input, output, save_dir, step)->output`
+        feature_index: the index to access in the return list of BatchLoader, default the 2nd item in list
+        label_index: the index to access in the return list of BatchLoader, default the 1st item in list
+        verbose: tf logger level
+    """
 
     def __init__(self,
                  model,
@@ -30,24 +45,8 @@ class Environment:
                  output_callbacks=None,
                  feature_index=None,
                  label_index=None,
-                 verbose=tf.logging.DEBUG,
+                 verbose=tf.logging.INFO,
                  **kwargs):
-        """Initiate the object
-
-        Args:
-            model: the compiled model object. Have to call model.compile explicitly
-            save_dir: the dir to save training checkpoints
-            log_dir: the dir to save tensorboard log events
-            feature_callbacks: a list of callable called in turn to process features.
-                               the signature of this callable is `fn(x)->x`
-            label_callbacks: a list of callable called in turn to process labels
-                             the signature of this callable is `fn(x)->x`
-            output_callbacks: a list of callable called in turn to post-process outputs
-                              the signature of this callable is `fn(input, output, save_dir, step)->output`
-            feature_index: the index to access in the return list of BatchLoader, default the 2nd item in list
-            label_index: the index to access in the return list of BatchLoader, default the 1st item in list
-            verbose: tf logger level
-        """
         assert isinstance(model, SuperResolution)
 
         self.model = model
@@ -74,34 +73,66 @@ class Environment:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Close session and
-        ? clear graph ?
+        #TODO ? clear graph ?
         """
 
         sess = tf.get_default_session()
         sess.__exit__(exc_type, exc_val, exc_tb)
         # tf.reset_default_graph() ?
 
+    def _make_ckpt_name(self, epoch):
+        return f'{self.model.name}-sc{self.model.scale[0]}-ep{epoch:04d}.ckpt'
+
+    def _parse_ckpt_name(self, name):
+        # sample name: {model}-sc{scale}-ep{epoch}.ckpt(.index)
+        if not name:
+            return 0
+        model_name, scale, epochs = Path(name).stem.split('.')[0].split('-')
+        return int(epochs[2:])
+
+    def _find_last_ckpt(self):
+        # restore the latest checkpoint in savedir
+        ckpt = tf.train.get_checkpoint_state(self.savedir)
+        if ckpt and ckpt.model_checkpoint_path:
+            return tf.train.latest_checkpoint(self.savedir)
+        # try another way
+        ckpt = to_list(self.savedir.glob('*.ckpt.index'))
+        # sort as modification time
+        ckpt = sorted(ckpt, key=lambda x: x.stat().st_mtime_ns)
+        return self.savedir / ckpt[-1].stem if ckpt else None
+
+    def _early_exit(self):
+        # Todo not implemented
+        return False
+
     def fit(self,
             batch=32,
             epochs=1,
+            steps_per_epoch=200,
             dataset=None,
             learning_rate=1e-4,
             learning_rate_schedule=None,
             restart=False,
             validate_numbers=1,
             validate_every_n_epoch=1,
+            parallel=1,
+            memory_usage=None,
             **kwargs):
         """Train the model.
 
         Args:
             batch: the size of mini-batch during training
             epochs: the total training epochs
+            steps_per_epoch: training steps of each epoch
             dataset: the Dataset object, used to get training and validation frames
             learning_rate: the initial learning rate
             learning_rate_schedule: a callable to adjust learning rate. The signature is
                                     `fn(learning_rate, epochs, steps, loss)`
             restart: if True, start training from scratch, regardless of saved checkpoints
+            validate_numbers: the number of patches in validation
             validate_every_n_epoch: run validation every n epochs
+            parallel:
+            memory_usage:
         """
 
         sess = tf.get_default_session()
@@ -127,19 +158,20 @@ class Environment:
         global_step = self.model.global_steps.eval()
         if learning_rate_schedule and callable(learning_rate_schedule):
             lr = learning_rate_schedule(lr, epochs=init_epoch, steps=global_step)
-        train_loader = BatchLoader(batch, dataset, 'train', scale=self.model.scale, **kwargs)
-        dataset.setattr(random=True, max_patches=batch * validate_numbers)
-        val_loader = BatchLoader(batch, dataset, 'val', scale=self.model.scale, crop=True, **kwargs)
+        if parallel == 1:
+            train_loader = QuickLoader(batch, dataset, 'train', self.model.scale, steps_per_epoch, **kwargs)
+        else:
+            train_loader = MpLoader(batch, dataset, 'train', self.model.scale, steps_per_epoch, **kwargs)
+        val_loader = QuickLoader(batch, dataset, 'val', self.model.scale, validate_numbers, **kwargs)
         for epoch in range(init_epoch, epochs + 1):
-            train_loader.reset()
-            total_steps = len(train_loader)
-            equal_length_mod = max(total_steps // 20, 1)
+            train_iter = train_loader.make_one_shot_iterator(memory_usage, shard=parallel, shuffle=True)
+            equal_length_mod = max(steps_per_epoch // 20, 1)
             step_in_epoch = 0
             start_time = time.time()
             date = time.strftime('%Y-%m-%D %T', time.localtime())
             print(f'| {date} | Epoch: {epoch}/{epochs} | LR: {lr} |')
             avg_meas = {}
-            for img in train_loader:
+            for img in train_iter:
                 feature, label, name = img[self.fi], img[self.li], str(img[-1])
                 for fn in self.feature_callbacks:
                     feature = fn(feature, name=name)
@@ -151,8 +183,8 @@ class Environment:
                 if learning_rate_schedule and callable(learning_rate_schedule):
                     lr = learning_rate_schedule(lr, epochs=epoch, steps=global_step)
                 n_equals = step_in_epoch // equal_length_mod
-                n_dots = total_steps // equal_length_mod - n_equals
-                bar = f'{step_in_epoch}/{total_steps} [' + '=' * n_equals + '.' * n_dots + ']'
+                n_dots = steps_per_epoch // equal_length_mod - n_equals
+                bar = f'{step_in_epoch}/{steps_per_epoch} [' + '=' * n_equals + '.' * n_dots + ']'
                 for k, v in loss.items():
                     avg_meas[k] = avg_meas[k] + v if avg_meas.get(k) else v
                     bar += f' {k}={v:.4f}'
@@ -166,8 +198,8 @@ class Environment:
             if epoch % validate_every_n_epoch:
                 continue
             val_metrics = {}
-            val_loader.reset()
-            for img in val_loader:
+            val_iter = val_loader.make_one_shot_iterator(shuffle=False)
+            for img in val_iter:
                 feature, label, name = img[self.fi], img[self.li], str(img[-1])
                 for fn in self.feature_callbacks:
                     feature = fn(feature, name=name)
@@ -203,9 +235,8 @@ class Environment:
         print(f'Testing model: {self.model.name} by {ckpt_last}')
         print('===================================')
         self.saver.restore(sess, str(ckpt_last))
-        loader = BatchLoader(1, dataset, 'test', scale=self.model.scale,
-                             crop=False, augmentation=False, **kwargs)
-        for img in loader:
+        loader = QuickLoader(1, dataset, 'test', self.model.scale, -1, no_patch=True, **kwargs)
+        for img in loader.make_one_shot_iterator():
             feature, label, name = img[self.fi], img[self.li], str(img[-1])
             tf.logging.debug('output: ' + name)
             for fn in self.feature_callbacks:
@@ -234,9 +265,8 @@ class Environment:
         self.saver.restore(sess, str(ckpt_last))
         files = [Path(file) for file in to_list(files)]
         data = Dataset(test=files, mode=mode, depth=depth, modcrop=False, **kwargs)
-        loader = BatchLoader(1, data, 'test', scale=self.model.scale,
-                             crop=False, augmentation=False, **kwargs)
-        for img in loader:
+        loader = QuickLoader(1, data, 'test', self.model.scale, -1, no_patch=True, **kwargs)
+        for img in loader.make_one_shot_iterator():
             feature, label, name = img[self.fi], img[self.li], str(img[-1])
             tf.logging.debug('output: ' + name)
             for fn in self.feature_callbacks:
@@ -257,28 +287,3 @@ class Environment:
         ckpt_last = self._find_last_ckpt()
         self.saver.restore(sess, str(ckpt_last))
         self.model.export_model_pb(export_dir)
-
-    def _make_ckpt_name(self, epoch):
-        return f'{self.model.name}-sc{self.model.scale[0]}-ep{epoch:04d}.ckpt'
-
-    def _parse_ckpt_name(self, name):
-        # sample name: {model}-sc{scale}-ep{epoch}.ckpt(.index)
-        if not name:
-            return 0
-        model_name, scale, epochs = Path(name).stem.split('.')[0].split('-')
-        return int(epochs[2:])
-
-    def _find_last_ckpt(self):
-        # restore the latest checkpoint in savedir
-        ckpt = tf.train.get_checkpoint_state(self.savedir)
-        if ckpt and ckpt.model_checkpoint_path:
-            return tf.train.latest_checkpoint(self.savedir)
-        # try another way
-        ckpt = to_list(self.savedir.glob('*.ckpt.index'))
-        # sort as modification time
-        ckpt = sorted(ckpt, key=lambda x: x.stat().st_mtime_ns)
-        return self.savedir / ckpt[-1].stem if ckpt else None
-
-    def _early_exit(self):
-        # Todo not implemented
-        return False
