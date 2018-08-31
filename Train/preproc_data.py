@@ -13,7 +13,7 @@ import numpy as np
 import tensorflow as tf
 
 from VSR.DataLoader.Dataset import load_datasets
-from VSR.DataLoader.Loader import BatchLoader
+from VSR.DataLoader.Loader import MpLoader, QuickLoader
 from VSR.Util import FID
 from VSR.Util.ImageProcess import imresize, array_to_img
 
@@ -35,9 +35,9 @@ def main(*args):
             return
 
         # calc mean [R G B]
-        loader = BatchLoader(1, d, 'train', 1, convert_to='RGB', augmentation=False)
+        loader = MpLoader(1, d, 'train', 1, convert_to='RGB')
         colors = []
-        for img, _, _ in loader:
+        for img, _, _ in loader.make_one_shot_iterator(shard=8):
             rgb = np.reshape(img, [-1, 3])
             colors.append(rgb)
         colors = np.concatenate(colors)
@@ -49,11 +49,10 @@ def main(*args):
 
         if FLAGS.fid:
             # activation of pool 3
-            loader.reset()
             inception_pb = FID.check_or_download_inception(FLAGS.model_path)
             FID.create_inception_graph(inception_pb)
             imgs = []
-            for img, _, _ in loader:
+            for img, _, _ in loader.make_one_shot_iterator(shard=8):
                 imgs += [imresize(array_to_img(img[0], 'RGB'), 0, size=[299, 299])]
             imgs = np.stack(imgs)
 

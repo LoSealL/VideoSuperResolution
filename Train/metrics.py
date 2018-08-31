@@ -14,7 +14,7 @@ import numpy as np
 import tensorflow as tf
 
 from VSR.DataLoader.Dataset import load_datasets, Dataset
-from VSR.DataLoader.Loader import BatchLoader
+from VSR.DataLoader.Loader import QuickLoader
 
 try:
     DATASETS = load_datasets('./Data/datasets.json')
@@ -58,12 +58,14 @@ def main(*args):
     data_ref.setattr(depth=opt.clip)
     data = load_folder(opt.input_dir)
     data.setattr(depth=opt.clip)
-    loader = BatchLoader(1, data, 'test', 1, convert_to='RGB', augmentation=False, crop=True)
-    ref_loader = BatchLoader(1, data_ref, 'test', 1, convert_to='RGB', augmentation=False, crop=True)
+    loader = QuickLoader(1, data, 'test', 1, convert_to='RGB', no_patch=True)
+    ref_loader = QuickLoader(1, data_ref, 'test', 1, convert_to='RGB', no_patch=True)
     # make sure len(ref_loader) == len(loader)
-    for ref, _, name in ref_loader:
+    loader_iter = loader.make_one_shot_iterator()
+    ref_iter = ref_loader.make_one_shot_iterator()
+    for ref, _, name in ref_iter:
         name = str(name)
-        img, _, _ = next(loader)
+        img, _, _ = next(loader_iter)
         # reduce the batch dimension for video clips
         if img.ndim == 5: img = img[0]
         if ref.ndim == 5: ref = ref[0]

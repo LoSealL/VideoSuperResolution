@@ -25,6 +25,8 @@ def img_to_array(img, data_format=None):
 
       Copy from Keras
     """
+    if not isinstance(img, Image.Image):
+        return img
     if data_format is None:
         data_format = 'channels_last'
     if data_format not in {'channels_first', 'channels_last'}:
@@ -127,6 +129,29 @@ def shrink_to_multiple_scale(image, scale):
     scale = np.asarray(scale, dtype='int32')
     size -= size % scale
     return image.crop([0, 0, *size])
+
+
+def crop(image, box):
+    """crop `image` according to `box` boundary
+
+    NOTE: this acts the same as PIL.Image.crop
+
+    Args:
+        image: an ndarray, of shape [H, W, C] or [B, H, W, C]
+        box: a list of int, representing cropping boundary (left, upper, right, lower)
+    """
+
+    if isinstance(image, np.ndarray):
+        x0, y0, x1, y1 = map(int, map(round, box))
+
+        if x1 < x0:
+            x1 = x0
+        if y1 < y0:
+            y1 = y0
+
+        return image[..., y0:y1, x0:x1, :]
+    if isinstance(image, Image.Image):
+        return image.crop(box)
 
 
 def imread(url, mode='RGB'):

@@ -14,7 +14,11 @@
     "DIV2K-Val": "d:/Datasets/DIV2K/DIV2K_valid_HR/",
     "DIV2K-Pred": "d:/Datasets/DIV2K/DIV2K_valid_LR_bicubic/X4/",
     "PIRM-SelfVal": "d:/Datasets/PIRM/PIRM_Self-Val_set/HR",
-    "PIRM-Val": "d:/Datasets/PIRM/PIRM_Val_set/LR"
+    "PIRM-Val": "d:/Datasets/PIRM/PIRM_Val_set/LR",
+    "FlyingChairs": "d:/Datasets/FlyingChairs/data",
+    "FlyingChairsFlow": "d:/Datasets/FlyingChairs/flow/*.flo",
+    "MiniFlyingChairs": "d:/Datasets/FlyingChairs/val",
+    "MiniFlyingChairsFlow": "d:/Datasets/FlyingChairs/val_flow/*.flo"
   },
   "Path_Tracked": {
     "URBAN100": "d:/Datasets/Urban100_SR/image_SRF_2/*HR.*",
@@ -60,17 +64,25 @@
     "MCL-V": {
       "train": "MCL-V",
       "val": "d:/Datasets/MCL-V/test/*.yuv",
-      "test": [],
+      "test": ["d:/Datasets/MCL-V/test/*.yuv"],
       "param": {"mode": "YV12", "width": 1920, "height": 1080}
     },
     "GOPRO": {
       "train": ["GOPRO-Train"],
       "val": ["GOPRO-Val"],
-      "test": ["GOPRO-Val"]
+      "test": ["VID4-HR"]
     },
     "VID4": {
       "test": "VID4-HR",
       "pred": "VID4-LR"
+    },
+    "CHAIRS": {
+      "train": "FlyingChairs",
+      "flow": "FlyingChairsFlow"
+    },
+    "MINICHAIRS": {
+      "train": "MiniFlyingChairs",
+      "flow": "MiniFlyingChairsFlow"
     }
   }
 }

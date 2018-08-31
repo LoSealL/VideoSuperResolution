@@ -14,6 +14,7 @@ from PIL import Image
 import numpy as np
 
 from ..Util.Utility import to_list
+from ..Framework.Motion import open_flo, KITTI
 
 
 class File:
@@ -306,6 +307,7 @@ class ImageFile(File):
 
     def __init__(self, path, rewind=False):
         super(ImageFile, self).__init__(path, rewind)
+        self._flow = None
 
     def read_frame(self, frames=1, *args):
         """read number `frames` of the file.
@@ -334,6 +336,22 @@ class ImageFile(File):
         self.read_file = self.file[:pos]
         self.file = self.file[pos:]
         self.cur_fd = None
+
+    def attach_flow(self, flow_file):
+        self._flow = flow_file
+        return self
+
+    @property
+    def flow(self):
+        fd = Path(self._flow)
+        assert fd.exists()
+        if fd.suffix == '.flo':
+            flow = open_flo(str(fd))
+        elif fd.suffix == '.png':
+            flow = KITTI.open_flow(str(fd))
+        else:
+            raise TypeError('unsupported flow format', fd.suffix)
+        return flow
 
     @property
     def shape(self):

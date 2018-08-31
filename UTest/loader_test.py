@@ -11,13 +11,6 @@ except FileNotFoundError:
     DATASETS = load_datasets('../Data/datasets.json')
 
 
-def test_loader_init():
-    DUT = DATASETS['BSD']
-    DUT.setattr(patch_size=48, strides=48, scale=1)
-    r = Loader(DUT, 'train')
-    r.build_loader()
-
-
 def test_quickloader_prob():
     DUT = DATASETS['SET5']
     PROB = [0.46196357, 0.14616816, 0.11549089, 0.13816049, 0.13821688]
@@ -61,17 +54,6 @@ def test_mploader_iter():
         print(name, flush=True)
 
 
-def test_benchmark_batchloader():
-    DUT = DATASETS['DIV2K']
-    DUT.setattr(patch_size=196, depth=1, random=True, max_patches=100 * 8)
-    EPOCHS = 4
-    l1 = BatchLoader(8, DUT, 'train', 4)
-    for _ in range(EPOCHS):
-        l1.reset()
-        for hr, lr, name in l1:
-            pass
-
-
 def test_benchmark_quickloader():
     DUT = DATASETS['DIV2K']
     DUT.setattr(patch_size=196, depth=1, random=True, max_patches=100 * 8)
@@ -94,5 +76,17 @@ def test_benchmark_mploader():
             pass
 
 
-if __name__ == '__main__':
-    pass
+def test_read_flow():
+    DUT = DATASETS['MINICHAIRS']
+    DUT.setattr(patch_size=96, depth=2)
+    l = MpLoader(8, DUT, 'train', 1, 100)
+    r = l.make_one_shot_iterator('8GB', shard=8, shuffle=True)
+    img, flow, name = next(r)
+    img, flow, name = next(r)
+    img, flow, name = next(r)
+    img, flow, name = next(r)
+    r = l.make_one_shot_iterator('8GB', shard=8, shuffle=True)
+    img, flow, name = next(r)
+    img, flow, name = next(r)
+    img, flow, name = next(r)
+    img, flow, name = next(r)

@@ -317,8 +317,8 @@ class EpochIterator:
             hr, lr, box, name = self.grids.pop(0)
             box = np.array(box, 'int32')
             assert (np.mod(box, [*self.scale, *self.scale]) == 0).all()
-            crop_hr = [img.crop(box) for img in hr]
-            crop_lr = [img.crop(box // [*self.scale, *self.scale]) for img in lr]
+            crop_hr = [ImageProcess.crop(img, box) for img in hr]
+            crop_lr = [ImageProcess.crop(img, box // [*self.scale, *self.scale]) for img in lr]
             ops = np.random.randint(0, 2, [3]) if self.aug else [0, 0, 0]
             clip_hr = [_augment(ImageProcess.img_to_array(img), ops) for img in crop_hr]
             clip_lr = [_augment(ImageProcess.img_to_array(img), ops) for img in crop_lr]
@@ -367,12 +367,13 @@ class QuickLoader:
           will randomly flip or rotate images.
     """
 
-    def __init__(self, batch_size, dataset, method, scale, batches_per_epoch,
+    def __init__(self, batch_size, dataset, method, scale, batches_per_epoch=-1,
                  no_patch=False, convert_to='gray', augmentation=False,
                  **kwargs):
         self.file_names = dataset.__getattr__(method.lower())
         self.depth = dataset.depth
         self.patch_size = dataset.patch_size
+        self.flow = dataset.flow
         self.scale = Utility.to_list(scale, 2)
         self.patches_per_epoch = batches_per_epoch * batch_size
         self.no_patch = no_patch
@@ -395,7 +396,11 @@ class QuickLoader:
     def _read_file(self, dataset):
         """Initialize all `File` objects"""
         if dataset.mode.lower() == 'pil-image1':
-            self.file_objects = [ImageFile(fp) for fp in self.file_names]
+            if self.flow:
+                self.file_objects = [ImageFile(fp).attach_flow(flow)
+                                     for fp, flow in zip(self.file_names, self.flow)]
+            else:
+                self.file_objects = [ImageFile(fp) for fp in self.file_names]
         elif dataset.mode.upper() in _ALLOWED_RAW_FORMAT:
             self.file_objects = [
                 RawFile(fp, dataset.mode, (dataset.width, dataset.height))
@@ -446,6 +451,21 @@ class QuickLoader:
             s[self.file_objects[index]] += 1
         return s
 
+    def _vf_gen_lr_hr_pair(self, vf, depth, index):
+        vf.seek(index)
+        frames_hr = [ImageProcess.shrink_to_multiple_scale(img, self.scale)
+                     if self.modcrop else img for img in vf.read_frame(depth)]
+        frames_lr = [ImageProcess.imresize(img, np.ones(2) / self.scale) for img in frames_hr]
+        frames_hr = [img.convert(self.color_format) for img in frames_hr]
+        frames_lr = [img.convert(self.color_format) for img in frames_lr]
+        return frames_hr, frames_lr, f'{vf.name}_{index:04d}'
+
+    def _vf_gen_flow_img_pair(self, vf, depth, index):
+        assert depth == 2 and index == 0
+        img = [img for img in vf.read_frame(depth)]
+        img = [i.convert(self.color_format) for i in img]
+        return img, [vf.flow], f'{vf.name}_{index:04d}'
+
     def _process_at_file(self, vf, clips=1):
         """load frames of `File` into memory, crop and generate corresponded LR frames.
 
@@ -469,13 +489,10 @@ class QuickLoader:
                 tf.logging.WARN, 'clips are greater than actual frames in the file', 100)
         frames = []
         for i in index[:clips]:
-            vf.seek(i)
-            frames_hr = [ImageProcess.shrink_to_multiple_scale(img, self.scale)
-                         if self.modcrop else img for img in vf.read_frame(depth)]
-            frames_lr = [ImageProcess.imresize(img, np.ones(2) / self.scale) for img in frames_hr]
-            frames_hr = [img.convert(self.color_format) for img in frames_hr]
-            frames_lr = [img.convert(self.color_format) for img in frames_lr]
-            frames.append((frames_hr, frames_lr, f'{vf.name}_{i:04d}'))
+            if self.flow:
+                frames.append(self._vf_gen_flow_img_pair(vf, depth, i))
+            else:
+                frames.append(self._vf_gen_lr_hr_pair(vf, depth, i))
         vf.reopen()  # necessary, rewind the read pointer
         return frames
 
@@ -510,7 +527,9 @@ class QuickLoader:
             x -= x % self.scale[0]
             y = np.random.randint(0, _h - _ph + 1, size=amount)
             y -= y % self.scale[1]
-            grids += [(hr, lr, [_x, _y, _x + _pw, _y + _ph], name) for _x, _y in zip(x, y)]
+            grids += [(ImageProcess.img_to_array(hr),
+                       ImageProcess.img_to_array(lr),
+                       [_x, _y, _x + _pw, _y + _ph], name) for _x, _y in zip(x, y)]
         if shuffle:
             np.random.shuffle(grids)
         return grids
@@ -518,7 +537,9 @@ class QuickLoader:
     @property
     def size(self):
         """expected total memory usage of the loader"""
-        bpp = self.depth * 3  # bytes per pixel
+        bpp = 3  # bytes per pixel
+        if self.flow:
+            bpp += 8  # two more float channel
         # NOTE use uint64 to prevent sum overflow
         return np.sum([np.prod((*vf.shape, vf.frames, bpp), dtype=np.uint64) for vf in self.file_objects])
 
