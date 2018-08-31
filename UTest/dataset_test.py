@@ -31,3 +31,31 @@ def test_glob_absolute_pattern():
     URL = './data/**/*.png'
     node = _glob_absolute_pattern(URL)
     assert len(node) == 10
+
+
+def test_existance():
+    _K = DATASETS.keys()
+    for k in _K:
+        print('==== [', k ,'] ====')
+        _V = []
+        try:
+            _V = DATASETS[k].train
+        except ValueError:
+            if not _V:
+                print('Train set of', k, 'doesn\'t exist.')
+        finally:
+            _V = []
+        try:
+            _V = DATASETS[k].val
+        except ValueError:
+            if not _V:
+                print('Val set of', k, 'doesn\'t exist.')
+        finally:
+            _V = []
+        try:
+            _V = DATASETS[k].test
+        except ValueError:
+            if not _V:
+                print('Test set of', k, 'doesn\'t exist.')
+        print('=========================', flush=True)
+
