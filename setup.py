@@ -6,6 +6,9 @@ VERSION = '0.3.1'
 REQUIRED_PACKAGES = [
     'numpy',
     'Image',
+    'pypng',
+    'pytest',
+    'psutil'
 ]
 
 if __name__ == '__main__':
