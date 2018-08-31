@@ -38,6 +38,7 @@ def load_folder(path):
         raise ValueError("--input_dir can't be found")
 
     images = list(Path(path).glob('*'))
+    images.sort()
     if not images:
         images = list(Path(path).iterdir())
     D = Dataset(test=images)
