@@ -9,12 +9,11 @@ SRCNN mainly for framework tests
 Ref https://arxiv.org/abs/1501.00092
 """
 from ..Framework.SuperResolution import SuperResolution
-from ..Util.Utility import bicubic_rescale, to_list, ConvolutionDeltaOrthogonal
+from ..Util.Utility import bicubic_rescale, to_list
 import tensorflow as tf
 
 SCALE = 1
 SHIFT = 0
-convolutional_delta_orthogonal = ConvolutionDeltaOrthogonal
 
 
 class SRCNN(SuperResolution):
@@ -36,10 +35,10 @@ class SRCNN(SuperResolution):
             f = self.filters
             ks = self.kernel_size
             x = self.conv2d(x, f, ks[0], activation='relu', use_batchnorm=False, kernel_regularizer='l2',
-                            kernel_initializer=convolutional_delta_orthogonal())
+                            kernel_initializer='he_normal')
             for i in range(1, self.layers - 1):
                 x = self.conv2d(x, f, ks[i], activation='relu', use_batchnorm=False, kernel_regularizer='l2',
-                                kernel_initializer=convolutional_delta_orthogonal())
+                                kernel_initializer='he_normal')
             x = self.conv2d(x, self.channel, ks[-1], use_batchnorm=False, kernel_regularizer='l2',
                             kernel_initializer='he_normal')
             self.outputs.append((x - SHIFT) / SCALE)

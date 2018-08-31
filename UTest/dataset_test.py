@@ -33,7 +33,7 @@ def test_glob_absolute_pattern():
     assert len(node) == 10
 
 
-def test_existance():
+def test_existence():
     _K = DATASETS.keys()
     for k in _K:
         print('==== [', k ,'] ====')

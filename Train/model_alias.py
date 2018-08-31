@@ -14,7 +14,8 @@ __all__ = {
     'drrn': Drrn.DRRN,
     'dbpn': Dbpn.DBPN,
     'edsr': Edsr.EDSR,
-    'srgan': SrGan.SRGAN
+    'srgan': SrGan.SRGAN,
+    'flownets': FlowNetS.FlowNetS
 }
 
 

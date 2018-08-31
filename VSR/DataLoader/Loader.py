@@ -397,8 +397,9 @@ class QuickLoader:
         """Initialize all `File` objects"""
         if dataset.mode.lower() == 'pil-image1':
             if self.flow:
-                self.file_objects = [ImageFile(fp).attach_flow(flow)
-                                     for fp, flow in zip(self.file_names, self.flow)]
+                # map flow
+                flow = {f.stem: f for f in self.flow}
+                self.file_objects = [ImageFile(fp).attach_flow(flow[fp.stem]) for fp in self.file_names]
             else:
                 self.file_objects = [ImageFile(fp) for fp in self.file_names]
         elif dataset.mode.upper() in _ALLOWED_RAW_FORMAT:

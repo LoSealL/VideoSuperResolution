@@ -79,7 +79,7 @@ def test_benchmark_mploader():
 def test_read_flow():
     DUT = DATASETS['MINICHAIRS']
     DUT.setattr(patch_size=96, depth=2)
-    l = MpLoader(8, DUT, 'train', 1, 100)
+    l = MpLoader(8, DUT, 'train', 1, 100, convert_to='RGB', no_patch=True)
     r = l.make_one_shot_iterator('8GB', shard=8, shuffle=True)
     img, flow, name = next(r)
     img, flow, name = next(r)
@@ -90,3 +90,15 @@ def test_read_flow():
     img, flow, name = next(r)
     img, flow, name = next(r)
     img, flow, name = next(r)
+
+    ref0 = img[0, 0, ...]
+    ref1 = img[0, 1, ...]
+    u = flow[0, 0, ..., 0]
+    v = flow[0, 0, ..., 1]
+    H, W = u.shape
+    ImageProcess.array_to_img(ref0, 'RGB').show()
+    ImageProcess.array_to_img(ref1, 'RGB').show()
+    u = (u / W + 1) / 2 * 255
+    v = (v / H + 1) / 2 * 255
+    ImageProcess.array_to_img(u, 'L').show()
+    ImageProcess.array_to_img(v, 'L').show()

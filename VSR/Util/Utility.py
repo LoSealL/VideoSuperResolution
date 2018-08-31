@@ -124,14 +124,15 @@ def crop_to_batch(image, scale):
 
 
 def bicubic_rescale(img, scale):
-    """Resize image in tensorflow"""
+    """Resize image in tensorflow. Deprecated"""
     with tf.name_scope('Bicubic'):
         shape = tf.shape(img)
         scale = to_list(scale, 2)
         shape_enlarge = tf.cast(shape, tf.float32) * [1, *scale, 1]
         shape_enlarge = tf.cast(shape_enlarge, tf.int32)
-        tf.logging.warning("tf.image.resize_bicubic behaves quite differently to PIL.Image.resize,\
-                even if align_corners is enabled or not")
+        tf.logging.warning(
+            "tf.image.resize_bicubic behaves quite differently to PIL.Image.resize, " +
+            "even if align_corners is enabled or not")
         return tf.image.resize_bicubic(img, shape_enlarge[1:3], align_corners=True)
 
 
@@ -142,8 +143,8 @@ def prelu(x, name=None, scope='PRELU'):
         return tf.nn.relu(x) + tf.multiply(alphas, (x - tf.abs(x))) * 0.5
 
 
-def guassian_kernel(kernel_size, width):
-    """generate a guassian kernel"""
+def gaussian_kernel(kernel_size, width):
+    """generate a gaussian kernel"""
 
     kernel_size = np.asarray(to_list(kernel_size, 2), np.int32)
     kernel_size = kernel_size - kernel_size % 2
@@ -180,6 +181,8 @@ def pixel_norm(images, epsilon=1.0e-8, scale=1.0, bias=0):
     Args:
       images: A 4D `Tensor` of NHWC format.
       epsilon: A small positive number to avoid division by zero.
+      scale: scale the normalized value
+      bias: add bias to output
 
     Returns:
       A 4D `Tensor` with pixel-wise normalized channels.

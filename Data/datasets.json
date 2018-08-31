@@ -17,8 +17,8 @@
     "PIRM-Val": "d:/Datasets/PIRM/PIRM_Val_set/LR",
     "FlyingChairs": "d:/Datasets/FlyingChairs/data",
     "FlyingChairsFlow": "d:/Datasets/FlyingChairs/flow/*.flo",
-    "MiniFlyingChairs": "d:/Datasets/FlyingChairs/val",
-    "MiniFlyingChairsFlow": "d:/Datasets/FlyingChairs/val_flow/*.flo"
+    "MiniFlyingChairs": "d:/Datasets/FlyingChairs/small",
+    "FlyingChairsVal": "d:/Datasets/FlyingChairs/val"
   },
   "Path_Tracked": {
     "URBAN100": "d:/Datasets/Urban100_SR/image_SRF_2/*HR.*",
@@ -78,11 +78,13 @@
     },
     "CHAIRS": {
       "train": "FlyingChairs",
-      "flow": "FlyingChairsFlow"
+      "flow": "FlyingChairsFlow",
+      "val": "FlyingChairsVal"
     },
     "MINICHAIRS": {
       "train": "MiniFlyingChairs",
-      "flow": "MiniFlyingChairsFlow"
+      "flow": "FlyingChairsFlow",
+      "val": "FlyingChairsVal"
     }
   }
 }
