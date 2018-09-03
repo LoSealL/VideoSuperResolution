@@ -48,9 +48,11 @@ class LapSRN(SuperResolution):
                     residual.append(x)
             with tf.name_scope('Reconstruction'):
                 y = self.inputs_preproc[-1]
+                _s = 2
                 for res in residual:
-                    y = bicubic_rescale(y, 2) + res
-                    self.outputs.append(y)
+                    sr = bicubic_rescale(y, _s) + res
+                    _s *= 2
+                    self.outputs.append(sr)
             self.outputs.reverse()
 
     def build_loss(self):
