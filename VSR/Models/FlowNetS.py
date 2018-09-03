@@ -129,11 +129,11 @@ class FlowNetS(SuperResolution):
                 x = self.conv2d(x, 32, 3, strides=1, activation='tanh', kernel_initializer='he_normal')
                 coarse_warp = tf.depth_to_space(x, 4)
 
-                return coarse_warp[..., 0], coarse_warp[..., 1]
+                return coarse_warp
 
-        def _Snet(f0, f1, u, v, warped):
+        def _Snet(f0, f1, flow, warped):
             with tf.variable_scope('SRNet', reuse=tf.AUTO_REUSE):
-                x = tf.concat([f0, f1, u, v, warped], axis=-1)
+                x = tf.concat([f0, f1, flow, warped], axis=-1)
                 x = self.conv2d(x, 24, 5, strides=2, activation='relu', kernel_initializer='he_normal')
                 x = self.conv2d(x, 24, 3, strides=1, activation='relu', kernel_initializer='he_normal')
                 x = self.conv2d(x, 24, 3, strides=1, activation='relu', kernel_initializer='he_normal')
@@ -141,7 +141,7 @@ class FlowNetS(SuperResolution):
                 x = self.conv2d(x, 8, 3, strides=1, activation='tanh', kernel_initializer='he_normal')
                 fine_warp = tf.depth_to_space(x, 2)
 
-                return fine_warp[..., 0], fine_warp[..., 1]
+                return fine_warp
 
         with tf.variable_scope('SPMC'):
             self.inputs.append(tf.placeholder(tf.float32, [None, self.depth, None, None, self.channel]))
@@ -152,13 +152,11 @@ class FlowNetS(SuperResolution):
             target = input_norm[:, 0, ...]
             refer = input_norm[:, 1, ...]
 
-            coarse_u, coarse_v = self._Fnet(target, refer)
-            target_hat = warp(refer, coarse_u, coarse_v, True)
-            fine_u, fine_v = self._Snet(target, refer, coarse_u, coarse_v, target_hat)
-            flow_u = coarse_u + fine_u
-            flow_v = coarse_v + fine_v
-            target_hat2 = warp(refer, flow_u, flow_v, True)
-            flow = tf.concat([flow_u, flow_v], axis=-1)
+            coarse = _Fnet(target, refer)
+            target_hat = warp(refer, coarse[..., 0], coarse[..., 1], True)
+            fine = _Snet(target, refer, coarse, target_hat)
+            flow = coarse + fine
+            target_hat2 = warp(refer, flow[..., 0], flow[..., 1], True)
             self.outputs.append(flow)
             self.outputs.append(target_hat2 * 255)
 
