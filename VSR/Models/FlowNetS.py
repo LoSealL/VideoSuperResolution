@@ -29,7 +29,9 @@ class FlowNetS(SuperResolution):
             self.inputs.append(tf.placeholder(tf.float32, [None, self.depth, None, None, self.channel]))
             self.label.append(tf.placeholder(tf.float32, [None, 1, None, None, 2]))
 
-            input_norm = self.inputs[0] / 255
+            # subtract mean of each patch
+            input_mean = tf.reduce_mean(self.inputs[0], axis=[1, 2], keepdims=True)
+            input_norm = (self.inputs[0] - input_mean) / 255
             # concat input 2 images
             input_split = tf.split(input_norm, self.depth, axis=1)
             input_concat = tf.concat(input_split, axis=-1)
@@ -73,50 +75,34 @@ class FlowNetS(SuperResolution):
                 concat2 = tf.concat([x2, x3_up, flow3_up], axis=-1)
                 flow2 = predict_flow(concat2)
 
-                flow = self.upscale(flow2, scale=[4, 4], direct_output=False)
+                flow = Utility.bicubic_rescale(flow2, 4)
 
             self.outputs = [flow, flow2, flow3, flow4, flow5, flow6]
 
-        with tf.variable_scope('warp'):
-            u = self.outputs[0][..., 0]
-            v = self.outputs[0][..., 1]
-            ref = self.inputs[0][:, 1, ...]
-            ref_hat = warp(ref, u, v, True)
-
         with tf.name_scope('loss'):
             target_flow = self.label[0][:, 0, ...]
-            weights = [1, 0.32, 0.08, 0.02, 0.01, 0.005]
-            scales = [1, 4, 8, 16, 32, 64]
-            multiscale_epe = []
-            for flow, scale, weight in zip(self.outputs, scales, weights):
+            weights = [0.32, 0.16, 0.08, 0.04, 0.02]
+            scales = [4, 8, 16, 32, 64]
+            multiscale_l1loss = []
+            for _f, _s, _w in zip(self.outputs[1:], scales, weights):
                 scaled_flow = target_flow
-                if scale > 1:
-                    scaled_flow = tf.layers.max_pooling2d(target_flow, scale, scale)
-                epe = tf.losses.mean_squared_error(scaled_flow, flow, weights=weight)
-                multiscale_epe.append(epe)
-            epe_loss = tf.add_n(multiscale_epe, name='Loss/EPE')
-
-            target_image = self.inputs[0][:, 0, ...]
-            warp_loss = tf.losses.mean_squared_error(target_image, ref_hat)
-
-            loss = epe_loss + warp_loss
+                if _s > 1:
+                    scaled_flow = tf.layers.average_pooling2d(target_flow, _s, _s)
+                multiscale_l1loss.append(tf.losses.absolute_difference(scaled_flow, _f, _w))
+            loss = tf.add_n(multiscale_l1loss, name='Loss/Multiscale_L1')
+            epe = tf.losses.mean_squared_error(target_flow, flow)
 
             update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
             with tf.control_dependencies(update_ops):
-                op = tf.train.AdamOptimizer(self.learning_rate).minimize(
-                    loss, self.global_steps)
+                op = tf.train.AdamOptimizer(self.learning_rate).minimize(loss, self.global_steps)
                 self.loss.append(op)
 
-            self.train_metric['EPE'] = epe_loss
-            self.train_metric['IMG'] = warp_loss
             self.train_metric['Loss'] = loss
-            self.metrics['EPE'] = multiscale_epe[0]
-            self.metrics['Image'] = warp_loss
+            self.metrics['EPE'] = epe
+            self.metrics['Loss'] = loss
 
         tf.summary.scalar('EPE', self.metrics['EPE'])
-        tf.summary.scalar('Image', self.metrics['Image'])
-        tf.summary.image('Ref', self.inputs[0][:, 0, ...])
-        tf.summary.image('Warp', ref_hat)
+        tf.summary.scalar('Loss', self.metrics['Image'])
 
     def _spmc(self):
         def _Fnet(f0, f1):
@@ -183,7 +169,7 @@ class FlowNetS(SuperResolution):
         tf.summary.image('ref', target)
 
     def build_graph(self):
-        self._spmc()
+        self._flownetS()
 
     def build_loss(self):
         pass
