@@ -56,15 +56,28 @@ def _colored_grayscale_image(outputs, input, **kwargs):
 def _to_normalized_image(img, mode):
     img = np.asarray(img)
     # squeeze to [H, W, C]
-    for i in range(np.ndim(img)):
-        try:
-            img = np.squeeze(img, i)
-        except ValueError:
-            pass
-    img = np.clip(img, 0, 255)
+    try:
+        img = np.squeeze(img)
+    except ValueError:
+        pass
     if img.ndim < 2 or img.ndim > 3:
         raise ValueError('Invalid img data, must be an array of 2D image1 with channel less than 3')
+    if img.shape[-1] == 2:
+        # treat 2 channels image as optical flow
+        return _flow_to_image(img, mode)
+    img = np.clip(img, 0, 255)
     return array_to_img(img, mode)
+
+
+def _flow_to_image(flow, mode):
+    H, W = flow.shape[:2]
+    u = flow[..., 0] / W
+    v = flow[..., 1] / H
+    r = (u + 1) * 127.5
+    g = (v + 1) * 127.5
+    b = 127.5 * np.ones_like(r)
+    img = np.stack([r, g, b], axis=-1)
+    return array_to_img(img, 'RGB')
 
 
 def _add_noise(feature, stddev, mean, clip, **kwargs):

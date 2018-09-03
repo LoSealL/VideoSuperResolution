@@ -24,8 +24,8 @@ class FlowNetS(SuperResolution):
         self.feature_index = 0
         self.label_index = 1
 
-    def build_graph(self):
-        with tf.variable_scope(self.name):
+    def _flownetS(self):
+        with tf.variable_scope('FlowNetS'):
             self.inputs.append(tf.placeholder(tf.float32, [None, self.depth, None, None, self.channel]))
             self.label.append(tf.placeholder(tf.float32, [None, 1, None, None, 2]))
 
@@ -77,7 +77,6 @@ class FlowNetS(SuperResolution):
 
             self.outputs = [flow, flow2, flow3, flow4, flow5, flow6]
 
-    def build_loss(self):
         with tf.variable_scope('warp'):
             u = self.outputs[0][..., 0]
             v = self.outputs[0][..., 1]
@@ -118,6 +117,78 @@ class FlowNetS(SuperResolution):
         tf.summary.scalar('Image', self.metrics['Image'])
         tf.summary.image('Ref', self.inputs[0][:, 0, ...])
         tf.summary.image('Warp', ref_hat)
+
+    def _spmc(self):
+        def _Fnet(f0, f1):
+            with tf.variable_scope('FNet', reuse=tf.AUTO_REUSE):
+                x = tf.concat([f0, f1], axis=-1)
+                x = self.conv2d(x, 24, 5, strides=2, activation='relu', kernel_initializer='he_normal')
+                x = self.conv2d(x, 24, 3, strides=1, activation='relu', kernel_initializer='he_normal')
+                x = self.conv2d(x, 24, 5, strides=2, activation='relu', kernel_initializer='he_normal')
+                x = self.conv2d(x, 24, 3, strides=1, activation='relu', kernel_initializer='he_normal')
+                x = self.conv2d(x, 32, 3, strides=1, activation='tanh', kernel_initializer='he_normal')
+                coarse_warp = tf.depth_to_space(x, 4)
+
+                return coarse_warp[..., 0], coarse_warp[..., 1]
+
+        def _Snet(f0, f1, u, v, warped):
+            with tf.variable_scope('SRNet', reuse=tf.AUTO_REUSE):
+                x = tf.concat([f0, f1, u, v, warped], axis=-1)
+                x = self.conv2d(x, 24, 5, strides=2, activation='relu', kernel_initializer='he_normal')
+                x = self.conv2d(x, 24, 3, strides=1, activation='relu', kernel_initializer='he_normal')
+                x = self.conv2d(x, 24, 3, strides=1, activation='relu', kernel_initializer='he_normal')
+                x = self.conv2d(x, 24, 3, strides=1, activation='relu', kernel_initializer='he_normal')
+                x = self.conv2d(x, 8, 3, strides=1, activation='tanh', kernel_initializer='he_normal')
+                fine_warp = tf.depth_to_space(x, 2)
+
+                return fine_warp[..., 0], fine_warp[..., 1]
+
+        with tf.variable_scope('SPMC'):
+            self.inputs.append(tf.placeholder(tf.float32, [None, self.depth, None, None, self.channel]))
+            self.label.append(tf.placeholder(tf.float32, [None, 1, None, None, 2]))
+
+            input_norm = self.inputs[0] / 255
+            # concat input 2 images
+            target = input_norm[:, 0, ...]
+            refer = input_norm[:, 1, ...]
+
+            coarse_u, coarse_v = self._Fnet(target, refer)
+            target_hat = warp(refer, coarse_u, coarse_v, True)
+            fine_u, fine_v = self._Snet(target, refer, coarse_u, coarse_v, target_hat)
+            flow_u = coarse_u + fine_u
+            flow_v = coarse_v + fine_v
+            target_hat2 = warp(refer, flow_u, flow_v, True)
+            flow = tf.concat([flow_u, flow_v], axis=-1)
+            self.outputs.append(flow)
+            self.outputs.append(target_hat2 * 255)
+
+        with tf.name_scope('loss'):
+            label_flow = self.label[0][:, 0, ...]
+            image_mse = tf.losses.mean_squared_error(target_hat2, target)
+            image_mse_coarse = tf.losses.mean_squared_error(target_hat, target)
+            flow_epe = tf.losses.mean_squared_error(label_flow, flow)
+
+            loss = image_mse + image_mse_coarse * 1e-3 + flow_epe * 1e-4
+
+            update_op = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+            with tf.control_dependencies(update_op):
+                op = tf.train.AdamOptimizer(self.learning_rate).minimize(loss, self.global_steps)
+                self.loss.append(op)
+
+            self.metrics['image'] = image_mse
+            self.metrics['flow'] = flow_epe
+            self.train_metric['image'] = image_mse
+            self.train_metric['loss'] = loss
+
+        tf.summary.image('coarse', target_hat)
+        tf.summary.image('fine', target_hat2)
+        tf.summary.image('ref', target)
+
+    def build_graph(self):
+        self._spmc()
+
+    def build_loss(self):
+        pass
 
     def build_summary(self):
         pass
