@@ -26,11 +26,14 @@ The hyperlink directs to paper site, follows the official codes if the authors o
   11. Super-Resolution Network for Multiple Degradations: [**SRMD**](https://arxiv.org/abs/1712.06116) *https://github.com/cszn/SRMD*
   12. Deep Back-Projection Networks: [**DBPN**](https://arxiv.org/abs/1803.02735) https://github.com/alterzero/DBPN-Pytorch
   13. Zero-Shot Super-Resolution: [**ZSSR**](http://www.wisdom.weizmann.ac.il/~vision/zssr/) https://github.com/assafshocher/ZSSR
-  
+- ECCV 2018
+
+  14. Cascading Residual Network: [**CARN**](https://arxiv.org/abs/1803.08664) https://github.com/nmhkahn/CARN-pytorch
+  15. Residual Channel Attention Networks: [**RCAN**](https://arxiv.org/abs/1807.02758) https://github.com/yulunzhang/RCAN
 - Others
 
-  15. [**DNCNN**](http://ieeexplore.ieee.org/document/7839189/) (*This is for denoise*) *https://github.com/cszn/DnCNN*
-  16. Deep CNN
+  - [**DNCNN**](http://ieeexplore.ieee.org/document/7839189/) (*This is for denoise*) *https://github.com/cszn/DnCNN*
+  - Deep CNN
 with Skip Connection: [**DCSCN**](https://arxiv.org/abs/1707.05425) *https://github.com/jiny2001/dcscn-super-resolution*
 
 - **Videos**
@@ -52,7 +55,7 @@ Moreover, VSR can handle raw NV12/YUV as well as a sequence of images as inputs.
 git clone https://github.com/loseall/VideoSuperResolution && cd VideoSuperResolution
 pip install -e .
 ```
-**Require**: tensorflow-gpu, numpy, PIL
+**Require**: tensorflow, numpy, PIL, pypng, psutil, pytest
 
 ### DataLoader
 - `Dataset` offers manipulation of **virtual** images.
@@ -99,6 +102,6 @@ See [readme](./Train/README.md) for details.
 
 ## Todo
 - [ ] MemNet
-- [ ] ZSSR
-- [ ] SRMD
+- [ ] RCAN
+- [ ] CARN
 - [ ] FRVSR
