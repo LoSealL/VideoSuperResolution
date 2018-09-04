@@ -132,6 +132,13 @@ def _eval_psnr(outputs, label, max_val, name, **kwargs):
         print(f'{name}\'s PSNR = {psnr:.2f}dB')
 
 
+def _image_align(image, scale, **kwargs):
+    H, W = image.shape[-3:-1]
+    h = H // scale * scale
+    w = W // scale * scale
+    return image[..., :h, :w, :]
+
+
 def save_image(save_dir='.', output_index=-1, **kwargs):
     return partial(_save_model_predicted_images, save_dir=save_dir, index=output_index, **kwargs)
 
@@ -183,3 +190,7 @@ def lr_decay(method, lr, **kwargs):
 
 def blur(kernel_width, kernel_size, method='gaussian'):
     return partial(_gaussian_blur, width=kernel_width, size=kernel_size)
+
+
+def image_alignment(image, scale):
+    return partial(_image_align, image, scale)

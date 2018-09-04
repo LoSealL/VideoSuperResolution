@@ -316,7 +316,10 @@ class EpochIterator:
         while self.grids and len(batch_hr) < self.batch:
             hr, lr, box, name = self.grids.pop(0)
             box = np.array(box, 'int32')
-            assert (np.mod(box, [*self.scale, *self.scale]) == 0).all()
+            try:
+                assert (np.mod(box, [*self.scale, *self.scale]) == 0).all()
+            except AssertionError:
+                tf.logging.error(f'Scale x{self.scale[0]}, but crop box is ' + str(box))
             crop_hr = [ImageProcess.crop(img, box) for img in hr]
             crop_lr = [ImageProcess.crop(img, box // [*self.scale, *self.scale]) for img in lr]
             ops = np.random.randint(0, 2, [3]) if self.aug else [0, 0, 0]

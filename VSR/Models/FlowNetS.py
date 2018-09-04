@@ -102,7 +102,7 @@ class FlowNetS(SuperResolution):
             self.metrics['Loss'] = loss
 
         tf.summary.scalar('EPE', self.metrics['EPE'])
-        tf.summary.scalar('Loss', self.metrics['Image'])
+        tf.summary.scalar('Loss', self.metrics['Loss'])
 
     def _spmc(self):
         def _Fnet(f0, f1):
