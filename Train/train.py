@@ -122,12 +122,12 @@ def main(*args, **kwargs):
                 images = pth
             env.fi, fi_old = 0, env.fi  # upscale directly
             env.output_callbacks[-1] = save_image(f'{save_root}/output', args.output_index)
-            env.predict(images, convert_to=test_format)
+            env.predict(images, convert_to=test_format, depth=args.depth)
             env.fi = fi_old
         elif test_set.pred:
             env.fi, fi_old = 0, env.fi  # upscale directly
             env.output_callbacks[-1] = save_image(f'{save_root}/output', args.output_index)
-            env.predict(test_set.pred, convert_to=test_format)
+            env.predict(test_set.pred, convert_to=test_format, depth=args.depth)
             env.fi = fi_old
     if args.export_pb:
         model = get_model(args.name)(scale=args.scale, rgb_input=True)
