@@ -183,7 +183,7 @@ class Environment:
         val_loader = QuickLoader(batch, dataset, 'val', self.model.scale, validate_numbers, **kwargs)
         for epoch in range(init_epoch, epochs + 1):
             train_iter = train_loader.make_one_shot_iterator(memory_usage, shard=parallel, shuffle=True)
-            date = time.strftime('%Y-%m-%D %T', time.localtime())
+            date = time.strftime('%Y-%m-%d %T', time.localtime())
             print(f'| {date} | Epoch: {epoch}/{epochs} | LR: {lr} |')
             avg_meas = {}
             with tqdm.tqdm(train_iter, unit='batch', ascii=True) as r:
