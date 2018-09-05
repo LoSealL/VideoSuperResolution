@@ -55,7 +55,7 @@ Moreover, VSR can handle raw NV12/YUV as well as a sequence of images as inputs.
 git clone https://github.com/loseall/VideoSuperResolution && cd VideoSuperResolution
 pip install -e .
 ```
-**Require**: tensorflow, numpy, PIL, pypng, psutil, pytest
+**Require**: tensorflow, numpy, PIL, pypng, psutil, pytest, tqdm
 
 ### DataLoader
 - `Dataset` offers manipulation of **virtual** images.

@@ -13,5 +13,4 @@ __all__ = [
     'Edsr',
     'SrGan',
     'FlowNetS',
-    'Exp',
 ]

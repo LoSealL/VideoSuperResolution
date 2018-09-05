@@ -10,10 +10,11 @@ SR model running environment
 import tensorflow as tf
 import numpy as np
 import time
+import tqdm
 from pathlib import Path
 
 from .SuperResolution import SuperResolution
-from ..DataLoader.Loader import BatchLoader, MpLoader, QuickLoader
+from ..DataLoader.Loader import MpLoader, QuickLoader
 from ..DataLoader.Dataset import Dataset
 from ..Util.Utility import to_list
 
@@ -68,7 +69,7 @@ class Environment:
         sess.__enter__()
         if not self.model.compiled:
             self.model.compile()
-        self.saver = tf.train.Saver(max_to_keep=10, allow_empty=True)
+        self.savers = self.model.savers
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -80,8 +81,8 @@ class Environment:
         sess.__exit__(exc_type, exc_val, exc_tb)
         # tf.reset_default_graph() ?
 
-    def _make_ckpt_name(self, epoch):
-        return f'{self.model.name}-sc{self.model.scale[0]}-ep{epoch:04d}.ckpt'
+    def _make_ckpt_name(self, name, step):
+        return f'{name}-sc{self.model.scale[0]}-ep{step:04d}.ckpt'
 
     def _parse_ckpt_name(self, name):
         # sample name: {model}-sc{scale}-ep{epoch}.ckpt(.index)
@@ -100,6 +101,27 @@ class Environment:
         # sort as modification time
         ckpt = sorted(ckpt, key=lambda x: x.stat().st_mtime_ns)
         return self.savedir / ckpt[-1].stem if ckpt else None
+
+    def _restore_model(self, sess):
+        last_checkpoint_step = 0
+        for name in self.savers:
+            saver = self.savers.get(name)
+            ckpt = to_list(self.savedir.glob(f'{name}*.index'))
+            if ckpt:
+                ckpt = sorted(ckpt, key=lambda x: x.stat().st_mtime_ns)
+                ckpt = self.savedir / ckpt[-1].stem
+                try:
+                    saver.restore(sess, str(ckpt))
+                except:
+                    tf.logging.warning(f'{name} of model {self.model.name} counld not be restored')
+                last_checkpoint_step = self._parse_ckpt_name(ckpt)
+        return last_checkpoint_step
+
+    def _save_model(self, sess, step):
+        for name in self.savers:
+            saver = self.savers.get(name)
+            file = self.savedir / self._make_ckpt_name(name, step)
+            saver.save(sess, str(file))
 
     def _early_exit(self):
         # Todo not implemented
@@ -139,16 +161,12 @@ class Environment:
         if sess is None:
             raise RuntimeError('No session initialized')
         if not self.model.compiled:
-            tf.logging.warning('[Warning] model not compiled, compiling now...')
+            tf.logging.error('[Warning] model not compiled, compiling now...')
             self.model.compile()
         sess.run(tf.global_variables_initializer())
-        ckpt_last = self._find_last_ckpt() if not restart else None
-        init_epoch = self._parse_ckpt_name(ckpt_last) + 1
+        init_epoch = 1 if restart else self._restore_model(sess) + 1
         if init_epoch > epochs:
             return
-        if ckpt_last:
-            tf.logging.info(f'Restoring from last epoch {ckpt_last}')
-            self.saver.restore(sess, str(ckpt_last))
         print('===================================')
         print(f'Training model: {self.model.name.upper()}')
         print('===================================')
@@ -165,13 +183,11 @@ class Environment:
         val_loader = QuickLoader(batch, dataset, 'val', self.model.scale, validate_numbers, **kwargs)
         for epoch in range(init_epoch, epochs + 1):
             train_iter = train_loader.make_one_shot_iterator(memory_usage, shard=parallel, shuffle=True)
-            equal_length_mod = max(steps_per_epoch // 20, 1)
             step_in_epoch = 0
-            start_time = time.time()
             date = time.strftime('%Y-%m-%D %T', time.localtime())
             print(f'| {date} | Epoch: {epoch}/{epochs} | LR: {lr} |')
             avg_meas = {}
-            for img in train_iter:
+            for img in tqdm.tqdm(train_iter, unit='batch', ascii=True):
                 feature, label, name = img[self.fi], img[self.li], str(img[-1])
                 for fn in self.feature_callbacks:
                     feature = fn(feature, name=name)
@@ -182,21 +198,12 @@ class Environment:
                 global_step = self.model.global_steps.eval()
                 if learning_rate_schedule and callable(learning_rate_schedule):
                     lr = learning_rate_schedule(lr, epochs=epoch, steps=global_step)
-                n_equals = step_in_epoch // equal_length_mod
-                n_dots = steps_per_epoch // equal_length_mod - n_equals
-                bar = f'{step_in_epoch}/{steps_per_epoch} [' + '=' * n_equals + '.' * n_dots + ']'
                 for k, v in loss.items():
                     avg_meas[k] = avg_meas[k] + v if avg_meas.get(k) else v
-                    bar += f' {k}={v:.4f}'
-                print(bar, flush=True, end='\r')
-            consumed_time = time.time() - start_time
-            print()
             for k, v in avg_meas.items():
                 print(f'| Epoch average {k} = {v / step_in_epoch:.6f} |')
-            print(f'| Time: {consumed_time:.4f}s, time per batch: {consumed_time * 1e3 / step_in_epoch:.4f}ms/b |', flush=True)
 
-            if epoch % validate_every_n_epoch:
-                continue
+            if epoch % validate_every_n_epoch: continue
             val_metrics = {}
             val_iter = val_loader.make_one_shot_iterator(shuffle=False)
             for img in val_iter:
@@ -214,10 +221,7 @@ class Environment:
             for k, v in val_metrics.items():
                 print(f'{k}: {np.asarray(v).mean():.6f}', end=', ')
             print('')
-            ckpt_last = self._make_ckpt_name(epoch)
-            self.saver.save(sess, str(self.savedir / ckpt_last))
-            if self._early_exit():
-                break
+            self._save_model(sess, epoch)
         # flush all pending summaries to disk
         summary_writer.close()
 
@@ -230,13 +234,16 @@ class Environment:
 
         sess = tf.get_default_session()
         sess.run(tf.global_variables_initializer())
-        ckpt_last = self._find_last_ckpt()
-        print('===================================')
-        print(f'Testing model: {self.model.name} by {ckpt_last}')
-        print('===================================')
-        self.saver.restore(sess, str(ckpt_last))
+        ckpt_last = self._restore_model(sess)
         loader = QuickLoader(1, dataset, 'test', self.model.scale, -1, no_patch=True, **kwargs)
-        for img in loader.make_one_shot_iterator():
+        it = loader.make_one_shot_iterator()
+        if len(it):
+            print('===================================')
+            print(f'Testing model: {self.model.name} by {ckpt_last}')
+            print('===================================')
+        else:
+            return
+        for img in tqdm.tqdm(it, 'Test', ascii=True):
             feature, label, name = img[self.fi], img[self.li], str(img[-1])
             tf.logging.debug('output: ' + name)
             for fn in self.feature_callbacks:
@@ -258,15 +265,18 @@ class Environment:
 
         sess = tf.get_default_session()
         sess.run(tf.global_variables_initializer())
-        ckpt_last = self._find_last_ckpt()
-        print('===================================')
-        print(f'Predicting model: {self.model.name} by {ckpt_last}')
-        print('===================================')
-        self.saver.restore(sess, str(ckpt_last))
+        ckpt_last = self._restore_model(sess)
         files = [Path(file) for file in to_list(files)]
         data = Dataset(test=files, mode=mode, depth=depth, modcrop=False, **kwargs)
         loader = QuickLoader(1, data, 'test', self.model.scale, -1, no_patch=True, **kwargs)
-        for img in loader.make_one_shot_iterator():
+        it = loader.make_one_shot_iterator()
+        if len(it):
+            print('===================================')
+            print(f'Predicting model: {self.model.name} by {ckpt_last}')
+            print('===================================')
+        else:
+            return
+        for img in tqdm.tqdm(it, 'Infer', ascii=True):
             feature, label, name = img[self.fi], img[self.li], str(img[-1])
             tf.logging.debug('output: ' + name)
             for fn in self.feature_callbacks:
@@ -284,6 +294,5 @@ class Environment:
 
         sess = tf.get_default_session()
         sess.run(tf.global_variables_initializer())
-        ckpt_last = self._find_last_ckpt()
-        self.saver.restore(sess, str(ckpt_last))
+        self._restore_model(sess)
         self.model.export_model_pb(export_dir)

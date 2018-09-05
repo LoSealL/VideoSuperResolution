@@ -6,6 +6,7 @@ __pycache__/
 
 *.egg-info/
 Results/
+Fixed/
 Exp/
 UTest/**/
 .png

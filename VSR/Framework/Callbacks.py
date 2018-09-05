@@ -69,14 +69,44 @@ def _to_normalized_image(img, mode):
     return array_to_img(img, mode)
 
 
+def _color_wheel():
+    RY = 15
+    YG = 6
+    GC = 4
+    CB = 11
+    BM = 13
+    MR = 6
+    color = np.zeros([RY + YG + GC + CB + BM + MR, 3])
+    for i in range(RY):
+        color[i] = [255, 255 * i / RY, 0]
+    for i in range(YG):
+        color[i + RY] = [255 - 255 * i / YG, 255, 0]
+    for i in range(GC):
+        color[i + RY + YG] = [0, 255, 255 * i / GC]
+    for i in range(CB):
+        color[i + RY + YG + GC] = [0, 255 - 255 * i / CB, 255]
+    for i in range(BM):
+        color[i + RY + YG + GC + CB] = [255 * i / BM, 0, 255]
+    for i in range(MR):
+        color[i + RY + YG + GC + CB + BM] = [255, 0, 255 - 255 * i / MR]
+    return color / 255
+
+
 def _flow_to_image(flow, mode):
     H, W = flow.shape[:2]
-    u = flow[..., 0] / W
-    v = flow[..., 1] / H
-    r = (u + 1) * 127.5
-    g = (v + 1) * 127.5
-    b = 127.5 * np.ones_like(r)
-    img = np.stack([r, g, b], axis=-1)
+    # [0, 2]
+    u = flow[..., 0]
+    v = flow[..., 1]
+
+    u /= W
+    v /= H
+    r = np.maximum(0, u) ** 2 + np.maximum(0, v) ** 2
+    g = v ** 2
+    b = np.maximum(0, -u) ** 2 + np.maximum(0, -v) ** 2
+
+    img = np.stack([r, g, b], -1)
+    img = (np.sqrt(img) + 0.2) * 255
+    img = np.clip(img, 0, 255)
     return array_to_img(img, 'RGB')
 
 
@@ -192,5 +222,5 @@ def blur(kernel_width, kernel_size, method='gaussian'):
     return partial(_gaussian_blur, width=kernel_width, size=kernel_size)
 
 
-def image_alignment(image, scale):
-    return partial(_image_align, image, scale)
+def image_alignment(scale):
+    return partial(_image_align, scale=scale)

@@ -8,7 +8,8 @@ REQUIRED_PACKAGES = [
     'Image',
     'pypng',
     'pytest',
-    'psutil'
+    'psutil',
+    'tqdm'
 ]
 
 if __name__ == '__main__':

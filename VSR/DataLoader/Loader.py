@@ -298,6 +298,16 @@ class EpochIterator:
             # this is a pool.ApplyResult, need to get its values
             self.synced = False
 
+    def __len__(self):
+        if not self.synced:
+            # get results from process pool
+            grids = []
+            for p in self.grids.get():
+                grids += p
+            self.grids = grids
+            self.synced = True
+        return len(self.grids) // self.batch
+
     def __iter__(self):
         return self
 
