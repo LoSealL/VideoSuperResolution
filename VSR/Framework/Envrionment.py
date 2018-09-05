@@ -183,25 +183,25 @@ class Environment:
         val_loader = QuickLoader(batch, dataset, 'val', self.model.scale, validate_numbers, **kwargs)
         for epoch in range(init_epoch, epochs + 1):
             train_iter = train_loader.make_one_shot_iterator(memory_usage, shard=parallel, shuffle=True)
-            step_in_epoch = 0
             date = time.strftime('%Y-%m-%D %T', time.localtime())
             print(f'| {date} | Epoch: {epoch}/{epochs} | LR: {lr} |')
             avg_meas = {}
-            for img in tqdm.tqdm(train_iter, unit='batch', ascii=True):
-                feature, label, name = img[self.fi], img[self.li], str(img[-1])
-                for fn in self.feature_callbacks:
-                    feature = fn(feature, name=name)
-                for fn in self.label_callbacks:
-                    label = fn(label, name=name)
-                loss = self.model.train_batch(feature=feature, label=label, learning_rate=lr, epochs=epoch)
-                step_in_epoch += 1
-                global_step = self.model.global_steps.eval()
-                if learning_rate_schedule and callable(learning_rate_schedule):
-                    lr = learning_rate_schedule(lr, epochs=epoch, steps=global_step)
-                for k, v in loss.items():
-                    avg_meas[k] = avg_meas[k] + v if avg_meas.get(k) else v
+            with tqdm.tqdm(train_iter, unit='batch', ascii=True) as r:
+                for img in r:
+                    feature, label, name = img[self.fi], img[self.li], str(img[-1])
+                    for fn in self.feature_callbacks:
+                        feature = fn(feature, name=name)
+                    for fn in self.label_callbacks:
+                        label = fn(label, name=name)
+                    loss = self.model.train_batch(feature=feature, label=label, learning_rate=lr, epochs=epoch)
+                    global_step = self.model.global_steps.eval()
+                    if learning_rate_schedule and callable(learning_rate_schedule):
+                        lr = learning_rate_schedule(lr, epochs=epoch, steps=global_step)
+                    for k, v in loss.items():
+                        avg_meas[k] = avg_meas[k] + [v] if avg_meas.get(k) else [v]
+                    r.set_postfix(loss)
             for k, v in avg_meas.items():
-                print(f'| Epoch average {k} = {v / step_in_epoch:.6f} |')
+                print(f'| Epoch average {k} = {np.mean(v):.6f} |')
 
             if epoch % validate_every_n_epoch: continue
             val_metrics = {}
@@ -219,7 +219,7 @@ class Environment:
                     val_metrics[k] += [v]
                 summary_writer.add_summary(val_summary_op, global_step)
             for k, v in val_metrics.items():
-                print(f'{k}: {np.asarray(v).mean():.6f}', end=', ')
+                print(f'{k}: {np.mean(v):.6f}', end=', ')
             print('')
             self._save_model(sess, epoch)
         # flush all pending summaries to disk
