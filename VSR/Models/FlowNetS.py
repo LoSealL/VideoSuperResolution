@@ -80,8 +80,9 @@ class FlowNetS(SuperResolution):
             self.outputs = [flow, flow2, flow3, flow4, flow5, flow6]
 
         with tf.name_scope('loss'):
-            target_flow = self.label[0][:, 0, ...]
-            weights = [0.32, 0.16, 0.08, 0.04, 0.02]
+            target_flow = self.label[0][:, 0, ...] / 20
+            weights = [0.32, 0.08, 0.02, 0.01, 0.005]
+            weights.reverse()
             scales = [4, 8, 16, 32, 64]
             multiscale_l1loss = []
             for _f, _s, _w in zip(self.outputs[1:], scales, weights):

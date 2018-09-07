@@ -92,22 +92,54 @@ def _color_wheel():
     return color / 255
 
 
+def _viz_flow(u, v, logscale=True, scaledown=6):
+    """
+    Copied from https://github.com/jswulff/pcaflow/blob/master/pcaflow/utils/viz_flow.py
+    thanks to @jswulff
+
+    topleft is zero, u is horiz, v is vertical
+    red is 3 o'clock, yellow is 6, light blue is 9, blue/purple is 12
+    """
+    colorwheel = _color_wheel()
+    ncols = colorwheel.shape[0]
+
+    radius = np.sqrt(u ** 2 + v ** 2)
+    if logscale:
+        radius = np.log(radius + 1)
+    radius = radius / scaledown
+    rot = np.arctan2(-v, -u) / np.pi
+
+    fk = (rot + 1) / 2 * (ncols - 1)  # -1~1 maped to 0~ncols
+    k0 = fk.astype(np.uint8)  # 0, 1, 2, ..., ncols
+
+    k1 = k0 + 1
+    k1[k1 == ncols] = 0
+
+    f = fk - k0
+
+    ncolors = colorwheel.shape[1]
+    img = np.zeros(u.shape + (ncolors,))
+    for i in range(ncolors):
+        tmp = colorwheel[:, i]
+        col0 = tmp[k0]
+        col1 = tmp[k1]
+        col = (1 - f) * col0 + f * col1
+
+        idx = radius <= 1
+        # increase saturation with radius
+        col[idx] = 1 - radius[idx] * (1 - col[idx])
+        # out of range
+        col[~idx] *= 0.75
+        img[:, :, i] = np.floor(255 * col).astype(np.uint8)
+
+    return img.astype(np.uint8)
+
+
 def _flow_to_image(flow, mode):
-    H, W = flow.shape[:2]
-    # [0, 2]
     u = flow[..., 0]
     v = flow[..., 1]
-
-    u /= W
-    v /= H
-    r = np.maximum(0, u) ** 2 + np.maximum(0, v) ** 2
-    g = v ** 2
-    b = np.maximum(0, -u) ** 2 + np.maximum(0, -v) ** 2
-
-    img = np.stack([r, g, b], -1)
-    img = (np.sqrt(img) + 0.2) * 255
-    img = np.clip(img, 0, 255)
-    return array_to_img(img, 'RGB')
+    viz = _viz_flow(u, v)
+    return array_to_img(viz, 'RGB')
 
 
 def _add_noise(feature, stddev, mean, clip, **kwargs):
