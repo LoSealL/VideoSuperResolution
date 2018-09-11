@@ -9,7 +9,7 @@ commonly used layers helper
 import tensorflow as tf
 
 from ..Util.Utility import (
-    to_list, prelu, pixel_shift, SpectralNorm
+    to_list, prelu, pixel_shift, pop_dict_wo_keyerror, SpectralNorm
 )
 
 
@@ -55,8 +55,8 @@ class Layers(object):
                  use_bias=True,
                  use_batchnorm=False,
                  use_sn=False,
-                 kernel_initializer=None,
-                 kernel_regularizer=None,
+                 kernel_initializer='he_normal',
+                 kernel_regularizer='l2',
                  **kwargs):
         """warp a conv2d_transpose op for simplicity usage"""
 
@@ -220,7 +220,9 @@ class Layers(object):
         
         NOTE: orders do not matter.
         """
-        if 'conv2d' in item:
+        if 'deconv2d' in item:
+            pass
+        elif 'conv2d' in item:
             items = item.split('_')
             kwargs = {
                 'kernel_initializer': 'he_normal',
@@ -275,11 +277,9 @@ class Layers(object):
         })
         if bn_placement is None: bn_placement = 'behind'
         assert bn_placement in ('front', 'behind')
-        try:
-            name = kwargs.pop('name')
-        except KeyError:
-            name = None
-        with tf.variable_scope(name, 'ResBlock'):
+        name = pop_dict_wo_keyerror(kwargs, 'name')
+        reuse = pop_dict_wo_keyerror(kwargs, 'reuse')
+        with tf.variable_scope(name, 'ResBlock', reuse=reuse):
             ori = x
             if bn_placement == 'front':
                 act = self._act(activation)

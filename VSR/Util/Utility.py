@@ -211,6 +211,13 @@ def color_consistency(feature, label, lambd=5):
     return cc
 
 
+def pop_dict_wo_keyerror(d, key):
+    value = d.get(key)
+    if value is not None:
+        d.pop(key)
+    return value
+
+
 class Vgg:
     """use pre-trained VGG network from keras.application.vgg16
     to obtain outputs of specific layers

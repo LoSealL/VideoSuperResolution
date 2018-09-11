@@ -16,18 +16,31 @@ import tensorflow as tf
 
 
 class DCSCN(SuperResolution):
+    """Fast and Accurate Image Super Resolution by Deep CNN
+       with Skip Connection and Network in Network
 
+    Args:
+        layers: total layers of feature extraction net
+        reconstruction_layers: number of layers in upscale net
+        filters: maximum filters in feature extraction net
+        min_filters: number of filters in the 1st layer of feature extraction net
+        nin_filter: a tuple of 2 integer, representing filters in NIN
+        reconst_filter: number of filters in reconstruction net
+        filters_decay_gamma: ...
+        drop_out: drop out rate
+    """
     def __init__(self,
-                 layers,
-                 reconstruction_layers,
-                 filters,
-                 min_filters,
-                 nin_filter,
-                 reconst_filter,
-                 filters_decay_gamma,
-                 drop_out,
+                 layers=8,
+                 reconstruction_layers=1,
+                 filters=196,
+                 min_filters=48,
+                 nin_filter=(64, 32),
+                 reconst_filter=32,
+                 filters_decay_gamma=1.5,
+                 drop_out=0.8,
                  name='dcscn',
                  **kwargs):
+        super(DCSCN, self).__init__(**kwargs)
         self.layers = layers
         self.reconstruction_layers = reconstruction_layers
         self.filters = filters
@@ -37,11 +50,10 @@ class DCSCN(SuperResolution):
         self.filters_decay_gamma = filters_decay_gamma
         self.drop_out = drop_out
         self.name = name
-        super(DCSCN, self).__init__(**kwargs)
 
     def build_graph(self):
+        super(DCSCN, self).build_graph()
         with tf.variable_scope(self.name):
-            super(DCSCN, self).build_graph()
             shape_enlarged = tf.shape(self.inputs_preproc[-1])[1:3]
             shape_enlarged = shape_enlarged * self.scale
             bic = tf.image.resize_bicubic(self.inputs_preproc[-1], shape_enlarged)

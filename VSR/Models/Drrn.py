@@ -5,7 +5,7 @@ Email: wenyi.tang@intel.com
 Created Date: June 8th 2018
 Updated Date: June 8th 2018
 
-Image Super-Resolution via Deep Recursive Residual Network
+Image Super-Resolution via Deep Recursive Residual Network (CVPR 2017)
 See http://cvlab.cse.msu.edu/pdfs/Tai_Yang_Liu_CVPR2017.pdf
 """
 
@@ -16,6 +16,13 @@ import tensorflow as tf
 
 
 class DRRN(SuperResolution):
+    """Image Super-Resolution via Deep Recursive Residual Network
+
+    Args:
+        residual_unit: number of residual blocks in one recursion
+        recursive_block: number of recursions
+        grad_clip: gradient clip ratio according to the paper
+    """
 
     def __init__(self, residual_unit=3, recursive_block=3, grad_clip=0.01, name='drrn', **kwargs):
         self.ru = residual_unit
@@ -26,17 +33,23 @@ class DRRN(SuperResolution):
 
     def summary(self):
         super(DRRN, self).summary()
-        print('Recursive Blocks: %d' % self.rb)
-        print('Residual Units: %d' % self.ru)
+        tf.logging.info('Recursive Blocks: %d' % self.rb)
+        tf.logging.info('Residual Units: %d' % self.ru)
+
+    def _shared_resblock(self, inputs, **kwargs):
+        x = self.relu_conv2d(inputs, 128, 3)
+        for _ in range(self.ru):
+            x = self.resblock(x, 128, 3, reuse=tf.AUTO_REUSE, name='Res')
+        return x
 
     def build_graph(self):
+        super(DRRN, self).build_graph()
         with tf.variable_scope(self.name):
-            super(DRRN, self).build_graph()
             bic = bicubic_rescale(self.inputs_preproc[-1], self.scale)
             x = bic
-            for i in range(self.rb):
-                x = self._make_resblock(i, x)
-            x = self.conv2d(x, self.channel, 3, kernel_initializer='he_normal', kernel_regularizer='l2')
+            for _ in range(self.rb):
+                x = self._shared_resblock(x)
+            x = self.conv2d(x, self.channel, 3)
             self.outputs.append(x + bic)
 
     def build_loss(self):
@@ -70,14 +83,3 @@ class DRRN(SuperResolution):
         tf.summary.scalar('loss/regularization', self.metrics['regularization'])
         tf.summary.scalar('psnr', self.metrics['psnr'])
         tf.summary.scalar('ssim', self.metrics['ssim'])
-
-    def _make_resblock(self, index, inputs):
-        H = [self.conv2d(inputs, 128, 3, activation='relu',
-                         kernel_initializer='he_normal', kernel_regularizer='l2')]
-        for _ in range(self.ru):
-            res = self.conv2d(H[-1], 128, 3, activation='relu', kernel_initializer='he_normal',
-                              kernel_regularizer='l2', name='red', reuse=tf.AUTO_REUSE)
-            res = self.conv2d(res, 128, 3, activation='relu', kernel_initializer='he_normal',
-                              kernel_regularizer='l2', name='green', reuse=tf.AUTO_REUSE)
-            H.append(H[0] + res)
-        return H[-1]

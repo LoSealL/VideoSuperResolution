@@ -16,36 +16,64 @@ import tensorflow as tf
 
 
 class ResidualDenseNetwork(SuperResolution):
+    """Residual Dense Network for Image Super-Resolution
+
+    Args:
+        global_filters: filters used in shallow feature extraction and global fusion
+        rdb_blocks: number of residual dense blocks
+        rdb_conv: number of conv2d layers in each RDB
+        rdb_filters: number of filters in RDB conv2d
+
+    NOTE: total conv2d layers := `rdb_blocks` * `rdb_conv` + 5 + Upscale
+    """
 
     def __init__(self, global_filters=64, rdb_blocks=10, rdb_conv=6, rdb_filters=64,
                  name='rdn', **kwargs):
+        super(ResidualDenseNetwork, self).__init__(**kwargs)
         self.name = name
         self.gfilter = global_filters
         self.block = rdb_blocks
         self.conv = rdb_conv
         self.growth_rate = rdb_filters
-        super(ResidualDenseNetwork, self).__init__(**kwargs)
+
+    def _rdb(self, inputs, **kwargs):
+        """Make Residual Dense Block
+
+        Args:
+            inputs: input features
+        """
+        with tf.variable_scope(kwargs.get('name'), 'ResDenseBlock'):
+            filters, conv = self.growth_rate, self.conv
+            x = [inputs]
+            x += [self.relu_conv2d(x[-1], filters, 3)]
+            for i in range(1, conv):
+                x += [self.relu_conv2d(tf.concat(x, axis=-1), filters, 3)]
+            # 1x1 conv
+            local_fusion = self.conv2d(tf.concat(x, axis=-1), filters, 1)
+            # local residual learning
+            outputs = inputs + local_fusion
+            return outputs
 
     def build_graph(self):
+        super(ResidualDenseNetwork, self).build_graph()
         with tf.variable_scope(self.name):
-            super(ResidualDenseNetwork, self).build_graph()
             x = self.inputs_preproc[-1]
             # shallow feature extraction
             # NOTE: no activation
             with tf.variable_scope('ShallowFeature'):
-                sf0 = self.conv2d(x, self.gfilter, 3, kernel_regularizer='l2', kernel_initializer='he_normal')
-                sf1 = self.conv2d(sf0, self.gfilter, 3, kernel_regularizer='l2', kernel_initializer='he_normal')
+                sf0 = self.conv2d(x, self.gfilter, 3)
+                sf1 = self.conv2d(sf0, self.gfilter, 3)
             with tf.variable_scope('ResBlocks'):
                 F = [sf1]
                 for i in range(self.block):
-                    F += [self._make_rdb(F[-1])]
+                    F += [self._rdb(F[-1])]
             with tf.variable_scope('GlobalFusion'):
-                gf0 = self.conv2d(tf.concat(F[1:], axis=-1), self.gfilter, 1, kernel_initializer='he_normal', kernel_regularizer='l2')
-                gf1 = self.conv2d(gf0, self.gfilter, 3, kernel_regularizer='l2', kernel_initializer='he_normal')
+                gf0 = self.conv2d(tf.concat(F[1:], axis=-1), self.gfilter, 1)
+                gf1 = self.conv2d(gf0, self.gfilter, 3)
             dense_feature = sf0 + gf1
             # use pixel shift in ESPCN to upscale
-            upscaled = self.upscale(dense_feature, 'espcn', direct_output=False)
-            hr = self.conv2d(upscaled, self.channel, 3, kernel_initializer=tf.keras.initializers.he_normal())
+            upscaled = self.upscale(dense_feature, direct_output=False)
+            hr = self.conv2d(upscaled, self.channel, 3)
             self.outputs.append(hr)
 
     def build_loss(self):
@@ -69,21 +97,3 @@ class ResidualDenseNetwork(SuperResolution):
         tf.summary.scalar('loss/mae', self.metrics['mae'])
         tf.summary.scalar('metric/psnr', self.metrics['psnr'])
         tf.summary.scalar('metric/ssim', self.metrics['ssim'])
-
-    def _make_rdb(self, inputs):
-        """Make Residual Dense Block
-
-        Args:
-            inputs: input features
-        """
-
-        filters, conv = self.growth_rate, self.conv
-        x = [inputs]
-        x += [self.conv2d(x[-1], filters, 3, activation='relu', kernel_regularizer='l2', kernel_initializer='he_normal')]
-        for i in range(1, conv):
-            x += [self.conv2d(tf.concat(x, axis=-1), filters, 3, activation='relu', kernel_regularizer='l2', kernel_initializer='he_normal')]
-        # 1x1 conv
-        local_fusion = self.conv2d(tf.concat(x, axis=-1), filters, 1, kernel_regularizer='l2', kernel_initializer='he_normal')
-        # local residual learning
-        outputs = inputs + local_fusion
-        return outputs

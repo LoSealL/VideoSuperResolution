@@ -5,7 +5,7 @@ Email: wenyi.tang@intel.com
 Created Date: June 5th 2018
 Updated Date: June 5th 2018
 
-Deeply-Recursive Convolutional Network for Image Super-Resolution
+Deeply-Recursive Convolutional Network for Image Super-Resolution (CVPR 2016)
 See https://arxiv.org/abs/1511.04491
 """
 
@@ -16,6 +16,12 @@ import numpy as np
 
 
 class DRCN(SuperResolution):
+    """Deeply-Recursive Convolutional Network for Image Super-Resolution
+
+    Args:
+        recur: number of recursions
+        filters: number of filters in conv2d(s)
+    """
 
     def __init__(self, recur=16, filters=256, name='drcn', **kwargs):
         self.recur = recur
@@ -23,16 +29,33 @@ class DRCN(SuperResolution):
         self.name = name
         super(DRCN, self).__init__(**kwargs)
 
+    def _embedding(self, inputs):
+        with tf.variable_scope('Embedding'):
+            x = self.relu_conv2d(inputs, self.filters, 3)
+            x = self.relu_conv2d(x, self.filters, 3)
+            return x
+
+    def _inference(self, inputs):
+        with tf.variable_scope('Inference', reuse=tf.AUTO_REUSE):
+            x = self.relu_conv2d(inputs, self.filters, 3)
+            return x
+
+    def _reconstruction(self, inputs):
+        with tf.variable_scope('Reconstruct', reuse=tf.AUTO_REUSE):
+            x = self.relu_conv2d(inputs, self.filters, 3)
+            x = self.conv2d(x, self.channel, 3)
+            return x
+
     def build_graph(self):
         with tf.variable_scope(self.name):
             super(DRCN, self).build_graph()
             # bicubic upscale
             bic = bicubic_rescale(self.inputs_preproc[-1], self.scale)
-            x = self._build_embedding(bic)
+            x = self._embedding(bic)
             y = [bic]
             for _ in range(self.recur):
-                x = self._build_inference(x)
-                y += [self._build_reconstruction(x)]
+                x = self._inference(x)
+                y += [self._reconstruction(x)]
             self.outputs = y
             layer_weights = tf.Variable(np.ones_like(y, 'float') / len(y), name="LayerWeights", dtype=tf.float32)
             output = 0
@@ -78,24 +101,3 @@ class DRCN(SuperResolution):
         else:
             self.feed_dict.update({'loss/alpha:0': 0})
         return super(DRCN, self).train_batch(feature, label, learning_rate, **kwargs)
-
-    def _build_embedding(self, inputs):
-        with tf.variable_scope('embedding'):
-            x = self.conv2d(inputs, self.filters, 3, activation='relu',
-                            kernel_initializer='he_normal', kernel_regularizer='l2')
-            x = self.conv2d(x, self.filters, 3, activation='relu',
-                            kernel_initializer='he_normal', kernel_regularizer='l2')
-            return x
-
-    def _build_inference(self, inputs):
-        with tf.variable_scope('inference', reuse=tf.AUTO_REUSE):
-            x = self.conv2d(inputs, self.filters, 3, activation='relu',
-                            kernel_initializer='he_normal', kernel_regularizer='l2')
-            return x
-
-    def _build_reconstruction(self, inputs):
-        with tf.variable_scope('reconstruct', reuse=tf.AUTO_REUSE):
-            x = self.conv2d(inputs, self.filters, 3, activation='relu',
-                            kernel_initializer='he_normal', kernel_regularizer='l2')
-            x = self.conv2d(x, self.channel, 3, kernel_initializer='he_normal', kernel_regularizer='l2')
-            return x

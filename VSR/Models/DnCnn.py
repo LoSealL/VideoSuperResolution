@@ -7,7 +7,6 @@ Updated Date: May 23rd 2018
 
 Implementing Feed-forward Denoising Convolutional Neural Network
 See http://ieeexplore.ieee.org/document/7839189/
-**Beyond a Gaussian Denoiser: Residual Learning of Deep CNN for Image Denoising**
 """
 from ..Framework.SuperResolution import SuperResolution
 
@@ -15,26 +14,28 @@ import tensorflow as tf
 
 
 class DnCNN(SuperResolution):
+    """Beyond a Gaussian Denoiser: Residual Learning of Deep CNN for Image Denoising
 
-    def __init__(self, layers=20, use_bn=True, name='dncnn', **kwargs):
+    Args:
+        layers: number of layers used
+    """
+
+    def __init__(self, layers=20, name='dncnn', **kwargs):
         self.name = name
         self.layers = layers
-        self.use_bn = use_bn
-        if 'scale' in kwargs:
-            kwargs.pop('scale')
+        if 'scale' in kwargs: kwargs.pop('scale')
         super(DnCNN, self).__init__(scale=1, **kwargs)
 
     def build_graph(self):
+        super(DnCNN, self).build_graph()  # build inputs placeholder
         with tf.variable_scope(self.name):
-            super(DnCNN, self).build_graph()  # build inputs placeholder
             # build layers
             x = self.inputs_preproc[-1] / 255  # use channel Y only
-            x = self.conv2d(x, 64, 3, activation='relu', kernel_initializer='he_normal', kernel_regularizer='l2')
+            x = self.relu_conv2d(x, 64, 3)
             for i in range(1, self.layers - 1):
-                x = self.conv2d(x, 64, 3, activation='relu', use_batchnorm=self.use_bn, use_bias=False,
-                                kernel_initializer='he_normal', kernel_regularizer='l2')
+                x = self.bn_relu_conv2d(x, 64, 3, use_bias=False)
             # the last layer w/o BN and ReLU
-            x = self.conv2d(x, 1, 3, kernel_initializer='he_normal', kernel_regularizer='l2')
+            x = self.conv2d(x, 1, 3)
             # residual training
             outputs = self.inputs_preproc[-1] / 255 - x
             self.outputs.append(outputs * 255)

@@ -2,7 +2,9 @@
   "glayers": 16,
   "dlayers": 8,
   "vgg_layer": [2, 2],
-  "init_steps": 1000,
-  "vgg_weight": 1,
-  "mse_weight": 0
+  "init_epoch": 100,
+  "vgg_weight": 1e-6,
+  "mse_weight": 0.1,
+  "gan_weight": 0.001,
+  "fixed_train_hr_size": 192
 }

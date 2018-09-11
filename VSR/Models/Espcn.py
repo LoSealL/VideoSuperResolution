@@ -23,16 +23,12 @@ class ESPCN(SuperResolution):
         super(ESPCN, self).__init__(scale=scale, **kwargs)
 
     def build_graph(self):
+        super(ESPCN, self).build_graph()
         with tf.variable_scope(self.name):
-            super(ESPCN, self).build_graph()
-            tf.summary.image('input', self.inputs[-1], 1)
             x = self.inputs_preproc[-1] / 255.0
-            x = self.conv2d(x, 64, 5, activation=tf.nn.tanh,
-                            kernel_initializer='he_normal',
-                            kernel_regularizer='l2')
+            x = self.tanh_conv2d(x, 64, 5)
             for _ in range(1, self.layers - 1):
-                x = self.conv2d(x, 32, 3, activation=tf.nn.tanh, kernel_initializer='he_normal',
-                                kernel_regularizer='l2')
+                x = self.tanh_conv2d(x, 32, 3)
             x = self.upscale(x)
             self.outputs.append(x * 255.0)
 

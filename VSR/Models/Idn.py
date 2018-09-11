@@ -16,40 +16,83 @@ import tensorflow as tf
 
 
 class InformationDistillationNetwork(SuperResolution):
+    """Fast and Accurate Single Image Super-Resolution via Information Distillation Network
 
-    def __init__(self, scale,
-                 blocks=4,
-                 filters=64,
-                 delta=16,
-                 slice_factor=4,
-                 leaky_slope=0.05,
-                 fine_tune=100000,
-                 name='idn',
-                 **kwargs):
+    Args:
+        blocks: number of distillation blocks
+        filters: number of filters in distillation blocks
+        delta: according to paper, D = D3 - D1 = D1 - D2 = D6 - D4 = D4 - D5,
+          where D3=D4, D_{i} is the filters of i-th conv2d
+        slice_factor: the number of channels sliced out from the 3rd conv2d
+        leaky_slope: slope used in leaky relu activators
+        fine_tune_epoch: epoch number beyond which use L1 loss to replace L2 loss
+    """
+
+    def __init__(self, blocks=4, filters=64, delta=16, slice_factor=4, leaky_slope=0.05,
+                 fine_tune_epoch=200, name='idn', **kwargs):
+        super(InformationDistillationNetwork, self).__init__(**kwargs)
         self.blocks = blocks
-        self.D = filters
+        self.F = filters
         self.d = delta
         self.s = slice_factor
         self.leaky_slope = leaky_slope
-        self.fine_tune = fine_tune
+        self.fine_tune = fine_tune_epoch
         self.name = name
-        super(InformationDistillationNetwork, self).__init__(scale=scale, **kwargs)
+
+    def _idn(self, inputs, D3=64, d=16, s=4, **kwargs):
+        """ the information distillation block contains:
+                - enhancement unit
+                - compression unit
+
+            Args:
+                inputs: input feature maps
+                D3: filters of the 3rd conv2d
+                d: according to paper, D = D3 - D1 = D1 - D2 = D6 - D4 = D4 - D5,
+                   where D3=D4, D_{i} is the filters of i-th conv2d
+                s: s is the number of channels sliced out from the 3rd conv2d
+        """
+        D1 = D3 - d
+        D2 = D1 - d
+        D4 = D3
+        D5 = D4 - d
+        D6 = D4 + d
+        D = [D1, D2, D3, D4, D5, D6]
+        with tf.variable_scope(kwargs.get('name'), 'Enhancement'):
+            x = inputs
+            for _d in D[:3]:
+                x = self.conv2d(x, _d, 3)
+                x = tf.nn.leaky_relu(x, self.leaky_slope)
+            R, P2 = x[..., :D3 // s], x[..., D3 // s:]
+            x = P2
+            for _d in D[3:]:
+                x = self.conv2d(x, _d, 3)
+                x = tf.nn.leaky_relu(x, self.leaky_slope)
+            x += tf.concat([inputs, R], axis=-1)
+        with tf.variable_scope(kwargs.get('name'), 'Compression'):
+            outputs = self.conv2d(x, D3, 1)
+        return outputs
+
+    def _mse_weight_decay_fn(self, step):
+        if step < self.fine_tune:
+            return 1.0
+        else:
+            return 0
 
     def build_graph(self):
+        super(InformationDistillationNetwork, self).build_graph()
         with tf.variable_scope(self.name):
-            super(InformationDistillationNetwork, self).build_graph()
-            x = self.inputs_preproc[-1]
-            with tf.variable_scope('feature_blocks'):
-                x = self.conv2d(x, self.D, 3, kernel_regularizer='l2', kernel_initializer='he_normal')
+            x = self.inputs_preproc[-1] / 255
+            with tf.variable_scope('Features'):
+                x = self.conv2d(x, self.F, 3)
                 x = tf.nn.leaky_relu(x, self.leaky_slope)
-                x = self.conv2d(x, self.D, 3, kernel_regularizer='l2', kernel_initializer='he_normal')
+                x = self.conv2d(x, self.F, 3)
                 x = tf.nn.leaky_relu(x, self.leaky_slope)
-            with tf.variable_scope('distillation_blocks'):
-                for i in range(self.blocks):
-                    x = self._make_idn(i, x, self.D, self.d, self.s)
-            with tf.variable_scope('reconstruction'):
-                x = self.deconv2d(x, self.channel, 17, strides=self.scale, kernel_regularizer='l2', kernel_initializer='he_normal')
-            self.outputs.append(x)
+            with tf.variable_scope('Distillation'):
+                for _ in range(self.blocks):
+                    x = self._idn(x, self.F, self.d, self.s)
+            with tf.variable_scope('Reconstruction'):
+                x = self.deconv2d(x, self.channel, 17, strides=self.scale)
+            self.outputs.append(x * 255)
 
     def build_loss(self):
         """The paper first use MSE to train network, then use MAE to fine-tune it
@@ -71,7 +114,8 @@ class InformationDistillationNetwork(SuperResolution):
             self.metrics['ssim'] = tf.reduce_mean(tf.image.ssim(y_true, y_pred, max_val=255))
 
     def train_batch(self, feature, label, learning_rate=1e-4, **kwargs):
-        self.feed_dict.update({'mse_weight:0': self._mse_weight_decay_fn()})
+        epoch = kwargs.get('epochs')
+        self.feed_dict.update({'mse_weight:0': self._mse_weight_decay_fn(epoch)})
         return super(InformationDistillationNetwork, self).train_batch(feature, label, learning_rate, **kwargs)
 
     def build_summary(self):
@@ -79,42 +123,3 @@ class InformationDistillationNetwork(SuperResolution):
         tf.summary.scalar('loss/mae', self.metrics['mae'])
         tf.summary.scalar('metric/psnr', self.metrics['psnr'])
         tf.summary.scalar('metric/ssim', self.metrics['ssim'])
-
-    def _make_idn(self, index, inputs, D3=64, d=16, s=4):
-        """ the information distillation block contains:
-                - enhancement unit
-                - compression unit
-
-            Args:
-                inputs: input feature maps
-                D3: filters of the 3rd conv2d
-                d: according to paper, D = D3 - D1 = D1 - D2 = D6 - D4 = D4 - D5,
-                   where D3=D4, D_{i} is the filters of i-th conv2d
-                s: s is the number of channels sliced out from the 3rd conv2d
-        """
-        D1 = D3 - d
-        D2 = D1 - d
-        D4 = D3
-        D5 = D4 - d
-        D6 = D4 + d
-        D = [D1, D2, D3, D4, D5, D6]
-        with tf.variable_scope(f'enhancement_{index}'):
-            x = inputs
-            for _D in D[:3]:
-                x = self.conv2d(x, _D, 3, kernel_regularizer='l2', kernel_initializer='he_normal')
-                x = tf.nn.leaky_relu(x, self.leaky_slope)
-            R, P2 = x[..., :D3 // s], x[..., D3 // s:]
-            x = P2
-            for _D in D[3:]:
-                x = self.conv2d(x, _D, 3, kernel_regularizer='l2', kernel_initializer='he_normal')
-                x = tf.nn.leaky_relu(x, self.leaky_slope)
-            x += tf.concat([inputs, R], axis=-1)
-        with tf.variable_scope(f'compression_{index}'):
-            outputs = self.conv2d(x, D3, 1, kernel_regularizer='l2', kernel_initializer='he_normal')
-        return outputs
-
-    def _mse_weight_decay_fn(self):
-        if self.global_steps.eval() < self.fine_tune:
-            return 1.0
-        else:
-            return 0

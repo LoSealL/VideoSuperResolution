@@ -5,16 +5,22 @@ Email: wenyi.tang@intel.com
 Created Date: June 15th 2018
 Updated Date: June 15th 2018
 
-Enhanced Deep Residual Networks for Single Image Super-Resolution
+Enhanced Deep Residual Networks for Single Image Super-Resolution (CVPR 2017)
 See https://arxiv.org/abs/1707.02921
 """
 
 from ..Framework.SuperResolution import SuperResolution
-from ..Util.Utility import pixel_shift
 import tensorflow as tf
 
 
 class EDSR(SuperResolution):
+    """Enhanced Deep Residual Networks for Single Image Super-Resolution
+
+    Args:
+        layers: number of residual blocks
+        filters: number of filters in each conv2d
+        clip: feature value clip ratio in each residual block
+    """
 
     def __init__(self, layers=32, filters=256, clip=0.1, name='edsr', **kwargs):
         self.layers = layers
@@ -24,22 +30,20 @@ class EDSR(SuperResolution):
         super(EDSR, self).__init__(**kwargs)
 
     def build_graph(self):
+        super(EDSR, self).build_graph()
         with tf.variable_scope(self.name):
-            super(EDSR, self).build_graph()
-            fe = self.conv2d(self.inputs_preproc[-1], self.filters, 3,
-                             kernel_initializer='he_normal', kernel_regularizer='l2')
+            fe = self.conv2d(self.inputs_preproc[-1], self.filters, 3)
             x = fe
-            for i in range(self.layers):
-                x_old = x
-                x = self.conv2d(x, self.filters, 3, activation='relu', kernel_initializer='he_normal',
-                                kernel_regularizer='l2')
-                x = self.conv2d(x, self.filters, 3, kernel_initializer='he_normal', kernel_regularizer='l2')
-                x *= self.clip
-                x += x_old
-            x = self.conv2d(x, self.filters, 3, kernel_initializer='he_normal', kernel_regularizer='l2')
+            for _ in range(self.layers):
+                with tf.variable_scope(None, 'ResBlock'):
+                    x_old = x
+                    x = self.relu_conv2d(x, self.filters, 3)
+                    x = self.conv2d(x, self.filters, 3)
+                    x = x * self.clip + x_old
+            x = self.conv2d(x, self.filters, 3)
             x += fe
-            x = self.upscale(x)
-            x = self.conv2d(x, self.channel, 3, kernel_initializer='he_normal', kernel_regularizer='l2')
+            x = self.upscale(x, direct_output=False)
+            x = self.conv2d(x, self.channel, 3)
             self.outputs.append(x)
 
     def build_loss(self):
@@ -64,3 +68,4 @@ class EDSR(SuperResolution):
         tf.summary.scalar('loss/mae', self.metrics['mae'])
         tf.summary.scalar('psnr', self.metrics['psnr'])
         tf.summary.scalar('ssim', self.metrics['ssim'])
+        tf.summary.image('SR', self.outputs[-1], 1)

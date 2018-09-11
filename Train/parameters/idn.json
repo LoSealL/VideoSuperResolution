@@ -5,5 +5,5 @@
   "slice_factor": 4,
   "leaky_slope": 0.05,
   "weight_decay": 1e-4,
-  "fine_tune": 10000
+  "fine_tune_epoch": 200
 }
