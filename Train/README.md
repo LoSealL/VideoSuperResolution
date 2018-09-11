@@ -2,6 +2,7 @@ A one-line command to train models
 ## Usage
 - `python train.py srcnn --batch=128`
 - `python train.py rdn --epochs=100 --dataconfig=../Data/datasets.json --dataset=BSD`
+- `python train.py --help` for more details
 
 Please check [model_alias.py](./model_alias.py) to find out supported models.
 
@@ -21,6 +22,7 @@ Calculate PSNR for video set VID4:
 In folder `./Outputs/vid4`, there are 4 sub-folders: calender, city, foliage, walk.
 Each contains png frames. 
 
+----
 In `datasets.json`:
 
 ```json
