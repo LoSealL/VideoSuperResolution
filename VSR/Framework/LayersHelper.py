@@ -172,3 +172,123 @@ class Layers(object):
                 if act:
                     image = act(image)
         return image
+
+    def non_local(self, inputs, channel_scale=8, **kwargs):
+        """Non-local block
+        Refer to CVPR2018 "Non-local Neural Networks": https://arxiv.org/abs/1711.07971
+        and "Self-Attention Generative Adversarial Networks": https://arxiv.org/abs/1805.08318
+
+        Args:
+            inputs: A tensor representing input feature maps
+            channel_scale: An integer representing scale factor from inputs to embedded channel numbers
+            kwargs: optional arguments for `conv2d`
+
+        Return:
+            Non-local residual, scaled by a trainable `gamma`, which is zero initialized.
+        """
+        try:
+            name = kwargs.pop('name')
+        except KeyError:
+            name = None
+        with tf.variable_scope(name, 'NonLocal'):
+            C = inputs.shape[-1]
+            shape = tf.shape(inputs)
+            g = self.conv2d(inputs, C, 1, **kwargs)
+            theta = self.conv2d(inputs, C // channel_scale, 1, **kwargs)
+            phi = self.conv2d(inputs, C // channel_scale, 1, **kwargs)
+            theta = tf.reshape(theta, [shape[0], -1, C // channel_scale])  # N*C
+            phi = tf.reshape(phi, [shape[0], -1, C // channel_scale])  # N*C
+            beta = tf.matmul(theta, phi, transpose_b=True)  # N*N
+            beta = tf.nn.softmax(beta, axis=-1)
+            non_local = tf.matmul(beta, tf.reshape(g, [shape[0], -1, C]))  # N*C
+            non_local = tf.reshape(non_local, shape)  # H*W*C
+            gamma = tf.Variable(0, dtype=tf.float32, name='gamma')
+            non_local *= gamma
+        return non_local
+
+    """ frequently used bindings """
+
+    def __getattr__(self, item):
+        from functools import partial as P
+        """Make an alignment for easy call. You can add more patterns as below.
+        
+        >>> Layers.relu_conv2d = Layers.conv2d(activation='relu')
+        >>> Layers.bn_conv2d = Layers.conv2d(use_batchnorm=True)
+        >>> Layers.sn_leaky_conv2d = Layers.conv2d(use_sn=True, activation='lrelu')
+        
+        NOTE: orders do not matter.
+        """
+        if 'conv2d' in item:
+            items = item.split('_')
+            kwargs = {
+                'kernel_initializer': 'he_normal',
+                'kernel_regularizer': 'l2',
+                'use_batchnorm': False,
+                'use_sn': False,
+            }
+            if 'bn' in items or 'batchnorm' in items:
+                kwargs.update(use_batchnorm=True)
+            if 'sn' in items or 'spectralnorm' in items:
+                kwargs.update(use_sn=True)
+            if 'relu' in items:
+                kwargs.update(activation='relu')
+            if 'leaky' in items or 'lrelu' in items or 'leakyrelu' in items:
+                kwargs.update(activation='lrelu')
+            if 'tanh' in items:
+                kwargs.update(activation='tanh')
+            return P(self.conv2d, **kwargs)
+
+        return None
+
+    def resblock(self, x,
+                 filters,
+                 kernel_size,
+                 strides=(1, 1),
+                 padding='same',
+                 data_format='channels_last',
+                 activation=None,
+                 use_bias=True,
+                 use_batchnorm=False,
+                 use_sn=False,
+                 kernel_initializer='he_normal',
+                 kernel_regularizer='l2',
+                 bn_placement=None,
+                 **kwargs):
+        """make a residual block
+
+        Args:
+            bn_placement: 'front' or 'behind', use BN layer in front of or behind after the 1st conv2d layer.
+        """
+
+        kwargs.update({
+            'strides': strides,
+            'padding': padding,
+            'data_format': data_format,
+            'activation': activation,
+            'use_bias': use_bias,
+            'use_batchnorm': use_batchnorm,
+            'use_sn': use_sn,
+            'kernel_initializer': kernel_initializer,
+            'kernel_regularizer': kernel_regularizer
+        })
+        if bn_placement is None: bn_placement = 'behind'
+        assert bn_placement in ('front', 'behind')
+        try:
+            name = kwargs.pop('name')
+        except KeyError:
+            name = None
+        with tf.variable_scope(name, 'ResBlock'):
+            ori = x
+            if bn_placement == 'front':
+                act = self._act(activation)
+                x = tf.layers.batch_normalization(x, training=self.training_phase)
+                if act: x = act(x)
+            x = self.conv2d(x, filters, kernel_size, **kwargs)
+            kwargs.pop('activation')
+            if bn_placement == 'front': kwargs.pop('use_batchnorm')
+            x = self.conv2d(x, filters, kernel_size, **kwargs)
+            if ori.shape[-1] != x.shape[-1]:
+                # short cut
+                ori = self.conv2d(ori, x.shape[-1], 1, kernel_initializer=kernel_initializer)
+            ori += x
+        return ori

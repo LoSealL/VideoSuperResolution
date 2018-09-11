@@ -22,6 +22,7 @@ class SuperResolution(Layers):
           >>> build_graph()
           >>> build_loss()
           >>> build_summary()
+          >>> build_saver()
         If you want to export gragh as a protobuf (say model.pb), implement:
           >>> export_model_pb()
         and call its super method at the end
@@ -64,8 +65,9 @@ class SuperResolution(Layers):
 
     def __getattr__(self, item):
         """return extra initialized parameters"""
-
-        return self.unknown_args.get(item)
+        if item in self.unknown_args:
+            return self.unknown_args.get(item)
+        return super(SuperResolution, self).__getattr__(item)
 
     def compile(self):
         """build entire graph and training ops"""
