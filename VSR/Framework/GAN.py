@@ -10,6 +10,7 @@ for generative adversarial networks
 
 from .SuperResolution import SuperResolution
 import tensorflow as tf
+import numpy as np
 
 
 def Discriminator(net,
@@ -76,44 +77,54 @@ def Discriminator(net,
     return critic
 
 
-def DiscAE(net,
-           input_shape=None,
-           filters=64,
-           depth=3,
-           scope='Critic', use_bias=False):
-    raise DeprecationWarning("This is not right")
-    assert isinstance(net, SuperResolution)
+def ProjectDiscriminator(net,
+                         input_shape=None,
+                         use_bias=False,
+                         use_bn=True,
+                         use_sn=False,
+                         scale=2,
+                         scope='Critic'):
+    def resblock(inputs, filters, kernel_size=3, activation=tf.nn.relu, downsample=False):
+        h = inputs
+        h = activation(h)
+        h = net.conv2d(h, filters, kernel_size, kernel_initializer='he_normal', use_sn=use_sn)
+        h = activation(h)
+        h = net.conv2d(h, filters, kernel_size, kernel_initializer='he_normal', use_sn=use_sn)
+        sc = net.conv2d(inputs, filters, 1, kernel_initializer='he_normal', use_sn=use_sn)
+        h += sc
+        if downsample:
+            h = tf.layers.average_pooling2d(h, 2, 2)
+        return h
 
-    def critic(inputs):
+    def critic(inputs, condition=None):
+        assert isinstance(net, SuperResolution)
         with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
-            F = filters
-            N = [net.conv2d(inputs, F, 3, activation='lrelu',
-                            use_bias=use_bias,
-                            kernel_initializer='he_normal')]
-            for _ in range(depth):
-                N.append(net.conv2d(N[-1], F, 4, strides=2,
-                                    activation='lrelu',
-                                    use_batchnorm=True, use_bias=use_bias,
-                                    kernel_initializer='he_normal'))
-                F *= 2
-                N.append(net.conv2d(N[-1], F, 4, activation='lrelu',
-                                    use_batchnorm=True, use_bias=use_bias,
-                                    kernel_initializer='he_normal'))
-            M = [net.conv2d(N[-1], F, 4, activation='lrelu',
-                            use_batchnorm=True, use_bias=use_bias,
-                            kernel_initializer='he_normal')]
-            for i in range(depth):
-                F //= 2
-                M.append(net.conv2d(M[-1], F, 4, activation='lrelu',
-                                    use_batchnorm=True, use_bias=use_bias,
-                                    kernel_initializer='he_normal'))
-                x = tf.concat([N[-i * 2 - 2], M[-1]], axis=-1)
-                M.append(net.deconv2d(x, F, 4, strides=2,
-                                      activation='lrelu',
-                                      use_batchnorm=True, use_bias=use_bias,
-                                      kernel_initializer='he_normal'))
-            x = net.conv2d(M[-1], net.channel, 3, use_bias=use_bias,
-                           kernel_initializer='he_normal')
+            if input_shape[1] and input_shape[2]:
+                inputs = tf.reshape(inputs, input_shape)
+            x = inputs
+            x = resblock(x, 64, downsample=True)
+            x = resblock(x, 64)
+            if scale == 2: t = x
+            x = resblock(x, 128, downsample=True)
+            x = resblock(x, 128)
+            if scale == 4: t = x
+            x = resblock(x, 256, downsample=True)
+            x = resblock(x, 512, downsample=True)
+            x = resblock(x, 1024, downsample=True)
+            x = resblock(x, 1024)
+            x = tf.nn.relu(x)
+            if input_shape[1] and input_shape[2]:
+                x = tf.layers.flatten(x)
+                x = tf.layers.dense(x, 1024, activation=tf.nn.leaky_relu)
+                x = tf.layers.dense(x, 1)
+            else:
+                x = net.conv2d(x, 1, 3)
+                x = tf.reduce_mean(x, [1, 2, 3])
+            if condition is not None:
+                t = net.conv2d(t, net.channel, 3, kernel_initializer='he_normal', use_sn=use_sn)
+                t = tf.layers.flatten(t)
+                t = tf.matmul(t, tf.layers.flatten(condition), transpose_b=True)
+                return x + t
             return x
 
     return critic
