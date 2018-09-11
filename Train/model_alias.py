@@ -16,6 +16,7 @@ __all__ = {
     'dbpn': Dbpn.DBPN,
     'edsr': Edsr.EDSR,
     'srgan': SrGan.SRGAN,
+    'carn': Carn.CARN,
 }
 
 # module in development
@@ -23,7 +24,8 @@ __exp__ = {
     # name: (package, class)
     'lapgan': ('Exp.LapGAN', 'LapGAN'),
     'pwc': ('Exp.PWC', 'PWC'),
-    'flownets': ('Exp.FlowNet', 'FlowNetS')
+    'flownets': ('Exp.FlowNet', 'FlowNetS'),
+    'rcan': ('Exp.Rcan', 'RCAN'),
 }
 
 for module in __exp__:

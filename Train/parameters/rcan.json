@@ -1,0 +1,6 @@
+{
+  "channel_downscaling": 16,
+  "n_rcab": 20,
+  "n_rg": 10,
+  "filters": 64
+}

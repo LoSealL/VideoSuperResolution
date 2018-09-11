@@ -11,7 +11,7 @@ found in `run.*` scripts
 import argparse, json
 
 from VSR.DataLoader.Dataset import load_datasets
-from VSR.Framework.Envrionment import Environment
+from VSR.Framework.Environment import Environment
 from VSR.Framework.Callbacks import *
 
 try:

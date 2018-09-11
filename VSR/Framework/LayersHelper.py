@@ -25,8 +25,8 @@ class Layers(object):
                use_bias=True,
                use_batchnorm=False,
                use_sn=False,
-               kernel_initializer=None,
-               kernel_regularizer=None,
+               kernel_initializer='he_normal',
+               kernel_regularizer='l2',
                **kwargs):
         """wrap a convolution for common use case"""
 
@@ -98,6 +98,8 @@ class Layers(object):
         if isinstance(kernel_initializer, str):
             if kernel_initializer == 'he_normal':
                 ki = tf.keras.initializers.he_normal()
+            elif kernel_initializer == 'he_uniform':
+                ki = tf.keras.initializers.he_uniform()
         elif callable(kernel_initializer):
             ki = kernel_initializer
         elif kernel_initializer:

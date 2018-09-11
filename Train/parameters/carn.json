@@ -1,0 +1,6 @@
+{
+  "recursive": false,
+  "n_residual": 3,
+  "n_blocks": 3,
+  "filters": 64
+}
