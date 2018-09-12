@@ -209,7 +209,7 @@ class Layers(object):
             if softmax:
                 beta = tf.nn.softmax(beta, axis=-1)
             else:
-                beta /= shape[1] * shape[2]
+                beta /= tf.to_float(shape[1] * shape[2])
             non_local = tf.matmul(beta, tf.reshape(g, [shape[0], -1, C_inner]))  # N*C'
             non_local = tf.reshape(non_local, [shape[0], shape[1], shape[2], C_inner])  # H*W*C'
             use_bn = kwargs.get('use_batchnorm')

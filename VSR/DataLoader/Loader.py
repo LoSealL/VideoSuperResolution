@@ -588,7 +588,7 @@ class QuickLoader:
             memory_usage = Utility.str_to_bytes(memory_usage)
         if not memory_usage:
             memory_usage = virtual_memory().total
-        memory_usage = np.min([np.uint64(memory_usage), virtual_memory().free])
+        memory_usage = np.min([np.uint64(memory_usage), virtual_memory().free // shard])
         capacity = self.size
         frames = []
         if capacity <= memory_usage:
