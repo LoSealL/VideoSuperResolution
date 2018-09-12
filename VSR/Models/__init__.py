@@ -13,4 +13,5 @@ __all__ = [
     'Edsr',
     'SrGan',
     'Carn',
+    'Rcan',
 ]

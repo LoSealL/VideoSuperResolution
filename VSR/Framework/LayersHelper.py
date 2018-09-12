@@ -100,6 +100,8 @@ class Layers(object):
                 ki = tf.keras.initializers.he_normal()
             elif kernel_initializer == 'he_uniform':
                 ki = tf.keras.initializers.he_uniform()
+            elif kernel_initializer == 'zeros' or kernel_initializer == 'zero':
+                ki = tf.keras.initializers.zeros()
         elif callable(kernel_initializer):
             ki = kernel_initializer
         elif kernel_initializer:
@@ -175,7 +177,7 @@ class Layers(object):
                     image = act(image)
         return image
 
-    def non_local(self, inputs, channel_scale=8, **kwargs):
+    def non_local(self, inputs, channel_scale=8, softmax=False, **kwargs):
         """Non-local block
         Refer to CVPR2018 "Non-local Neural Networks": https://arxiv.org/abs/1711.07971
         and "Self-Attention Generative Adversarial Networks": https://arxiv.org/abs/1805.08318
@@ -183,6 +185,7 @@ class Layers(object):
         Args:
             inputs: A tensor representing input feature maps
             channel_scale: An integer representing scale factor from inputs to embedded channel numbers
+            softmax: A boolean, use softmax as non-local operation (require large memories)
             kwargs: optional arguments for `conv2d`
 
         Return:
@@ -194,18 +197,23 @@ class Layers(object):
             name = None
         with tf.variable_scope(name, 'NonLocal'):
             C = inputs.shape[-1]
+            C_inner = C // channel_scale
             shape = tf.shape(inputs)
-            g = self.conv2d(inputs, C, 1, **kwargs)
-            theta = self.conv2d(inputs, C // channel_scale, 1, **kwargs)
-            phi = self.conv2d(inputs, C // channel_scale, 1, **kwargs)
-            theta = tf.reshape(theta, [shape[0], -1, C // channel_scale])  # N*C
-            phi = tf.reshape(phi, [shape[0], -1, C // channel_scale])  # N*C
+            # NOTE: here we use `he_normal` to initialize kernel, TODO other options?
+            g = self.conv2d(inputs, C_inner, 1)
+            theta = self.conv2d(inputs, C_inner, 1)
+            phi = self.conv2d(inputs, C_inner, 1)
+            theta = tf.reshape(theta, [shape[0], -1, C_inner])  # N*C'
+            phi = tf.reshape(phi, [shape[0], -1, C_inner])  # N*C'
             beta = tf.matmul(theta, phi, transpose_b=True)  # N*N
-            beta = tf.nn.softmax(beta, axis=-1)
-            non_local = tf.matmul(beta, tf.reshape(g, [shape[0], -1, C]))  # N*C
-            non_local = tf.reshape(non_local, shape)  # H*W*C
-            gamma = tf.Variable(0, dtype=tf.float32, name='gamma')
-            non_local *= gamma
+            if softmax:
+                beta = tf.nn.softmax(beta, axis=-1)
+            else:
+                beta /= shape[1] * shape[2]
+            non_local = tf.matmul(beta, tf.reshape(g, [shape[0], -1, C_inner]))  # N*C'
+            non_local = tf.reshape(non_local, [shape[0], shape[1], shape[2], C_inner])  # H*W*C'
+            use_bn = kwargs.get('use_batchnorm')
+            non_local = self.conv2d(non_local, C, 1, kernel_initializer='zeros', use_batchnorm=use_bn)
         return non_local
 
     """ frequently used bindings """

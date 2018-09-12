@@ -53,6 +53,7 @@ class SuperResolution(Layers):
         self.train_metric = {}
         self.metrics = {}
         self.feed_dict = {}
+        self.savers = {}
         self.global_steps = None
         self.summary_op = None
         self.summary_writer = None

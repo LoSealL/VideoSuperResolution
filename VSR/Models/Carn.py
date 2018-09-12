@@ -64,7 +64,6 @@ class CARN(SuperResolution):
                 x = self._residual_e(outp_1x1, reuse=self.recur, name=name)
                 feat.append(x)
                 x = tf.concat(feat, axis=-1)
-                tf.keras.initializers.he_uniform()
                 outp_1x1 = self.conv2d(x, F, 1, kernel_initializer='he_uniform')
             return outp_1x1
 

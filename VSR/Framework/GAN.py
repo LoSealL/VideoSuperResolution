@@ -79,8 +79,6 @@ def Discriminator(net,
 
 def ProjectDiscriminator(net,
                          input_shape=None,
-                         use_bias=False,
-                         use_bn=True,
                          use_sn=False,
                          scale=2,
                          scope='Critic'):

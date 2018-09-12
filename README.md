@@ -102,6 +102,6 @@ See [readme](./Train/README.md) for details.
 
 ## Todo
 - [ ] MemNet
-- [ ] RCAN
+- [x] RCAN
 - [x] CARN
 - [ ] FRVSR

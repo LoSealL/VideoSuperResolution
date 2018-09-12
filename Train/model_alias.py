@@ -17,6 +17,7 @@ __all__ = {
     'edsr': Edsr.EDSR,
     'srgan': SrGan.SRGAN,
     'carn': Carn.CARN,
+    'rcan': Rcan.RCAN,
 }
 
 # module in development
@@ -25,7 +26,6 @@ __exp__ = {
     'lapgan': ('Exp.LapGAN', 'LapGAN'),
     'pwc': ('Exp.PWC', 'PWC'),
     'flownets': ('Exp.FlowNet', 'FlowNetS'),
-    'rcan': ('Exp.Rcan', 'RCAN'),
 }
 
 for module in __exp__:
