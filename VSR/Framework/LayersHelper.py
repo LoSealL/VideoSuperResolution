@@ -264,12 +264,12 @@ class Layers(object):
                  use_sn=False,
                  kernel_initializer='he_normal',
                  kernel_regularizer='l2',
-                 bn_placement=None,
+                 placement=None,
                  **kwargs):
         """make a residual block
 
         Args:
-            bn_placement: 'front' or 'behind', use BN layer in front of or behind after the 1st conv2d layer.
+            placement: 'front' or 'behind', use BN layer in front of or behind after the 1st conv2d layer.
         """
 
         kwargs.update({
@@ -283,19 +283,20 @@ class Layers(object):
             'kernel_initializer': kernel_initializer,
             'kernel_regularizer': kernel_regularizer
         })
-        if bn_placement is None: bn_placement = 'behind'
-        assert bn_placement in ('front', 'behind')
+        if placement is None: placement = 'behind'
+        assert placement in ('front', 'behind')
         name = pop_dict_wo_keyerror(kwargs, 'name')
         reuse = pop_dict_wo_keyerror(kwargs, 'reuse')
         with tf.variable_scope(name, 'ResBlock', reuse=reuse):
             ori = x
-            if bn_placement == 'front':
+            if placement == 'front':
                 act = self._act(activation)
-                x = tf.layers.batch_normalization(x, training=self.training_phase)
+                if use_batchnorm:
+                    x = tf.layers.batch_normalization(x, training=self.training_phase)
                 if act: x = act(x)
             x = self.conv2d(x, filters, kernel_size, **kwargs)
             kwargs.pop('activation')
-            if bn_placement == 'front': kwargs.pop('use_batchnorm')
+            if placement == 'front': kwargs.pop('use_batchnorm')
             x = self.conv2d(x, filters, kernel_size, **kwargs)
             if ori.shape[-1] != x.shape[-1]:
                 # short cut

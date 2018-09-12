@@ -9,6 +9,7 @@ __all__ = [
     'Drcn',
     'LapSrn',
     'Drrn',
+    'MemNet',
     'Dbpn',
     'Edsr',
     'SrGan',

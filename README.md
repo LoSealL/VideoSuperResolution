@@ -101,7 +101,7 @@ You can also use [pre-made](./Train/train.py) script to train the models in VSR 
 See [readme](./Train/README.md) for details.
 
 ## Todo
-- [ ] MemNet
+- [x] MemNet
 - [x] RCAN
 - [x] CARN
 - [ ] FRVSR

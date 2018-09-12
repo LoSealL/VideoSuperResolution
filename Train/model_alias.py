@@ -13,6 +13,7 @@ __all__ = {
     'dcscn': Dcscn.DCSCN,
     'lapsrn': LapSrn.LapSRN,
     'drrn': Drrn.DRRN,
+    'memnet': MemNet.MEMNET,
     'dbpn': Dbpn.DBPN,
     'edsr': Edsr.EDSR,
     'srgan': SrGan.SRGAN,
