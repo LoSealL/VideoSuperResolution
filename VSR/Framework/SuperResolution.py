@@ -93,7 +93,7 @@ class SuperResolution(Layers):
         arrange in a dict which maps saver and its saving name
         """
 
-        default_saver = tf.train.Saver(max_to_keep=10, allow_empty=True)
+        default_saver = tf.train.Saver(max_to_keep=3, allow_empty=True)
         self.savers = {self.name: default_saver}
 
     def build_graph(self):
@@ -178,7 +178,7 @@ class SuperResolution(Layers):
             kwargs: for future use
 
         Return:
-            a dict of metrics defined in model, the summary op
+            Tuple: a dict of metrics defined in model, the summary op, the outputs
         """
 
         feature = to_list(feature)
@@ -188,12 +188,13 @@ class SuperResolution(Layers):
             self.feed_dict[self.inputs[i]] = feature[i]
         for i in range(len(self.label)):
             self.feed_dict[self.label[i]] = label[i]
-        metrics = tf.get_default_session().run(list(self.metrics.values()) + [self.summary_op],
+        results = tf.get_default_session().run(self.outputs + list(self.metrics.values()) + [self.summary_op],
                                                feed_dict=self.feed_dict)
         ret = {}
+        output, metrics, summary = results[:len(self.outputs)], results[len(self.outputs):-1], results[-1]
         for k, v in zip(self.metrics, metrics[:-1]):
             ret[k] = v
-        return ret, metrics[-1]
+        return ret, metrics[-1], output
 
     def test_batch(self, inputs, label=None, **kwargs):
         r"""test one batch

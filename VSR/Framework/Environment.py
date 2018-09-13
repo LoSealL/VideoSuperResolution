@@ -193,7 +193,8 @@ class Environment:
                         feature = fn(feature, name=name)
                     for fn in self.label_callbacks:
                         label = fn(label, name=name)
-                    loss = self.model.train_batch(feature=feature, label=label, learning_rate=lr, epochs=epoch)
+                    loss = self.model.train_batch(
+                        feature=feature, label=label, learning_rate=lr, epochs=epoch)
                     global_step = self.model.global_steps.eval()
                     if learning_rate_schedule and callable(learning_rate_schedule):
                         lr = learning_rate_schedule(lr, epochs=epoch, steps=global_step)
@@ -212,7 +213,8 @@ class Environment:
                     feature = fn(feature, name=name)
                 for fn in self.label_callbacks:
                     label = fn(label, name=name)
-                metrics, val_summary_op = self.model.validate_batch(feature=feature, label=label, epochs=epoch)
+                metrics, val_summary_op, _ = self.model.validate_batch(
+                    feature=feature, label=label, epochs=epoch)
                 for k, v in metrics.items():
                     if k not in val_metrics:
                         val_metrics[k] = []

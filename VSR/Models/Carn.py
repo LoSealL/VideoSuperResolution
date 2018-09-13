@@ -108,3 +108,6 @@ class CARN(SuperResolution):
         tf.summary.scalar('psnr', self.metrics['psnr'])
         tf.summary.scalar('ssim', self.metrics['ssim'])
         tf.summary.image('SR', self.outputs[0], 1)
+
+    def build_saver(self):
+        self.savers[self.name] = tf.train.Saver(tf.trainable_variables(), max_to_keep=1)

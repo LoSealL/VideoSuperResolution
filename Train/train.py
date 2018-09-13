@@ -62,7 +62,7 @@ def main(*args, **kwargs):
     if Path(f'parameters/{args.name}.json').exists():
         model_args = json.load(open(f'parameters/{args.name}.json', mode='r'))
     else:
-        print(f'[warning] no model parameter file found, use default parameters')
+        print(f'[warning] model parameter file not found, use default parameters')
         model_args = dict()
     model = get_model(args.name)(scale=args.scale, channel=args.channel, **model_args)
 
