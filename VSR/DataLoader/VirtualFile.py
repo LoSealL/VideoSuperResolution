@@ -15,6 +15,7 @@ import numpy as np
 
 from ..Util.Utility import to_list
 from ..Framework.Motion import open_flo, KITTI
+from . import YVDecoder, NVDecoder
 
 
 class File:
@@ -251,9 +252,8 @@ class RawFile(File):
             frames: number of frames to be loaded.
         """
         if self.mode in ('YV12', 'YV21', 'NV12', 'NV21',):
-            # TODO discard uv plain for acceleration
-            _image_mode = 'L'
-            return [Image.frombytes(_image_mode, self.size, self.read(self.pitch)) for _ in range(frames)]
+            _image_mode = 'YCbCr'
+            return [Image.frombytes(_image_mode, self.size, self.read(self.pitch), self.mode) for _ in range(frames)]
         elif self.mode in ('RGB', 'RGBA'):
             _image_mode = self.mode
             return [Image.frombytes(_image_mode, self.size, self.read(self.pitch)) for _ in range(frames)]
