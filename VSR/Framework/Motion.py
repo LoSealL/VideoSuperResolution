@@ -181,6 +181,25 @@ def warp(image, u, v, additive_warp=False, normalized=False):
     return _sample(image, u, v)
 
 
+def viz_flow(flow):
+    """Visualize optical flow in TF"""
+    from .Callbacks import _color_wheel
+    with tf.name_scope('VizFlow'):
+        colorwheel = _color_wheel().astype('float32')
+        ncols = colorwheel.shape[0]
+        u, v = flow[..., 0], flow[..., 1]
+        rot = tf.atan2(-v, -u) / np.pi
+        fk = (rot + 1) / 2 * (ncols - 1)  # -1~1 maped to 0~ncols
+        k0 = tf.to_int32(fk)  # 0, 1, 2, ..., ncols
+        k1 = tf.mod(k0 + 1, ncols)
+        f = fk - tf.to_float(k0)
+        f = tf.expand_dims(f, -1)
+        col0 = tf.gather_nd(colorwheel, tf.expand_dims(k0, -1))
+        col1 = tf.gather_nd(colorwheel, tf.expand_dims(k1, -1))
+        col = (1 - f) * col0 + f * col1
+    return col
+
+
 def open_flo(fn):
     """ Read .flo file in Middlebury format"""
     # Code adapted from:

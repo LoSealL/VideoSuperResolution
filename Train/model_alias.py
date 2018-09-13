@@ -27,6 +27,7 @@ __exp__ = {
     'lapgan': ('Exp.LapGAN', 'LapGAN'),
     'pwc': ('Exp.PWC', 'PWC'),
     'flownets': ('Exp.FlowNet', 'FlowNetS'),
+    'vespcn': ('Exp.Vespcn', 'VESPCN'),
 }
 
 for module in __exp__:
