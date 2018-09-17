@@ -368,6 +368,7 @@ class SpectralNorm(tf.keras.constraints.Constraint):
             w = tf.reshape(w, [-1, w_shape[-1]])
             u = tf.get_variable(
                 'u', [1, w_shape[-1]],
+                collections=[tf.GraphKeys.MODEL_VARIABLES],
                 initializer=tf.truncated_normal_initializer(),
                 trainable=False)
             u_hat = u

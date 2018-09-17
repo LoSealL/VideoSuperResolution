@@ -333,8 +333,8 @@ class EpochIterator:
             crop_hr = [ImageProcess.crop(img, box) for img in hr]
             crop_lr = [ImageProcess.crop(img, box // [*self.scale, *self.scale]) for img in lr]
             ops = np.random.randint(0, 2, [3]) if self.aug else [0, 0, 0]
-            clip_hr = [_augment(ImageProcess.img_to_array(img), ops) for img in crop_hr]
-            clip_lr = [_augment(ImageProcess.img_to_array(img), ops) for img in crop_lr]
+            clip_hr = [_augment(img, ops) for img in crop_hr]
+            clip_lr = [_augment(img, ops) for img in crop_lr]
             batch_hr.append(np.stack(clip_hr))
             batch_lr.append(np.stack(clip_lr))
             batch_name.append(name)
@@ -588,17 +588,17 @@ class QuickLoader:
             memory_usage = Utility.str_to_bytes(memory_usage)
         if not memory_usage:
             memory_usage = virtual_memory().total
-        memory_usage = np.min([np.uint64(memory_usage), virtual_memory().free // shard])
+        memory_usage = np.min([np.uint64(memory_usage), virtual_memory().free])
         capacity = self.size
         frames = []
-        if capacity <= memory_usage:
+        if capacity <= memory_usage and shard == 1 or capacity <= memory_usage // 2:
             # load all clips
             self.all_loaded = True
             interval = len(self.file_objects) // shard
             for file in self.file_objects[index * interval:(index + 1) * interval]:
                 frames += self._process_at_file(file, file.frames)
         else:
-            prop = memory_usage / capacity / shard
+            prop = memory_usage / capacity / shard / 2
             size = int(np.round(len(self) * prop))
             for file, amount in self._random_select(size).items():
                 frames += self._process_at_file(file, amount)
