@@ -192,9 +192,9 @@ class SuperResolution(Layers):
                                                feed_dict=self.feed_dict)
         ret = {}
         output, metrics, summary = results[:len(self.outputs)], results[len(self.outputs):-1], results[-1]
-        for k, v in zip(self.metrics, metrics[:-1]):
+        for k, v in zip(self.metrics, metrics):
             ret[k] = v
-        return ret, metrics[-1], output
+        return ret, summary, output
 
     def test_batch(self, inputs, label=None, **kwargs):
         r"""test one batch

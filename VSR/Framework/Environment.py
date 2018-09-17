@@ -206,7 +206,7 @@ class Environment:
 
             if epoch % validate_every_n_epoch: continue
             val_metrics = {}
-            val_iter = val_loader.make_one_shot_iterator(shuffle=False)
+            val_iter = val_loader.make_one_shot_iterator(memory_usage, shard=parallel, shuffle=False)
             for img in val_iter:
                 feature, label, name = img[self.fi], img[self.li], str(img[-1])
                 for fn in self.feature_callbacks:
