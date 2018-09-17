@@ -97,26 +97,17 @@ class SuperResolution(Layers):
         self.savers = {self.name: default_saver}
 
     def build_graph(self):
-        """this super method create 2 kinds of input placeholder:
-            - For grayscale image1, input type is uint8, cast to float32 in self.inputs_preproc
-            - For colored image1, input type is uint8, mode is RGBA, discard alpha channel and convert to YUV,
-              self.inputs_preproc[0] is normalized UV with value ranged [-0.5, 0.5]
-              self.inputs_preproc[1] is casted Y channel ranged [0, 255.0]
+        """this super method create input and label placeholder
 
         Note
             You can also suppress this method and create your own inputs from scratch
         """
-        if not self.rgba:
-            self.inputs.append(tf.placeholder(tf.float32, shape=[None, None, None, None], name='input/lr/gray'))
-            self.inputs_preproc.append(self.inputs[-1][..., self.channel:])
-            self.inputs_preproc.append(self.inputs[-1][..., :self.channel])
-            self.inputs_preproc[-1].set_shape([None, None, None, self.channel])
-        else:
-            self.inputs.append(tf.placeholder(tf.uint8, shape=[None, None, None, None], name='input/lr/rgba'))
-            yuv = tf.cast(self.inputs[-1], tf.float32) / 255.0
-            yuv = tf.image.rgb_to_yuv(yuv[..., 0:3])  # discard alpha channel
-            self.inputs_preproc.append(yuv[..., 1:3])  # unscaled UV channel
-            self.inputs_preproc.append(yuv[..., 0:1] * 255)  # scaled Y channel
+        self.inputs.append(tf.placeholder(tf.uint8, shape=[None, None, None, None], name='input/lr'))
+        inputs_f = tf.to_float(self.inputs[0])
+        # separate additional channels (e.g. alpha channel)
+        self.inputs_preproc.append(inputs_f[..., self.channel:])
+        self.inputs_preproc.append(inputs_f[..., :self.channel])
+        self.inputs_preproc[-1].set_shape([None, None, None, self.channel])
         self.label.append(tf.placeholder(tf.float32, shape=[None, None, None, self.channel], name='label/hr'))
 
     def build_loss(self):
@@ -221,16 +212,31 @@ class SuperResolution(Layers):
             return tf.get_default_session().run(self.outputs, feed_dict=self.feed_dict)
 
     def export_model_pb(self, export_dir='.', export_name='model.pb', **kwargs):
-        r"""export model as protobuf
+        r"""export model as a constant protobuf. Unlike saved model, this one is not trainable
 
         Args:
             export_dir: directory to save the exported model
             export_name: model name
         """
+
+        self.outputs = tf.identity_n(self.outputs, name='output/hr')
         sess = tf.get_default_session()
         graph = sess.graph.as_graph_def()
         graph = tf.graph_util.remove_training_nodes(graph)
         graph = tf.graph_util.convert_variables_to_constants(
             sess, graph, [outp.name.split(':')[0] for outp in self.outputs])
         tf.train.write_graph(graph, export_dir, export_name, as_text=False)
-        print(f"Model exported to [ {Path(export_dir).resolve() / export_name} ].")
+        tf.logging.info(f"Model exported to [ {Path(export_dir).resolve() / export_name} ].")
+
+    def export_saved_model(self, export_dir='.'):
+        """export a saved model
+
+        Args:
+            export_dir: directory to save the saved model
+        """
+
+        sess = tf.get_default_session()
+        builder = tf.saved_model.builder.SavedModelBuilder(export_dir)
+        tf.identity_n(self.outputs, name='output/hr')
+        builder.add_meta_graph_and_variables(sess, tf.saved_model.tag_constants.SERVING)
+        builder.save()

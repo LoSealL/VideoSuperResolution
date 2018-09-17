@@ -235,7 +235,6 @@ class Environment:
         """
 
         sess = tf.get_default_session()
-        sess.run(tf.global_variables_initializer())
         ckpt_last = self._restore_model(sess)
         loader = QuickLoader(1, dataset, 'test', self.model.scale, -1, no_patch=True, **kwargs)
         it = loader.make_one_shot_iterator()
@@ -266,7 +265,6 @@ class Environment:
         """
 
         sess = tf.get_default_session()
-        sess.run(tf.global_variables_initializer())
         ckpt_last = self._restore_model(sess)
         files = [Path(file) for file in to_list(files)]
         data = Dataset(test=files, mode=mode, depth=depth, modcrop=False, **kwargs)
@@ -295,6 +293,5 @@ class Environment:
         """
 
         sess = tf.get_default_session()
-        sess.run(tf.global_variables_initializer())
         self._restore_model(sess)
-        self.model.export_model_pb(export_dir)
+        self.model.export_saved_model(export_dir)
