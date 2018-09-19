@@ -222,6 +222,32 @@ def open_flo(fn):
             return np.resize(data, (int(h), int(w), 2))
 
 
+def write_flo(filename, uv, v=None):
+    """ Write optical flow to file.
+    
+    Original code by Deqing Sun, adapted from Daniel Scharstein.
+    """
+    nBands = 2
+    TAG_CHAR = np.array([202021.25], np.float32)
+
+    if v is None:
+        u = uv[..., 0]
+        v = uv[..., 1]
+    else:
+        u = uv
+    height, width = u.shape
+    with open(filename, 'wb') as f:
+        # write the header
+        f.write(TAG_CHAR)
+        np.array(width).astype(np.int32).tofile(f)
+        np.array(height).astype(np.int32).tofile(f)
+        # arrange into matrix form
+        tmp = np.zeros((height, width * nBands))
+        tmp[:, np.arange(width) * 2] = u
+        tmp[:, np.arange(width) * 2 + 1] = v
+        tmp.astype(np.float32).tofile(f)
+
+
 def open_png16(fn):
     """Read 16bit png file"""
 

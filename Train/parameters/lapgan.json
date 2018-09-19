@@ -1,0 +1,9 @@
+{
+  "name": "LapGAN",
+  "filters": 64,
+  "layers": 20,
+  "norm_mode": "SN",
+  "init_epoch": 100,
+  "fixed_train_hr_size": 192,
+  "random": false
+}

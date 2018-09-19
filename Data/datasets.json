@@ -18,7 +18,8 @@
     "FlyingChairs": "d:/Datasets/FlyingChairs/data",
     "FlyingChairsFlow": "d:/Datasets/FlyingChairs/flow/*.flo",
     "MiniFlyingChairs": "d:/Datasets/FlyingChairs/small",
-    "FlyingChairsVal": "d:/Datasets/FlyingChairs/val"
+    "FlyingChairsVal": "d:/Datasets/FlyingChairs/val",
+    "FlyingChairsTest": "d:/Datasets/FlyingChairs/test"
   },
   "Path_Tracked": {
     "URBAN100": "d:/Datasets/Urban100_SR/image_SRF_2/*HR.*",
@@ -74,17 +75,19 @@
     },
     "VID4": {
       "test": "VID4-HR",
-      "pred": "VID4-LR"
+      "no-pred": "VID4-LR"
     },
     "CHAIRS": {
       "train": "FlyingChairs",
       "flow": "FlyingChairsFlow",
-      "val": "FlyingChairsVal"
+      "val": "FlyingChairsVal",
+      "test": "FlyingChairsTest"
     },
     "MINICHAIRS": {
       "train": "MiniFlyingChairs",
       "flow": "FlyingChairsFlow",
-      "val": "FlyingChairsVal"
+      "val": "FlyingChairsVal",
+      "test": "FlyingChairsTest"
     }
   }
 }

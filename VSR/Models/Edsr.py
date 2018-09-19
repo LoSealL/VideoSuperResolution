@@ -69,3 +69,8 @@ class EDSR(SuperResolution):
         tf.summary.scalar('psnr', self.metrics['psnr'])
         tf.summary.scalar('ssim', self.metrics['ssim'])
         tf.summary.image('SR', self.outputs[-1], 1)
+
+    def build_saver(self):
+        self.savers.update({
+            self.name: tf.train.Saver(tf.trainable_variables(self.name), max_to_keep=1)
+        })
