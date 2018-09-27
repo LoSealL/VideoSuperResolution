@@ -78,6 +78,10 @@ def main(*args):
         if opt.l_only:
             img = tf.image.rgb_to_grayscale(img)
             ref = tf.image.rgb_to_grayscale(ref)
+        if ref.shape[0] != img.shape[0]:
+            b_min = np.minimum(ref.shape[0], img.shape[0])
+            ref = ref[:b_min, ...]
+            img = img[:b_min, ...]
         psnr = tf.reduce_mean(tf.image.psnr(ref, img, 255)).eval() if not opt.no_psnr else 0
         ssim = tf.reduce_mean(tf.image.ssim(ref, img, 255)).eval() if not opt.no_ssim else 0
         tf.logging.info(f'[{name}] PSNR = {psnr}, SSIM = {ssim}')

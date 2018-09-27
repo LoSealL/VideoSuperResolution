@@ -28,6 +28,7 @@ __exp__ = {
     'pwc': ('Exp.PWC', 'PWC'),
     'flownets': ('Exp.FlowNet', 'FlowNetS'),
     'vespcn': ('Exp.Vespcn', 'VESPCN'),
+    'exp': ('Exp.Exp', 'Exp'),
 }
 
 for module in __exp__:
