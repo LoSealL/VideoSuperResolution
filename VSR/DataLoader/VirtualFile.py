@@ -41,6 +41,8 @@ class File:
             for _file in self.path.glob('*'):
                 self.file.append(_file)
                 self.length[_file.name] = _file.stat().st_size
+            # sort the files by name, because they are unordered in UNIX
+            self.file.sort()
         self.read_file = []
         self.read_pointer = 0
         self.end_pointer = sum(self.length.values())
