@@ -33,6 +33,8 @@ class SRGAN(SuperResolution):
                  init_epoch=100, mse_weight=1, gan_weight=1e-3,
                  use_vgg=False, vgg_weight=2e-6,
                  fixed_train_hr_size=None, name='srgan', **kwargs):
+        super(SRGAN, self).__init__(**kwargs)
+        self.name = name
         self.g_layers = glayers
         self.d_layers = dlayers
         self.init_epoch = init_epoch
@@ -42,10 +44,8 @@ class SRGAN(SuperResolution):
         self.vgg_layer = to_list(vgg_layer, 2)
         self.use_vgg = use_vgg
         self.vgg = None
-        self.name = name
-        self.D = GAN.Discriminator(self, input_shape=[None, fixed_train_hr_size, fixed_train_hr_size, self.channel],
+        self.D = GAN.Discriminator(self, input_shape=[-1, fixed_train_hr_size, fixed_train_hr_size, self.channel],
                                    depth=dlayers, use_bn=True, use_bias=True)
-        super(SRGAN, self).__init__(**kwargs)
 
     def compile(self):
         if self.use_vgg:
