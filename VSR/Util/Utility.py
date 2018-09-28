@@ -140,10 +140,10 @@ def bicubic_rescale(img, scale):
         return tf.image.resize_area(img, shape_enlarge[1:3], align_corners=False)
 
 
-def prelu(x, name=None, scope='PRELU'):
+def prelu(x, initialize=0.1, name=None, scope='PReLU'):
     """Parametric ReLU"""
-    with tf.variable_scope(scope):
-        alphas = tf.Variable(tf.constant(0.1, shape=[x.shape[-1]]), name=name)
+    with tf.variable_scope(name, scope):
+        alphas = tf.Variable(initialize * np.ones(x.shape[-1], np.float32), dtype=tf.float32)
         return tf.nn.relu(x) + tf.multiply(alphas, (x - tf.abs(x))) * 0.5
 
 

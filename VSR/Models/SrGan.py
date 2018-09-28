@@ -29,60 +29,67 @@ class SRGAN(SuperResolution):
         fixed_train_hr_size:
     """
 
-    def __init__(self, glayers, dlayers, vgg_layer, init_epoch=100, mse_weight=1, gan_weight=1e-3, vgg_weight=2e-6,
+    def __init__(self, glayers=16, dlayers=8, vgg_layer=(2, 2),
+                 init_epoch=100, mse_weight=1, gan_weight=1e-3,
+                 use_vgg=False, vgg_weight=2e-6,
                  fixed_train_hr_size=None, name='srgan', **kwargs):
         self.g_layers = glayers
         self.d_layers = dlayers
-        self.vgg_layer = to_list(vgg_layer, 2)
         self.init_epoch = init_epoch
         self.mse_weight = mse_weight
         self.gan_weight = gan_weight
         self.vgg_weight = vgg_weight
+        self.vgg_layer = to_list(vgg_layer, 2)
+        self.use_vgg = use_vgg
+        self.vgg = None
         self.name = name
         self.D = GAN.Discriminator(self, input_shape=[None, fixed_train_hr_size, fixed_train_hr_size, self.channel],
                                    depth=dlayers, use_bn=True, use_bias=True)
         super(SRGAN, self).__init__(**kwargs)
 
     def compile(self):
-        self.vgg = Vgg(input_shape=[None, None, 3], type='vgg19')
+        if self.use_vgg:
+            self.vgg = Vgg(input_shape=[None, None, 3], type='vgg19')
         return super(SRGAN, self).compile()
 
-    def summary(self):
-        super(SRGAN, self).summary()
-        if self.global_steps.eval() <= self.init_steps:
-            tf.logging.info('Initializing model using mse loss...')
-        else:
-            tf.logging.info('Training model using GAN loss...')
+    @staticmethod
+    def _normalize(x):
+        return x / 255
+
+    @staticmethod
+    def _denormalize(x):
+        return x * 255
 
     def build_graph(self):
         super(SRGAN, self).build_graph()
         with tf.variable_scope(self.name):
-            inputs_norm = self.inputs_preproc[-1] / 127.5 - 1
-            shallow_feature = self.relu_conv2d(inputs_norm, 64, 3)
+            inputs_norm = self._normalize(self.inputs_preproc[-1])
+            shallow_feature = self.prelu_conv2d(inputs_norm, 64, 3)
             x = shallow_feature
             for _ in range(self.g_layers):
-                x = self.resblock(x, 64, 3, activation='relu', use_batchnorm=True)
+                x = self.resblock(x, 64, 3, activation='prelu', use_batchnorm=True)
             x = self.bn_conv2d(x, 64, 3)
             x += shallow_feature
             x = self.conv2d(x, 256, 3)
-            sr = self.upscale(x, direct_output=False)
-            sr = self.tanh_conv2d(sr, self.channel, 1)
-            self.outputs.append((sr + 1) * 127.5)
+            sr = self.upscale(x, direct_output=False, activator=prelu)
+            sr = self.conv2d(sr, self.channel, 9)
+            self.outputs.append(self._denormalize(sr))
 
-        label_norm = self.label[-1] / 127.5 - 1
+        label_norm = self._normalize(self.label[-1])
         disc_real = self.D(label_norm)
         disc_fake = self.D(sr)
 
         with tf.name_scope('Loss'):
             loss_gen, loss_disc = GAN.loss_bce_gan(disc_real, disc_fake)
             mse = tf.losses.mean_squared_error(self.label[-1], self.outputs[-1])
-            vgg_real = self.vgg(self.label[-1], *self.vgg_layer)
-            vgg_fake = self.vgg(self.outputs[-1], *self.vgg_layer)
-            loss_vgg = tf.losses.mean_squared_error(vgg_real, vgg_fake)
             reg = tf.losses.get_regularization_losses()
 
-            loss = tf.add_n([mse * self.mse_weight, loss_gen * self.gan_weight, loss_vgg * self.vgg_weight] + reg,
-                            name='loss')
+            loss = tf.add_n([mse * self.mse_weight, loss_gen * self.gan_weight] + reg)
+            if self.use_vgg:
+                vgg_real = self.vgg(self.label[-1], *self.vgg_layer)
+                vgg_fake = self.vgg(self.outputs[-1], *self.vgg_layer)
+                loss_vgg = tf.losses.mean_squared_error(vgg_real, vgg_fake)
+                loss += self.vgg_weight + loss_vgg
 
             var_g = tf.trainable_variables(self.name)
             var_d = tf.trainable_variables('Critic')
@@ -96,7 +103,6 @@ class SRGAN(SuperResolution):
 
         self.train_metric['g_loss'] = loss_gen
         self.train_metric['d_loss'] = loss_disc
-        self.train_metric['p_loss'] = loss_vgg
         self.train_metric['loss'] = loss
         self.metrics['mse'] = mse
         self.metrics['psnr'] = tf.reduce_mean(tf.image.psnr(self.label[-1], self.outputs[-1], 255))
@@ -107,7 +113,6 @@ class SRGAN(SuperResolution):
 
     def build_summary(self):
         tf.summary.scalar('loss/gan', self.train_metric['g_loss'])
-        tf.summary.scalar('loss/vgg', self.train_metric['p_loss'])
         tf.summary.scalar('loss/dis', self.train_metric['d_loss'])
         tf.summary.scalar('mse', self.metrics['mse'])
         tf.summary.scalar('psnr', self.metrics['psnr'])

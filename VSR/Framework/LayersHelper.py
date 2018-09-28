@@ -246,6 +246,8 @@ class Layers(object):
                 kwargs.update(activation='relu')
             if 'leaky' in items or 'lrelu' in items or 'leakyrelu' in items:
                 kwargs.update(activation='lrelu')
+            if 'prelu' in items:
+                kwargs.update(activation='prelu')
             if 'tanh' in items:
                 kwargs.update(activation='tanh')
             return P(self.conv2d, **kwargs)
