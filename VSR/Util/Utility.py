@@ -85,19 +85,6 @@ def repeat(x, n):
     return tf.tile(x, pattern)
 
 
-def is_empty(x):
-    empty = False
-    if x is None or x is () or x == []:
-        empty = True
-    if isinstance(x, np.ndarray):
-        empty = x.nbytes == 0
-    if isinstance(x, tf.Tensor):
-        shape = x.get_shape()
-        if shape.ndims <= 1 and shape[0] == 0:
-            empty = True
-    return empty
-
-
 def pixel_shift(image, scale, channel=1):
     """Efficient Sub-pixel Convolution, see paper: https://arxiv.org/abs/1609.05158
 

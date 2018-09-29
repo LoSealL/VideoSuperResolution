@@ -80,7 +80,7 @@ class SRGAN(SuperResolution):
 
         with tf.name_scope('Loss'):
             loss_gen, loss_disc = GAN.loss_bce_gan(disc_real, disc_fake)
-            mse = tf.losses.mean_squared_error(self.label[-1], self.outputs[-1])
+            mse = tf.losses.mean_squared_error(label_norm, sr)
             reg = tf.losses.get_regularization_losses()
 
             loss = tf.add_n([mse * self.mse_weight, loss_gen * self.gan_weight] + reg)
@@ -94,11 +94,13 @@ class SRGAN(SuperResolution):
             var_d = tf.trainable_variables('Critic')
             update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
             with tf.control_dependencies(update_ops):
+                opt_i = tf.train.AdamOptimizer(self.learning_rate).minimize(
+                    mse, self.global_steps, var_list=var_g)
                 opt_g = tf.train.AdamOptimizer(self.learning_rate, 0.5, 0.9).minimize(
                     loss, self.global_steps, var_list=var_g)
                 opt_d = tf.train.AdamOptimizer(self.learning_rate, 0.5, 0.9).minimize(
                     loss_disc, var_list=var_d)
-                self.loss = [mse, opt_g, opt_d]
+                self.loss = [opt_i, opt_g, opt_d]
 
         self.train_metric['g_loss'] = loss_gen
         self.train_metric['d_loss'] = loss_disc

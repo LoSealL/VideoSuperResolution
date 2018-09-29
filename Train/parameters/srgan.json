@@ -1,6 +1,6 @@
 {
   "glayers": 16,
-  "dlayers": 8,
+  "dlayers": 4,
   "vgg_layer": [2, 2],
   "init_epoch": 100,
   "vgg_weight": 1e-6,
