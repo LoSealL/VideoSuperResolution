@@ -10,7 +10,7 @@ Framework for network model (tensorflow)
 import tensorflow as tf
 from pathlib import Path
 
-from ..Util.Utility import to_list
+from ..Util.Utility import to_list, is_empty
 from .LayersHelper import Layers
 
 
@@ -152,7 +152,9 @@ class SuperResolution(Layers):
             self.feed_dict[self.inputs[i]] = feature[i]
         for i in range(len(self.label)):
             self.feed_dict[self.label[i]] = label[i]
-        loss = kwargs.get('loss') or self.loss
+        loss = kwargs.get('loss')
+        if is_empty(loss):
+            loss = self.loss
         loss = to_list(loss)
         loss = tf.get_default_session().run(list(self.train_metric.values()) + loss, feed_dict=self.feed_dict)
         ret = {}

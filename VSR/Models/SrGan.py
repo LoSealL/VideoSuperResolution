@@ -36,7 +36,6 @@ class SRGAN(SuperResolution):
         super(SRGAN, self).__init__(**kwargs)
         self.name = name
         self.g_layers = glayers
-        self.d_layers = dlayers
         self.init_epoch = init_epoch
         self.mse_weight = mse_weight
         self.gan_weight = gan_weight
