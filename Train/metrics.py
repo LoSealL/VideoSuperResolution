@@ -15,6 +15,7 @@ import tensorflow as tf
 
 from VSR.DataLoader.Dataset import load_datasets, Dataset
 from VSR.DataLoader.Loader import QuickLoader
+from VSR.Util.ImageProcess import rgb_to_yuv
 
 try:
     DATASETS = load_datasets('./Data/datasets.json')
@@ -26,6 +27,7 @@ tf.flags.DEFINE_string("dataset", None, "dataset to compare")
 tf.flags.DEFINE_bool("no_ssim", False, "disable ssim metric")
 tf.flags.DEFINE_bool("no_psnr", False, "disable psnr metric")
 tf.flags.DEFINE_bool("l_only", False, "compute luminance only")
+tf.flags.DEFINE_string("l_standard", "matlab", "yuv convertion standard, either 'bt601', 'bt709' or 'matlab'")
 tf.flags.DEFINE_integer("shave", 0, "shave border pixels")
 tf.flags.DEFINE_integer("clip", -1, "depth of a clip, -1 includes all frames")
 tf.flags.DEFINE_integer("offset", 0, "skip n files in the dataset")
@@ -72,18 +74,18 @@ def main(*args):
         # reduce the batch dimension for video clips
         if img.ndim == 5: img = img[0]
         if ref.ndim == 5: ref = ref[0]
-        img = tf.constant(img.astype(np.float32))
-        ref = tf.constant(ref.astype(np.float32))
         if opt.shave:
             img = shave(img, opt.shave)
             ref = shave(ref, opt.shave)
         if opt.l_only:
-            img = tf.image.rgb_to_grayscale(img)
-            ref = tf.image.rgb_to_grayscale(ref)
+            img = rgb_to_yuv(img, max_val=255, standard=opt.l_standard)[..., 0:1]
+            ref = rgb_to_yuv(ref, max_val=255, standard=opt.l_standard)[..., 0:1]
         if ref.shape[0] - skip != img.shape[0]:
             b_min = np.minimum(ref.shape[0] - skip, img.shape[0])
             ref = ref[:b_min + skip, ...]
             img = img[:b_min, ...]
+        img = tf.constant(img.astype(np.float32))
+        ref = tf.constant(ref.astype(np.float32))
         psnr = tf.reduce_mean(tf.image.psnr(ref[skip:], img, 255)).eval() if not opt.no_psnr else 0
         ssim = tf.reduce_mean(tf.image.ssim(ref[skip:], img, 255)).eval() if not opt.no_ssim else 0
         tf.logging.info(f'[{name}] PSNR = {psnr}, SSIM = {ssim}')

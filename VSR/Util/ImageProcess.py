@@ -197,6 +197,70 @@ def random_crop_batch_image(image, batch, shape, seed=None):
     return np.stack(b)
 
 
+_Y601 = (0.299, 0.587, 0.114)
+_Y709 = (0.2126, 0.7152, 0.0722)
+_UMAX = 0.436
+_VMAX = 0.615
+_U601 = (_Y601[0] / (_Y601[2] - 1), _Y601[1] / (_Y601[2] - 1), 1.0)
+_V601 = (1.0, _Y601[1] / (_Y601[0] - 1), _Y601[2] / (_Y601[0] - 1))
+_Y601 = np.array(_Y601, dtype=np.float32)
+_U601 = np.array(_U601, dtype=np.float32) * _UMAX
+_V601 = np.array(_V601, dtype=np.float32) * _VMAX
+_U709 = (_Y709[0] / (_Y709[2] - 1), _Y709[1] / (_Y709[2] - 1), 1.0)
+_V709 = (1.0, _Y709[1] / (_Y709[0] - 1), _Y709[2] / (_Y709[0] - 1))
+_Y709 = np.array(_Y709, dtype=np.float32)
+_U709 = np.array(_U709, dtype=np.float32) * _UMAX
+_V709 = np.array(_V709, dtype=np.float32) * _VMAX
+_T601 = np.stack([_Y601, _U601, _V601])
+_T709 = np.stack([_Y709, _U709, _V709])
+
+
+def rgb_to_yuv(img, max_val=1.0, standard='bt601'):
+    """convert rgb to yuv
+
+    There are plenty of rgb2yuv functions in python modules, but here we want to
+    make things more clearly.
+    Usually there are two standards: BT.601 and BT.709. While bt601 is the most
+    widely used (PIL, opencv, matlab's rgb2gray and also in the lovely tf.image),
+    somehow bt709 is not found used in any libs.
+    However, matlab's rgb2ycbcr uses different weights, which come from C.A. Poynton.
+    Most SR papers use matlab's rgb2ycbcr in benchmark, because it gets the highest PSNR :)
+
+    Args:
+         img: a 3-D numpy array. If `dtype=uint8`, it ranges from [0, 255], if
+           `dtype=float`, it ranges from [0, 1]
+         max_val: a scalar representing range of the image value
+         standard: a string, should be one of ('bt601', 'bt709', 'matlab')
+
+    Return:
+        yuv image
+    """
+    _standard = standard.lower()
+    if _standard not in ('bt601', 'bt709', 'matlab'):
+        raise ValueError('Not known standard:', standard)
+    """ matrix used in matlab
+      yuv = _T * rgb + _Tbias
+    """
+    _T = np.array([[65.481, 128.553, 24.966], [-37.797, -74.203, 112], [112, -93.786, -18.214]], dtype=np.float32)
+    _Tbias = np.array([16, 128, 128], dtype=np.float32)
+    _T /= 255
+    _Tbias /= 255
+    _img = img.reshape([-1, 3]) / max_val
+    if _standard == 'bt601':
+        _yuv = np.matmul(_T601, _img.transpose())
+        _yuv = _yuv.transpose() + np.array([0, 0.5, 0.5])
+        _yuv = _yuv.reshape(img.shape)
+    elif _standard == 'bt709':
+        _yuv = np.matmul(_T709, _img.transpose())
+        _yuv = _yuv.transpose() + np.array([0, 0.5, 0.5])
+        _yuv = _yuv.reshape(img.shape)
+    else:
+        _yuv = np.matmul(_T, _img.transpose())
+        _yuv = _yuv.transpose() + _Tbias
+        _yuv = _yuv.reshape(img.shape)
+    return np.clip(_yuv, 0, 1) * max_val
+
+
 import tensorflow as tf
 
 """
