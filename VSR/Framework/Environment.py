@@ -188,7 +188,7 @@ class Environment:
             avg_meas = {}
             with tqdm.tqdm(train_iter, unit='batch', ascii=True) as r:
                 for img in r:
-                    feature, label, name = img[self.fi], img[self.li], str(img[-1])
+                    feature, label, name = img[self.fi], img[self.li], img[-1]
                     for fn in self.feature_callbacks:
                         feature = fn(feature, name=name)
                     for fn in self.label_callbacks:
@@ -208,7 +208,7 @@ class Environment:
             val_metrics = {}
             val_iter = val_loader.make_one_shot_iterator(memory_usage, shard=parallel, shuffle=False)
             for img in val_iter:
-                feature, label, name = img[self.fi], img[self.li], str(img[-1])
+                feature, label, name = img[self.fi], img[self.li], img[-1]
                 for fn in self.feature_callbacks:
                     feature = fn(feature, name=name)
                 for fn in self.label_callbacks:
@@ -245,7 +245,7 @@ class Environment:
         else:
             return
         for img in tqdm.tqdm(it, 'Test', ascii=True):
-            feature, label, name = img[self.fi], img[self.li], str(img[-1])
+            feature, label, name = img[self.fi], img[self.li], img[-1]
             tf.logging.debug('output: ' + str(name))
             for fn in self.feature_callbacks:
                 feature = fn(feature, name=name)
@@ -277,7 +277,7 @@ class Environment:
         else:
             return
         for img in tqdm.tqdm(it, 'Infer', ascii=True):
-            feature, label, name = img[self.fi], img[self.li], str(img[-1])
+            feature, label, name = img[self.fi], img[self.li], img[-1]
             tf.logging.debug('output: ' + str(name))
             for fn in self.feature_callbacks:
                 feature = fn(feature, name=name)
