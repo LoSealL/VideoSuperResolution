@@ -472,13 +472,13 @@ class QuickLoader:
         frames_lr = [ImageProcess.imresize(img, np.ones(2) / self.scale) for img in frames_hr]
         frames_hr = [img.convert(self.color_format) for img in frames_hr]
         frames_lr = [img.convert(self.color_format) for img in frames_lr]
-        return frames_hr, frames_lr, f'{vf.name}_{index:04d}'
+        return frames_hr, frames_lr, (vf.name, index)
 
     def _vf_gen_flow_img_pair(self, vf, depth, index):
         assert depth == 2 and index == 0
         img = [img for img in vf.read_frame(depth)]
         img = [i.convert(self.color_format) for i in img]
-        return img, [vf.flow], f'{vf.name}_{index:04d}'
+        return img, [vf.flow], (vf.name, index)
 
     def _process_at_file(self, vf, clips=1):
         """load frames of `File` into memory, crop and generate corresponded LR frames.

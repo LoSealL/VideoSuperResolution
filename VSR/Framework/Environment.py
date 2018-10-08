@@ -246,7 +246,7 @@ class Environment:
             return
         for img in tqdm.tqdm(it, 'Test', ascii=True):
             feature, label, name = img[self.fi], img[self.li], str(img[-1])
-            tf.logging.debug('output: ' + name)
+            tf.logging.debug('output: ' + str(name))
             for fn in self.feature_callbacks:
                 feature = fn(feature, name=name)
             for fn in self.label_callbacks:
@@ -278,7 +278,7 @@ class Environment:
             return
         for img in tqdm.tqdm(it, 'Infer', ascii=True):
             feature, label, name = img[self.fi], img[self.li], str(img[-1])
-            tf.logging.debug('output: ' + name)
+            tf.logging.debug('output: ' + str(name))
             for fn in self.feature_callbacks:
                 feature = fn(feature, name=name)
             outputs = self.model.test_batch(feature, None)
