@@ -1,5 +1,5 @@
 A collection of state-of-the-art video or single-image super-resolution architectures, reimplemented in tensorflow.
-(currently no video models...)
+(Now VEPSCN model has finally been added to Models, pretrained weights will be uploaded soon...)
 
 ## Network list and reference
 The hyperlink directs to paper site, follows the official codes if the authors open sources.
