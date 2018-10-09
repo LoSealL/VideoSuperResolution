@@ -26,20 +26,21 @@ def _sub_residual(**kwargs):
 def _save_model_predicted_images(output, index, mode='YCbCr', **kwargs):
     save_dir = kwargs.get('save_dir') or '.'
     name, seq = kwargs.get('name')
-    n_dims = kwargs.get('label').ndim
+    seq = int(seq)
     if output is not None:
         img = output[index] if isinstance(output, list) else output
         img = _to_normalized_image(img, mode)
-        if n_dims == 5:
+        if seq > 0:
             path = Path(f'{save_dir}/{name}/{seq:04d}_PR.png')
         else:
             path = Path(f'{save_dir}/{name}_PR.png')
         path.parent.mkdir(parents=True, exist_ok=True)
         rep = 1
-        while path.exists():
-            path = path.parent / f'{path.stem}_{rep}.png'
+        path2 = path
+        while path2.exists():
+            path2 = path.parent / f'{path.stem}_{rep}.png'
             rep += 1
-        img.convert('RGB').save(str(path))
+        img.convert('RGB').save(str(path2))
     return output
 
 

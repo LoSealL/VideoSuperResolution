@@ -28,6 +28,7 @@ tf.flags.DEFINE_bool("no_psnr", False, "disable psnr metric")
 tf.flags.DEFINE_bool("l_only", False, "compute luminance only")
 tf.flags.DEFINE_integer("shave", 0, "shave border pixels")
 tf.flags.DEFINE_integer("clip", -1, "depth of a clip, -1 includes all frames")
+tf.flags.DEFINE_integer("offset", 0, "skip n files in the dataset")
 
 opt = tf.flags.FLAGS
 
@@ -59,6 +60,7 @@ def main(*args):
     data_ref.setattr(depth=opt.clip)
     data = load_folder(opt.input_dir)
     data.setattr(depth=opt.clip)
+    skip = opt.offset
     loader = QuickLoader(1, data, 'test', 1, convert_to='RGB', no_patch=True)
     ref_loader = QuickLoader(1, data_ref, 'test', 1, convert_to='RGB', no_patch=True)
     # make sure len(ref_loader) == len(loader)
@@ -78,12 +80,12 @@ def main(*args):
         if opt.l_only:
             img = tf.image.rgb_to_grayscale(img)
             ref = tf.image.rgb_to_grayscale(ref)
-        if ref.shape[0] != img.shape[0]:
-            b_min = np.minimum(ref.shape[0], img.shape[0])
-            ref = ref[:b_min, ...]
+        if ref.shape[0] - skip != img.shape[0]:
+            b_min = np.minimum(ref.shape[0] - skip, img.shape[0])
+            ref = ref[:b_min + skip, ...]
             img = img[:b_min, ...]
-        psnr = tf.reduce_mean(tf.image.psnr(ref, img, 255)).eval() if not opt.no_psnr else 0
-        ssim = tf.reduce_mean(tf.image.ssim(ref, img, 255)).eval() if not opt.no_ssim else 0
+        psnr = tf.reduce_mean(tf.image.psnr(ref[skip:], img, 255)).eval() if not opt.no_psnr else 0
+        ssim = tf.reduce_mean(tf.image.ssim(ref[skip:], img, 255)).eval() if not opt.no_ssim else 0
         tf.logging.info(f'[{name}] PSNR = {psnr}, SSIM = {ssim}')
         tf.add_to_collection('PSNR', psnr)
         tf.add_to_collection('SSIM', ssim)
