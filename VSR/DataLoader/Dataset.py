@@ -96,8 +96,9 @@ def load_datasets(json_file):
         for name, value in config["Dataset"].items():
             assert isinstance(value, dict)
             datasets[name] = Dataset()
+            datasets[name].setattr(name=name)
             for i in value:
-                if not i in ('train', 'val', 'test', 'pred', 'flow'):
+                if i not in ('train', 'val', 'test', 'pred', 'flow'):
                     continue
                 sets = []
                 for j in to_list(value[i]):
@@ -110,7 +111,7 @@ def load_datasets(json_file):
                 for k, v in value['param'].items():
                     datasets[name].__setitem__(k, v)
         for name, path in config["Path_Tracked"].items():
-            if not name in datasets:
+            if name not in datasets:
                 datasets[name] = Dataset()
                 datasets[name].__setitem__('test', _glob_absolute_pattern(path))
     return datasets

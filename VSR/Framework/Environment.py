@@ -253,7 +253,8 @@ class Environment:
                 label = fn(label, name=name)
             outputs = self.model.test_batch(feature, None)
             for fn in self.output_callbacks:
-                outputs = fn(outputs, input=img[self.fi], label=img[self.li], name=name, mode=loader.color_format)
+                outputs = fn(outputs, input=img[self.fi], label=img[self.li], mode=loader.color_format,
+                             name=name, subdir=dataset.name)
 
     def predict(self, files, mode='pil-image1', depth=1, **kwargs):
         r"""Predict output for frames
@@ -283,7 +284,7 @@ class Environment:
                 feature = fn(feature, name=name)
             outputs = self.model.test_batch(feature, None)
             for fn in self.output_callbacks:
-                outputs = fn(outputs, input=img[self.fi], label=img[self.li], name=name, mode=loader.color_format)
+                outputs = fn(outputs, input=img[self.fi], label=img[self.li], mode=loader.color_format, name=name)
 
     def export(self, export_dir='.'):
         """Export model as protobuf
