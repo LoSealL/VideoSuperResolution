@@ -63,8 +63,8 @@ def main(*args):
     data = load_folder(opt.input_dir)
     data.setattr(depth=opt.clip)
     skip = opt.offset
-    loader = QuickLoader(1, data, 'test', 1, convert_to='RGB', no_patch=True)
-    ref_loader = QuickLoader(1, data_ref, 'test', 1, convert_to='RGB', no_patch=True)
+    loader = QuickLoader(1, data, 'test', 1, convert_to='RGB', crop=None)
+    ref_loader = QuickLoader(1, data_ref, 'test', 1, convert_to='RGB', crop=None)
     # make sure len(ref_loader) == len(loader)
     loader_iter = loader.make_one_shot_iterator()
     ref_iter = ref_loader.make_one_shot_iterator()

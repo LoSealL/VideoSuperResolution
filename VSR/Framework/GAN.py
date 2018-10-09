@@ -43,6 +43,8 @@ def Discriminator(net,
         assert isinstance(net, SuperResolution)
         with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
             if input_shape[1] and input_shape[2]:
+                if input_shape[0] is None:
+                    input_shape[0] = -1
                 inputs = tf.reshape(inputs, input_shape)
             F = filters
             N = [net.conv2d(inputs, F, 3, activation='lrelu',
@@ -98,6 +100,8 @@ def ProjectDiscriminator(net,
         assert isinstance(net, SuperResolution)
         with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
             if input_shape[1] and input_shape[2]:
+                if input_shape[0] is None:
+                    input_shape[0] = -1
                 inputs = tf.reshape(inputs, input_shape)
             x = inputs
             x = resblock(x, 64, downsample=True)

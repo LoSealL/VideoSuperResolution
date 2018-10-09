@@ -137,6 +137,7 @@ class Environment:
             restart=False,
             validate_numbers=1,
             validate_every_n_epoch=1,
+            augmentation=False,
             parallel=1,
             memory_usage=None,
             **kwargs):
@@ -153,8 +154,9 @@ class Environment:
             restart: if True, start training from scratch, regardless of saved checkpoints
             validate_numbers: the number of patches in validation
             validate_every_n_epoch: run validation every n epochs
-            parallel:
-            memory_usage:
+            augmentation: a boolean representing conduct image augmentation (random flip and rotate)
+            parallel: a scalar representing threads number of loading dataset
+            memory_usage: a string or integer, limiting maximum usage of CPU memory. (i.e. 1024MB, 8GB...)
         """
 
         sess = tf.get_default_session()
@@ -177,10 +179,12 @@ class Environment:
         if learning_rate_schedule and callable(learning_rate_schedule):
             lr = learning_rate_schedule(lr, epochs=init_epoch, steps=global_step)
         if parallel == 1:
-            train_loader = QuickLoader(batch, dataset, 'train', self.model.scale, steps_per_epoch, **kwargs)
+            train_loader = QuickLoader(batch, dataset, 'train', self.model.scale, steps_per_epoch,
+                                       crop='random', augmentation=augmentation, **kwargs)
         else:
-            train_loader = MpLoader(batch, dataset, 'train', self.model.scale, steps_per_epoch, **kwargs)
-        val_loader = QuickLoader(batch, dataset, 'val', self.model.scale, validate_numbers, **kwargs)
+            train_loader = MpLoader(batch, dataset, 'train', self.model.scale, steps_per_epoch,
+                                    crop='random', augmentation=augmentation, **kwargs)
+        val_loader = QuickLoader(batch, dataset, 'val', self.model.scale, validate_numbers, crop='center', **kwargs)
         for epoch in range(init_epoch, epochs + 1):
             train_iter = train_loader.make_one_shot_iterator(memory_usage, shard=parallel, shuffle=True)
             date = time.strftime('%Y-%m-%d %T', time.localtime())
@@ -236,7 +240,7 @@ class Environment:
 
         sess = tf.get_default_session()
         ckpt_last = self._restore_model(sess)
-        loader = QuickLoader(1, dataset, 'test', self.model.scale, -1, no_patch=True, **kwargs)
+        loader = QuickLoader(1, dataset, 'test', self.model.scale, -1, crop=None, **kwargs)
         it = loader.make_one_shot_iterator()
         if len(it):
             print('===================================')
@@ -269,7 +273,7 @@ class Environment:
         ckpt_last = self._restore_model(sess)
         files = [Path(file) for file in to_list(files)]
         data = Dataset(test=files, mode=mode, depth=depth, modcrop=False, **kwargs)
-        loader = QuickLoader(1, data, 'test', self.model.scale, -1, no_patch=True, **kwargs)
+        loader = QuickLoader(1, data, 'test', self.model.scale, -1, crop=None, **kwargs)
         it = loader.make_one_shot_iterator()
         if len(it):
             print('===================================')

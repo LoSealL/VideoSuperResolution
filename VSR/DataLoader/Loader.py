@@ -373,6 +373,8 @@ class QuickLoader:
           equal for each dimension.
         batches_per_epoch: An int scalar, representing the number of batches generated
           for each epoch, note that `total patches := batches_per_epoch * batch_size`.
+        crop: A string in ('random', 'center', 'not') or None (same as 'not'), representing
+          the method of cropping patches.
         no_patch: A boolean, set to True disable cropping patches, used for test.
         convert_to: A string in ('gray', 'yuv', 'rgb'), see codes below for details. This
           will convert the color format of the image to desired one. *Case insensitive*.
@@ -381,7 +383,7 @@ class QuickLoader:
     """
 
     def __init__(self, batch_size, dataset, method, scale, batches_per_epoch=-1,
-                 no_patch=False, convert_to='gray', augmentation=False,
+                 crop='random', convert_to='gray', augmentation=False,
                  **kwargs):
         self.file_names = dataset.__getattr__(method.lower())
         self.depth = dataset.depth
@@ -389,7 +391,7 @@ class QuickLoader:
         self.flow = dataset.flow
         self.scale = Utility.to_list(scale, 2)
         self.patches_per_epoch = batches_per_epoch * batch_size
-        self.no_patch = no_patch
+        self.crop = crop.lower()
         self.modcrop = dataset.modcrop
         self.aug = augmentation
         self.batch = batch_size
@@ -532,14 +534,21 @@ class QuickLoader:
         for i in range(len(frames)):
             hr, lr, name = frames[i]
             _w, _h = hr[0].width, hr[0].height
-            if not self.no_patch:
+            if self.crop == 'not' or self.crop is None:
                 _pw, _ph = patch_size
             else:
                 _pw, _ph = _w, _h
             amount = index.count(i)
-            x = np.random.randint(0, _w - _pw + 1, size=amount)
+            if self.crop == 'random':
+                x = np.random.randint(0, _w - _pw + 1, size=amount)
+                y = np.random.randint(0, _h - _ph + 1, size=amount)
+            elif self.crop == 'center':
+                x = np.array([(_w - _pw) // 2] * amount)
+                y = np.array([(_h - _ph) // 2] * amount)
+            else:
+                x = np.zeros([amount])
+                y = np.zeros([amount])
             x -= x % self.scale[0]
-            y = np.random.randint(0, _h - _ph + 1, size=amount)
             y -= y % self.scale[1]
             grids += [(ImageProcess.img_to_array(hr),
                        ImageProcess.img_to_array(lr),

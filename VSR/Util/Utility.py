@@ -140,7 +140,7 @@ def bicubic_rescale(img, scale):
         return tf.image.resize_area(img, shape_enlarge[1:3], align_corners=False)
 
 
-def prelu(x, initialize=0.1, name=None, scope='PReLU'):
+def prelu(x, initialize=0, name=None, scope='PReLU'):
     """Parametric ReLU"""
     with tf.variable_scope(name, scope):
         alphas = tf.Variable(initialize * np.ones(x.shape[-1], np.float32), dtype=tf.float32)
@@ -216,6 +216,14 @@ def pop_dict_wo_keyerror(d, key):
     if value is not None:
         d.pop(key)
     return value
+
+
+def summary_tensor_image(x, name, shape):
+    """summary a tensor
+
+    split each channel and form a huge image
+    """
+    raise NotImplementedError
 
 
 class Vgg:

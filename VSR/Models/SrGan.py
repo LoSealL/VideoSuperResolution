@@ -53,17 +53,17 @@ class SRGAN(SuperResolution):
 
     @staticmethod
     def _normalize(x):
-        return x / 255
+        return x / 127.5 - 1
 
     @staticmethod
     def _denormalize(x):
-        return x * 255
+        return (x + 1) * 127.5
 
     def build_graph(self):
         super(SRGAN, self).build_graph()
         with tf.variable_scope(self.name):
             inputs_norm = self._normalize(self.inputs_preproc[-1])
-            shallow_feature = self.prelu_conv2d(inputs_norm, 64, 3)
+            shallow_feature = self.prelu_conv2d(inputs_norm, 64, 9)
             x = shallow_feature
             for _ in range(self.g_layers):
                 x = self.resblock(x, 64, 3, activation='prelu', use_batchnorm=True)
@@ -71,7 +71,7 @@ class SRGAN(SuperResolution):
             x += shallow_feature
             x = self.conv2d(x, 256, 3)
             sr = self.upscale(x, direct_output=False, activator=prelu)
-            sr = self.conv2d(sr, self.channel, 9)
+            sr = self.tanh_conv2d(sr, self.channel, 9)
             self.outputs.append(self._denormalize(sr))
 
         label_norm = self._normalize(self.label[-1])
@@ -96,11 +96,11 @@ class SRGAN(SuperResolution):
             with tf.control_dependencies(update_ops):
                 opt_i = tf.train.AdamOptimizer(self.learning_rate).minimize(
                     mse, self.global_steps, var_list=var_g)
-                opt_g = tf.train.AdamOptimizer(self.learning_rate, 0.5, 0.9).minimize(
+                opt_g = tf.train.AdamOptimizer(self.learning_rate).minimize(
                     loss, self.global_steps, var_list=var_g)
-                opt_d = tf.train.AdamOptimizer(self.learning_rate, 0.5, 0.9).minimize(
+                opt_d = tf.train.AdamOptimizer(self.learning_rate).minimize(
                     loss_disc, var_list=var_d)
-                self.loss = [opt_i, opt_g, opt_d]
+                self.loss = [opt_i, opt_d, opt_g]
 
         self.train_metric['g_loss'] = loss_gen
         self.train_metric['d_loss'] = loss_disc
@@ -118,7 +118,7 @@ class SRGAN(SuperResolution):
         tf.summary.scalar('mse', self.metrics['mse'])
         tf.summary.scalar('psnr', self.metrics['psnr'])
         tf.summary.scalar('ssim', self.metrics['ssim'])
-        tf.summary.image('SR', self.outputs[-1], 1)
+        tf.summary.image('SR', tf.to_int32(self.outputs[-1]))
 
     def train_batch(self, feature, label, learning_rate=1e-4, **kwargs):
         epoch = kwargs.get('epochs')
