@@ -529,7 +529,10 @@ class QuickLoader:
         if size < 0:
             index = np.arange(len(frames)).tolist()
         else:
-            index = np.random.randint(len(frames), size=size).tolist()
+            if self.crop == 'random':
+                index = np.random.randint(len(frames), size=size).tolist()
+            else:
+                index = np.arange(size).tolist()
         grids = []
         for i in range(len(frames)):
             hr, lr, name = frames[i]
