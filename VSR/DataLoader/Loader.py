@@ -535,9 +535,9 @@ class QuickLoader:
             hr, lr, name = frames[i]
             _w, _h = hr[0].width, hr[0].height
             if self.crop == 'not' or self.crop is None:
-                _pw, _ph = patch_size
-            else:
                 _pw, _ph = _w, _h
+            else:
+                _pw, _ph = patch_size
             amount = index.count(i)
             if self.crop == 'random':
                 x = np.random.randint(0, _w - _pw + 1, size=amount)
