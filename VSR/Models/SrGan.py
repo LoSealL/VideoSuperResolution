@@ -118,7 +118,9 @@ class SRGAN(SuperResolution):
         tf.summary.scalar('mse', self.metrics['mse'])
         tf.summary.scalar('psnr', self.metrics['psnr'])
         tf.summary.scalar('ssim', self.metrics['ssim'])
-        tf.summary.image('SR', tf.cast(self.outputs[-1], 'uint8'))
+        tf.summary.image('SR/0', tf.cast(self.outputs[-1][0:1, ...], 'uint8'), 1)
+        tf.summary.image('SR/1', tf.cast(self.outputs[-1][1:2, ...], 'uint8'), 1)
+        tf.summary.image('SR/2', tf.cast(self.outputs[-1][2:3, ...], 'uint8'), 1)
 
     def train_batch(self, feature, label, learning_rate=1e-4, **kwargs):
         epoch = kwargs.get('epochs')

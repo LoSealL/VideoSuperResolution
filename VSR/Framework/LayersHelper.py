@@ -205,12 +205,14 @@ class Layers(object):
             phi = self.conv2d(inputs, C_inner, 1)
             theta = tf.reshape(theta, [shape[0], -1, C_inner])  # N*C'
             phi = tf.reshape(phi, [shape[0], -1, C_inner])  # N*C'
-            beta = tf.matmul(theta, phi, transpose_b=True)  # N*N
             if softmax:
+                beta = tf.matmul(theta, phi, transpose_b=True)  # N*N
                 beta = tf.nn.softmax(beta, axis=-1)
+                non_local = tf.matmul(beta, tf.reshape(g, [shape[0], -1, C_inner]))  # N*C'
             else:
-                beta /= tf.to_float(shape[1] * shape[2])
-            non_local = tf.matmul(beta, tf.reshape(g, [shape[0], -1, C_inner]))  # N*C'
+                beta = tf.matmul(phi, tf.reshape(g, [shape[0], -1, C_inner]), transpose_a=True)
+                beta = tf.matmul(theta, beta)
+                non_local = beta / tf.to_float(shape[1] * shape[2])
             non_local = tf.reshape(non_local, [shape[0], shape[1], shape[2], C_inner])  # H*W*C'
             use_bn = kwargs.get('use_batchnorm')
             non_local = self.conv2d(non_local, C, 1, kernel_initializer='zeros', use_batchnorm=use_bn)
