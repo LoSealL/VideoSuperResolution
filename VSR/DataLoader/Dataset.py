@@ -113,5 +113,6 @@ def load_datasets(json_file):
         for name, path in config["Path_Tracked"].items():
             if name not in datasets:
                 datasets[name] = Dataset()
+                datasets[name].setattr(name=name)
                 datasets[name].__setitem__('test', _glob_absolute_pattern(path))
     return datasets
