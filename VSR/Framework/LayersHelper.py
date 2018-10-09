@@ -45,6 +45,32 @@ class Layers(object):
             x = activator(x)
         return x
 
+    def conv3d(self, x,
+               filters,
+               kernel_size,
+               strides=(1, 1, 1),
+               padding='same',
+               data_format='channels_last',
+               dilation_rate=(1, 1, 1),
+               activation=None,
+               use_bias=True,
+               use_batchnorm=False,
+               kernel_initializer='he_normal',
+               kernel_regularizer='l2',
+               **kwargs):
+        ki, kr = self._kernel(kernel_initializer, kernel_regularizer)
+        nn = tf.layers.Conv3D(filters, kernel_size, strides=strides, padding=padding, data_format=data_format,
+                              dilation_rate=dilation_rate, use_bias=use_bias,
+                              kernel_initializer=ki, kernel_regularizer=kr, **kwargs)
+        nn.build(x.shape.as_list())
+        x = nn(x)
+        if use_batchnorm:
+            x = tf.layers.batch_normalization(x, training=self.training_phase)
+        activator = self._act(activation)
+        if activation:
+            x = activator(x)
+        return x
+
     def deconv2d(self, x,
                  filters,
                  kernel_size,
@@ -67,6 +93,31 @@ class Layers(object):
         nn.build(x.shape.as_list())
         if use_sn:
             nn.kernel = SpectralNorm()(nn.kernel)
+        x = nn(x)
+        if use_batchnorm:
+            x = tf.layers.batch_normalization(x, training=self.training_phase)
+        activator = self._act(activation)
+        if activation:
+            x = activator(x)
+        return x
+
+    def deconv3d(self, x,
+                 filters,
+                 kernel_size,
+                 strides=(1, 1, 1),
+                 padding='same',
+                 data_format='channels_last',
+                 activation=None,
+                 use_bias=True,
+                 use_batchnorm=False,
+                 kernel_initializer='he_normal',
+                 kernel_regularizer='l2',
+                 **kwargs):
+        ki, kr = self._kernel(kernel_initializer, kernel_regularizer)
+        nn = tf.layers.Conv3DTranspose(filters, kernel_size, strides=strides, padding=padding,
+                                       data_format=data_format, use_bias=use_bias,
+                                       kernel_initializer=ki, kernel_regularizer=kr, **kwargs)
+        nn.build(x.shape.as_list())
         x = nn(x)
         if use_batchnorm:
             x = tf.layers.batch_normalization(x, training=self.training_phase)
@@ -253,6 +304,24 @@ class Layers(object):
             if 'tanh' in items:
                 kwargs.update(activation='tanh')
             return P(self.conv2d, **kwargs)
+        elif 'conv3d' in item:
+            items = item.split('_')
+            kwargs = {
+                'kernel_initializer': 'he_normal',
+                'kernel_regularizer': 'l2',
+                'use_batchnorm': False,
+            }
+            if 'bn' in items or 'batchnorm' in items:
+                kwargs.update(use_batchnorm=True)
+            if 'relu' in items:
+                kwargs.update(activation='relu')
+            if 'leaky' in items or 'lrelu' in items or 'leakyrelu' in items:
+                kwargs.update(activation='lrelu')
+            if 'prelu' in items:
+                kwargs.update(activation='prelu')
+            if 'tanh' in items:
+                kwargs.update(activation='tanh')
+            return P(self.conv3d, **kwargs)
 
         return None
 
@@ -305,5 +374,55 @@ class Layers(object):
             if ori.shape[-1] != x.shape[-1]:
                 # short cut
                 ori = self.conv2d(ori, x.shape[-1], 1, kernel_initializer=kernel_initializer)
+            ori += x
+        return ori
+
+    def resblock3d(self, x,
+                   filters,
+                   kernel_size,
+                   strides=(1, 1, 1),
+                   padding='same',
+                   data_format='channels_last',
+                   activation=None,
+                   use_bias=True,
+                   use_batchnorm=False,
+                   kernel_initializer='he_normal',
+                   kernel_regularizer='l2',
+                   placement=None,
+                   **kwargs):
+        """make a residual block
+
+        Args:
+            placement: 'front' or 'behind', use BN layer in front of or behind after the 1st conv2d layer.
+        """
+
+        kwargs.update({
+            'strides': strides,
+            'padding': padding,
+            'data_format': data_format,
+            'activation': activation,
+            'use_bias': use_bias,
+            'use_batchnorm': use_batchnorm,
+            'kernel_initializer': kernel_initializer,
+            'kernel_regularizer': kernel_regularizer
+        })
+        if placement is None: placement = 'behind'
+        assert placement in ('front', 'behind')
+        name = pop_dict_wo_keyerror(kwargs, 'name')
+        reuse = pop_dict_wo_keyerror(kwargs, 'reuse')
+        with tf.variable_scope(name, 'ResBlock', reuse=reuse):
+            ori = x
+            if placement == 'front':
+                act = self._act(activation)
+                if use_batchnorm:
+                    x = tf.layers.batch_normalization(x, training=self.training_phase)
+                if act: x = act(x)
+            x = self.conv3d(x, filters, kernel_size, **kwargs)
+            kwargs.pop('activation')
+            if placement == 'front': kwargs.pop('use_batchnorm')
+            x = self.conv3d(x, filters, kernel_size, **kwargs)
+            if ori.shape[-1] != x.shape[-1]:
+                # short cut
+                ori = self.conv3d(ori, x.shape[-1], 1, kernel_initializer=kernel_initializer)
             ori += x
         return ori
