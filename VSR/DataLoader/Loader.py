@@ -391,7 +391,9 @@ class QuickLoader:
         self.flow = dataset.flow
         self.scale = Utility.to_list(scale, 2)
         self.patches_per_epoch = batches_per_epoch * batch_size
-        self.crop = crop.lower()
+        self.crop = None
+        if isinstance(crop, str):
+            self.crop = crop.lower()
         self.modcrop = dataset.modcrop
         self.aug = augmentation
         self.batch = batch_size
