@@ -476,13 +476,13 @@ class QuickLoader:
         frames_lr = [ImageProcess.imresize(img, np.ones(2) / self.scale) for img in frames_hr]
         frames_hr = [img.convert(self.color_format) for img in frames_hr]
         frames_lr = [img.convert(self.color_format) for img in frames_lr]
-        return frames_hr, frames_lr, (vf.name, index)
+        return frames_hr, frames_lr, (vf.name, index, vf.frames)
 
     def _vf_gen_flow_img_pair(self, vf, depth, index):
         assert depth == 2 and index == 0
         img = [img for img in vf.read_frame(depth)]
         img = [i.convert(self.color_format) for i in img]
-        return img, [vf.flow], (vf.name, index)
+        return img, [vf.flow], (vf.name, index, vf.frames)
 
     def _process_at_file(self, vf, clips=1):
         """load frames of `File` into memory, crop and generate corresponded LR frames.
@@ -499,12 +499,13 @@ class QuickLoader:
         tf.logging.debug('Prefetching ' + vf.name)
         depth = self.depth
         # read all frames if depth is set to -1
-        if depth == -1: depth = vf.frames
+        if depth == -1:
+            depth = vf.frames
         index = np.arange(0, vf.frames - depth + 1)
         np.random.shuffle(index)
         if clips > len(index):
             tf.logging.log_every_n(
-                tf.logging.WARN, 'clips are greater than actual frames in the file', 100)
+                tf.logging.WARN, f'clips are greater than actual frames in the file, {clips}>{len(index)}', 100)
         frames = []
         for i in index[:clips]:
             if self.flow:

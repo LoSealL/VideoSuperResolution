@@ -26,13 +26,14 @@ def _sub_residual(**kwargs):
 def _save_model_predicted_images(output, index, mode='YCbCr', **kwargs):
     save_dir = kwargs.get('save_dir') or '.'
     sub_dir = kwargs.get('subdir') or '.'
-    name, seq = kwargs.get('name')
+    name, seq, frames = kwargs.get('name')
     seq = int(seq)
+    frames = int(frames)
     if output is not None:
         img = output[index] if isinstance(output, list) else output
         img = _to_normalized_image(img, mode)
         path = Path(save_dir) / sub_dir
-        if seq > 0:
+        if frames > 1:
             path /= f'{name}/{seq:04d}_PR.png'
         else:
             path /= f'{name}_PR.png'

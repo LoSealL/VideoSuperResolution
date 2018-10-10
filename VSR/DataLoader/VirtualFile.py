@@ -295,8 +295,8 @@ class RawFile(File):
 
     @property
     def frames(self):
-        """unread frames remain in `RawFile`"""
-        return (self.end_pointer - self.read_pointer) // self.pitch
+        """frames in `RawFile`"""
+        return self.end_pointer // self.pitch
 
 
 class ImageFile(File):
@@ -362,4 +362,4 @@ class ImageFile(File):
 
     @property
     def frames(self):
-        return len(self.file)
+        return len(self.file) + len(self.read_file)
