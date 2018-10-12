@@ -503,9 +503,6 @@ class QuickLoader:
             depth = vf.frames
         index = np.arange(0, vf.frames - depth + 1)
         np.random.shuffle(index)
-        if clips > len(index):
-            tf.logging.log_every_n(
-                tf.logging.WARN, f'clips are greater than actual frames in the file, {clips}>{len(index)}', 100)
         frames = []
         for i in index[:clips]:
             if self.flow:
