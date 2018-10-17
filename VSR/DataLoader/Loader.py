@@ -125,7 +125,8 @@ class BasicLoader:
             tf.logging.warning(f'Unknown format {config.convert_to}, use grayscale by default')
             self.color_format = 'L'
         self.prob = self._read_file(dataset)._calc_select_prob()
-        self.all_loaded = False
+        self.loaded = 0
+        self.free_memory_on_start = virtual_memory().free
         self.frames = []  # a list of tuple represents (HR, LR, name) of a clip
 
     def _parse_config(self, config, **kwargs):
@@ -337,30 +338,33 @@ class BasicLoader:
             index: an int scalar, representing shard index
         """
 
-        if self.all_loaded:
-            interval = len(self.frames) // shard
-            return self.frames[index * interval:(index + 1) * interval], True
+        if self.loaded & (1 << index):
+            return
         # check memory usage
         if isinstance(memory_usage, str):
             memory_usage = Utility.str_to_bytes(memory_usage)
         if not memory_usage:
-            memory_usage = virtual_memory().total
-        memory_usage = np.min([np.uint64(memory_usage), virtual_memory().free])
+            memory_usage = self.free_memory_on_start
+        memory_usage = np.min([np.uint64(memory_usage), self.free_memory_on_start])
         capacity = self.size
         frames = []
         if capacity <= memory_usage:
             # load all clips
-            self.all_loaded = True
-            interval = len(self.file_objects) // shard
-            for file in self.file_objects[index * interval:(index + 1) * interval]:
-                frames += self._process_at_file(file, file.frames)
+            interval = int(np.ceil(len(self.file_objects) / shard))
+            if index == shard - 1:
+                for file in self.file_objects[index * interval:]:
+                    frames += self._process_at_file(file, file.frames)
+            else:
+                for file in self.file_objects[index * interval:(index + 1) * interval]:
+                    frames += self._process_at_file(file, file.frames)
+            self.frames += frames
+            self.loaded |= (1 << index)
         else:
             prop = memory_usage / capacity / shard * 0.8  # 0.8 is a scale factor
             size = int(np.round(len(self) * prop))
             for file, amount in self._random_select(size).items():
                 frames += self._process_at_file(file, amount)
-        self.frames = frames
-        return frames, self.all_loaded
+            self.frames = frames
 
     def make_one_shot_iterator(self, memory_usage=None, shuffle=False):
         """make an `EpochIterator` to enumerate batches of the dataset
@@ -374,8 +378,8 @@ class BasicLoader:
         Return:
             An EpochIterator
         """
-        fr, _ = self._prefetch(memory_usage, 1)
-        grids = self._generate_crop_grid(fr, self.patches_per_epoch, shuffle=shuffle)
+        self._prefetch(memory_usage, 1)
+        grids = self._generate_crop_grid(self.frames, self.patches_per_epoch, shuffle=shuffle)
         return EpochIterator(self, grids)
 
 
@@ -404,16 +408,24 @@ class QuickLoader(BasicLoader):
     def __init__(self, dataset, method, config, augmentation=False, n_threads=1, **kwargs):
         self.shard = n_threads
         self.threads = []
-        self.results = [None] * n_threads
         super(QuickLoader, self).__init__(dataset, method, config, augmentation, **kwargs)
 
-    def _prefetch_handler(self, results, memory_usage=None, shard=1, index=0):
-        results[index] = self._prefetch(memory_usage, shard, index)
-
     def prefetch(self, memory_usage=None):
+        """Prefetch data.
+
+        This call will spawn threads of `_prefetch` and returns immediately. The next call
+        of `make_one_shot_iterator` will join all the threads. If this is not called in advance,
+        data will be fetched at `make_one_shot_iterator`.
+
+        Note: call `prefetch` twice w/o `make_one_shot_iterator` is undefined behaviour.
+
+        Args:
+            memory_usage: desired virtual memory to use, could be int (in bytes) or
+              a readable string (i.e. '3GB', '1TB'). Default to use all available memories.
+        """
         for i in range(self.shard):
-            t = th.Thread(target=self._prefetch_handler,
-                          args=(self.results, memory_usage, self.shard, i),
+            t = th.Thread(target=self._prefetch,
+                          args=(memory_usage, self.shard, i),
                           name='fetch_thread_{}'.format(i))
             t.start()
             self.threads.append(t)
@@ -425,8 +437,7 @@ class QuickLoader(BasicLoader):
 
         Args:
             memory_usage: desired virtual memory to use, could be int (in bytes) or
-              a readable string (i.e. '3GB', '1TB'). Default to use all available
-              memories.
+              a readable string (i.e. '3GB', '1TB'). Default to use all available memories.
             shuffle: A boolean whether to shuffle the patch grids.
 
         Return:
@@ -438,24 +449,11 @@ class QuickLoader(BasicLoader):
             returns.
         """
 
-        if self.all_loaded:
-            # TODO a work around 'cause AssertionError when map functions again
-            grids = self._generate_crop_grid(
-                self.frames, self.patches_per_epoch, shuffle=shuffle)
-            return EpochIterator(self, grids)
-
         if not self.threads:
             self.prefetch(memory_usage)
         for t in self.threads:
             t.join()
         self.threads.clear()
-        # update loader object in current process
-        self.all_loaded = self.results[0][1]
-        self.frames = []
         # reduce
-        grids = []
-        for i in range(self.shard):
-            self.frames += self.results[i][0]
-            grids += self._generate_crop_grid(
-                self.results[i][0], self.patches_per_epoch // self.shard, shuffle=shuffle)
+        grids = self._generate_crop_grid(self.frames, self.patches_per_epoch, shuffle=shuffle)
         return EpochIterator(self, grids)

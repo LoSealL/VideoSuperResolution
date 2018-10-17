@@ -8,9 +8,9 @@ from VSR.Util import ImageProcess
 from VSR.DataLoader.Dataset import *
 
 try:
-    DATASETS = load_datasets('./Data/datasets.json')
+    DATASETS = load_datasets('./Data/datasets.yaml')
 except FileNotFoundError:
-    DATASETS = load_datasets('../Data/datasets.json')
+    DATASETS = load_datasets('../Data/datasets.yaml')
 
 
 def test_loader_prob():
@@ -36,6 +36,7 @@ def test_loader_prob():
 def test_basicloader_iter():
     dut = DATASETS['DIV2K']
     config = Config(batch=16, scale=4, depth=1, steps_per_epoch=200, convert_to='RGB', crop='random')
+    config.patch_size = 48
     r = BasicLoader(dut, 'train', config, True)
     it = r.make_one_shot_iterator('8GB')
     for hr, lr, name in it:
@@ -48,6 +49,7 @@ def test_basicloader_iter():
 def test_quickloader_iter():
     dut = DATASETS['DIV2K']
     config = Config(batch=16, scale=4, depth=1, steps_per_epoch=200, convert_to='RGB', crop='random')
+    config.patch_size = 48
     r = QuickLoader(dut, 'train', config, True, n_threads=8)
     it = r.make_one_shot_iterator('8GB')
     for hr, lr, name in it:
@@ -78,28 +80,28 @@ def test_benchmark_mp():
 
 
 def test_read_flow():
+    from VSR.Framework.Callbacks import _viz_flow
     dut = DATASETS['MINICHAIRS']
     config = Config(batch=8, scale=1, depth=2, patch_size=96, steps_per_epoch=100, convert_to='RGB')
     loader = QuickLoader(dut, 'train', config, True, n_threads=8)
     r = loader.make_one_shot_iterator('8GB', shuffle=True)
-    img, flow, name = next(r)
-    img, flow, name = next(r)
-    img, flow, name = next(r)
-    img, flow, name = next(r)
+    loader.prefetch('8GB')
+    list(r)
     r = loader.make_one_shot_iterator('8GB', shuffle=True)
-    img, flow, name = next(r)
-    img, flow, name = next(r)
-    img, flow, name = next(r)
-    img, flow, name = next(r)
+    img, flow, name = list(r)[0]
 
     ref0 = img[0, 0, ...]
     ref1 = img[0, 1, ...]
     u = flow[0, 0, ..., 0]
     v = flow[0, 0, ..., 1]
-    H, W = u.shape
     ImageProcess.array_to_img(ref0, 'RGB').show()
     ImageProcess.array_to_img(ref1, 'RGB').show()
-    u = (u / W + 1) / 2 * 255
-    v = (v / H + 1) / 2 * 255
-    ImageProcess.array_to_img(u, 'L').show()
-    ImageProcess.array_to_img(v, 'L').show()
+    ImageProcess.array_to_img(_viz_flow(u, v), 'RGB').show()
+
+
+def main():
+    pass
+
+
+if __name__ == '__main__':
+    main()
