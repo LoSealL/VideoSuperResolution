@@ -1,9 +1,9 @@
 from VSR.DataLoader.Dataset import _glob_absolute_pattern, load_datasets
 
 try:
-    DATASETS = load_datasets('./Data/datasets.json')
+    DATASETS = load_datasets('./Data/datasets.yaml')
 except FileNotFoundError:
-    DATASETS = load_datasets('../Data/datasets.json')
+    DATASETS = load_datasets('../Data/datasets.yaml')
 
 
 def test_glob_absolute_pattern():
@@ -36,7 +36,7 @@ def test_glob_absolute_pattern():
 def test_existence():
     _K = DATASETS.keys()
     for k in _K:
-        print('==== [', k ,'] ====')
+        print('==== [', k, '] ====')
         _V = []
         try:
             _V = DATASETS[k].train
@@ -59,3 +59,6 @@ def test_existence():
                 print('Test set of', k, 'doesn\'t exist.')
         print('=========================', flush=True)
 
+
+def test_dataset_class():
+    pass
