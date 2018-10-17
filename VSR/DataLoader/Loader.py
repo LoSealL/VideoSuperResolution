@@ -266,6 +266,9 @@ class BasicLoader:
             list of tuple: containing (HR, LR, box, name) respectively, where HR and LR
               are reference frames, box is a list of 4 int of crop coordinates.
         """
+        if not frames:
+            tf.logging.warning('frames is empty, this maybe a bug. [size={}]'.format(size))
+            return []
         patch_size = Utility.to_list(self.patch_size, 2)
         patch_size = Utility.shrink_mod_scale(patch_size, self.scale)
         if size < 0:
@@ -345,14 +348,14 @@ class BasicLoader:
         memory_usage = np.min([np.uint64(memory_usage), virtual_memory().free])
         capacity = self.size
         frames = []
-        if capacity <= memory_usage and shard == 1 or capacity <= memory_usage // 2:
+        if capacity <= memory_usage:
             # load all clips
             self.all_loaded = True
             interval = len(self.file_objects) // shard
             for file in self.file_objects[index * interval:(index + 1) * interval]:
                 frames += self._process_at_file(file, file.frames)
         else:
-            prop = memory_usage / capacity / shard / 2
+            prop = memory_usage / capacity / shard * 0.8  # 0.8 is a scale factor
             size = int(np.round(len(self) * prop))
             for file, amount in self._random_select(size).items():
                 frames += self._process_at_file(file, amount)

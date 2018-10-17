@@ -54,7 +54,7 @@ The hyperlink directs to paper site, follows the official codes if the authors o
    [code](https://github.com/cszn/DnCNN)
   1. Deep CNN
 with Skip Connection: [**DCSCN**](https://arxiv.org/abs/1707.05425)
-   [code](*https://github.com/jiny2001/dcscn-super-resolution*)
+   [code](https://github.com/jiny2001/dcscn-super-resolution)
 
 - **Videos**
 

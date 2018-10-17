@@ -5,7 +5,7 @@ A one-line command to model executor
 The model parameters can be configured through [parameters/root.yaml](./parameters/root.yaml) and
 *<parameters/model-name.yaml>* (i.e. [srcnn](./parameters/srcnn.yaml))
 
-```Python
+```Bash
 python run.py --model <model-name> --epochs <num> --steps_per_epoch <num> --dataset <train-dataset-name> \
   --test <test-dataset-name> --infer <infer-dir | single-file | infer-dataset-name> --threads <loading-thread-num>\
   --save_dir <save>
@@ -31,15 +31,15 @@ Type `python run.py --help` for more information
 ## Run Benchmark
 Calculate PSNR and SSIM for Set5 outputs and labels, exclude 4-pixel boarder:
 
-    `python metrics --dataset=set5 --input_dir=./Outputs/set5 --shave=4`
+    `python metrics.py --dataset=set5 --input_dir=./Outputs/set5 --shave=4`
 
 Don't calculate SSIM:
     
-    `python metrics --dataset=set5 --input_dir=./Outputs/set5 --shave=4 --no_ssim`
+    `python metrics.py --dataset=set5 --input_dir=./Outputs/set5 --shave=4 --no_ssim`
 
 Calculate PSNR for video set VID4:
 
-    `python metrics --dataset=vid4 --input_dir=./Outputs/vid4`
+    `python metrics.py --dataset=vid4 --input_dir=./Outputs/vid4`
 
 
 ## Dataset
