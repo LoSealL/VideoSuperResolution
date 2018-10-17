@@ -6,9 +6,11 @@ Created Date: July 31st 2018
 
 custom feature callback.
 Usage:
-    pass the function name to `train.py` args `--custom_feature_cb`.
-    During training and testing, the `Environment` will call the given
-    function to process input data
+    pass the function name to `run.py` args `--add_custom_callbacks func1 --add_custom_callbacks func2`.
+    During training and testing, the `Trainer` will call the given functions to process input data
+
+Note:
+    functions must keep `kwargs` to ignore un-parsed arguments
 """
 
 from PIL import Image

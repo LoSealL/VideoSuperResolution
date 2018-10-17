@@ -19,7 +19,7 @@ try:
 except ImportError:
     from model_alias import get_model, list_supported_models
 try:
-    from .custom_api import *
+    from Train.custom_api import *
 except ImportError:
     from custom_api import *
 

@@ -1,55 +1,46 @@
-A one-line command to train models
-## Usage
-- `python train.py srcnn --batch=128`
-- `python train.py rdn --epochs=100 --dataconfig=../Data/datasets.json --dataset=BSD`
-- `python train.py --help` for more details
+A one-line command to model executor
+## How to use
+`run.py` can be used to train/benchmark/infer models collected in [VSR.Models](../VSR/Models)
 
-Please check [model_alias.py](./model_alias.py) to find out supported models.
+The model parameters can be configured through [parameters/root.yaml](./parameters/root.yaml) and
+*<parameters/model-name.yaml>* (i.e. [srcnn](./parameters/srcnn.yaml))
 
-## NOTE
-This is easy to use, however if you want to fine-tune your model, please consider writing your own script by trying VSR.
+```Python
+python run.py --model <model-name> --epochs <num> --steps_per_epoch <num> --dataset <train-dataset-name> \
+  --test <test-dataset-name> --infer <infer-dir | single-file | infer-dataset-name> --threads <loading-thread-num>\
+  --save_dir <save>
+```
+
+Type `python run.py --help` for more information
+
+## Examples
+1. VDSR
+- Config: [vdsr.yaml](parameters/vdsr.yaml)
+- Train:
+    
+    `python run.py --model vdsr --epochs 100 --dataset 91-image --test none --infer ./test.png`
+- Test:
+
+    `python run.py --model vdsr --test set14`
+- Infer:
+    ```
+    python run.py --model vdsr --infer ./lr_image
+    python run.py --model vdsr --infer ./mom.png
+    ```
 
 ## Run Benchmark
 Calculate PSNR and SSIM for Set5 outputs and labels, exclude 4-pixel boarder:
-- `python metrics --dataset=set5 --input_dir=./Outputs/set5 --shave=4`
+
+    `python metrics --dataset=set5 --input_dir=./Outputs/set5 --shave=4`
 
 Don't calculate SSIM:
-- `python metrics --dataset=set5 --input_dir=./Outputs/set5 --shave=4 --no_ssim`
+    
+    `python metrics --dataset=set5 --input_dir=./Outputs/set5 --shave=4 --no_ssim`
 
 Calculate PSNR for video set VID4:
-- `python metrics --dataset=vid4 --input_dir=./Outputs/vid4`
 
-In folder `./Outputs/vid4`, there are 4 sub-folders: calender, city, foliage, walk.
-Each contains png frames. 
+    `python metrics --dataset=vid4 --input_dir=./Outputs/vid4`
 
-----
-In `datasets.json`:
 
-```json
-{
-  "Path_Tracked": {
-    "SET5": <path-to-set5>,
-    "VID4": <path-to-vid4>
-  }
-}
-```
-
-Folder strucure:
-```
--Set5
-|- 001.png
-|- 002.png
-|- 003.png
-|- 004.png
-|- 005.png
--Vid4
-|- calender
-|--|-- 001.png
-|--|-- ...
-|- city
-|--|-- ...
-|- foliage
-|--|-- ...
-|- walk
-|--|-- ...
-```
+## Dataset
+Dataset is described in [dataset.yaml](../Data/datasets.yaml), see [README](../Data/README.md) for more details.

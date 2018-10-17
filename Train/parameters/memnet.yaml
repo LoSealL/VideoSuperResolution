@@ -1,0 +1,4 @@
+memnet:
+  n_memblock: 6
+  n_recur: 6
+  filters: 64

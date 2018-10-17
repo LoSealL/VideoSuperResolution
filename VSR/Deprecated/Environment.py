@@ -13,10 +13,10 @@ import time
 import tqdm
 from pathlib import Path
 
-from .SuperResolution import SuperResolution
-from ..DataLoader.Loader import MpLoader, QuickLoader
-from ..DataLoader.Dataset import Dataset
-from ..Util.Utility import to_list
+from VSR.Framework.SuperResolution import SuperResolution
+from VSR.DataLoader.Loader import MpLoader, QuickLoader
+from VSR.DataLoader.Dataset import Dataset
+from VSR.Util.Utility import to_list
 
 
 class Environment:
@@ -172,7 +172,7 @@ class Environment:
         print('===================================')
         print(f'Training model: {self.model.name.upper()}')
         print('===================================')
-        self.model.summary()
+        self.model.display()
         summary_writer = tf.summary.FileWriter(str(self.logdir), graph=tf.get_default_graph())
         lr = learning_rate
         global_step = self.model.global_steps.eval()
@@ -204,6 +204,7 @@ class Environment:
                         lr = learning_rate_schedule(lr, epochs=epoch, steps=global_step)
                     for k, v in loss.items():
                         avg_meas[k] = avg_meas[k] + [v] if avg_meas.get(k) else [v]
+                        loss[k] = '{:08.5f}'.format(v)
                     r.set_postfix(loss)
             for k, v in avg_meas.items():
                 print(f'| Epoch average {k} = {np.mean(v):.6f} |')

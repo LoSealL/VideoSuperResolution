@@ -1,0 +1,3 @@
+dbpn:
+  bp_layers: 7
+  use_dense: true

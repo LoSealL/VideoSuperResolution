@@ -1,7 +1,7 @@
 from setuptools import find_packages
 from setuptools import setup
 
-VERSION = '0.3.6'
+VERSION = '0.4.0'
 
 REQUIRED_PACKAGES = [
     'numpy',
@@ -9,7 +9,8 @@ REQUIRED_PACKAGES = [
     'pypng',
     'pytest',
     'psutil',
-    'tqdm'
+    'tqdm',
+    'easydict',
 ]
 
 if __name__ == '__main__':

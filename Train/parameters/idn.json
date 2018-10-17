@@ -1,9 +1,0 @@
-{
-  "blocks": 4,
-  "filters": 64,
-  "delta": 16,
-  "slice_factor": 4,
-  "leaky_slope": 0.05,
-  "weight_decay": 1e-4,
-  "fine_tune_epoch": 200
-}

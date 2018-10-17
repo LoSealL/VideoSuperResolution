@@ -31,8 +31,8 @@ class DRRN(SuperResolution):
         self.name = name
         super(DRRN, self).__init__(**kwargs)
 
-    def summary(self):
-        super(DRRN, self).summary()
+    def display(self):
+        super(DRRN, self).display()
         tf.logging.info('Recursive Blocks: %d' % self.rb)
         tf.logging.info('Residual Units: %d' % self.ru)
 

@@ -1,0 +1,15 @@
+# VESPCN need data depth to be 3, 5, or 7. (2n + 1)
+---
+vespcn:
+  depth: 3  # this `depth` is to inform graph builder
+  beta: 1
+  gamma: 0.01
+  scale: 4
+  channel: 3
+  weight_decay: 0
+batch: 4
+patch_size: 96
+depth: 3  # must be same as the model depth
+lr: 1.0e-4
+lr_decay: 1
+lr_decay_step: 1

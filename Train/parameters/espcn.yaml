@@ -1,0 +1,3 @@
+espcn:
+  layers: 12
+  weight_decay: 1.0e-4

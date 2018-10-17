@@ -14,8 +14,9 @@ import numpy as np
 import tensorflow as tf
 
 from VSR.DataLoader.Dataset import load_datasets, Dataset
-from VSR.DataLoader.Loader import QuickLoader
+from VSR.DataLoader.Loader import BasicLoader
 from VSR.Util.ImageProcess import rgb_to_yuv
+from VSR.Util.Config import Config
 
 try:
     DATASETS = load_datasets('./Data/datasets.json')
@@ -59,12 +60,11 @@ def main(*args):
     if not opt.dataset.upper() in DATASETS.keys():
         raise ValueError("--dataset is missing, or can't be found")
     data_ref = DATASETS.get(opt.dataset.upper())
-    data_ref.setattr(depth=opt.clip)
     data = load_folder(opt.input_dir)
-    data.setattr(depth=opt.clip)
     skip = opt.offset
-    loader = QuickLoader(1, data, 'test', 1, convert_to='RGB', crop='not')
-    ref_loader = QuickLoader(1, data_ref, 'test', 1, convert_to='RGB', crop='not')
+    metric_config = Config(depth=opt.clip, batch=1, scale=1, modcrop=False)
+    loader = BasicLoader(data, 'test', metric_config, False)
+    ref_loader = BasicLoader(data_ref, 'test', metric_config, False)
     # make sure len(ref_loader) == len(loader)
     loader_iter = loader.make_one_shot_iterator()
     ref_iter = ref_loader.make_one_shot_iterator()

@@ -1,0 +1,5 @@
+drcn:
+  recur: 16
+  filters: 256
+  alpha: 1
+  weight_decay: 1.0e-4

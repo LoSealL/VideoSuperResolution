@@ -28,7 +28,7 @@ class SuperResolution(Layers):
         and call its super method at the end
     """
 
-    def __init__(self, scale, channel=1, weight_decay=1e-4, rgb_input=False, **kwargs):
+    def __init__(self, scale, channel, weight_decay=1e-4, rgb_input=False, **kwargs):
         r"""Common initialize parameters
 
         Args:
@@ -81,7 +81,7 @@ class SuperResolution(Layers):
         self.compiled = True
         return self
 
-    def summary(self):
+    def display(self):
         """print model information"""
 
         pass
@@ -162,7 +162,7 @@ class SuperResolution(Layers):
         return ret
 
     def validate_batch(self, feature, label, **kwargs):
-        r"""validate one batch for one step
+        """validate one batch for one step.
 
         Args:
             feature: input tensors, LR image1 for SR use case
@@ -171,6 +171,8 @@ class SuperResolution(Layers):
 
         Return:
             Tuple: a dict of metrics defined in model, the summary op, the outputs
+
+        'validate_batch' is deprecated. Use 'test_batch' with 'summary'.
         """
 
         feature = to_list(feature)
@@ -208,9 +210,19 @@ class SuperResolution(Layers):
         if label:
             for i in range(len(self.label)):
                 self.feed_dict[self.label[i]] = label[i]
-            return tf.get_default_session().run(self.outputs + list(self.metrics.values()), feed_dict=self.feed_dict)
+            results = tf.get_default_session().run(self.outputs + list(self.metrics.values()),
+                                                   feed_dict=self.feed_dict)
+            outputs, metrics = results[:len(self.outputs)], results[len(self.outputs):]
         else:
-            return tf.get_default_session().run(self.outputs, feed_dict=self.feed_dict)
+            results = tf.get_default_session().run(self.outputs, feed_dict=self.feed_dict)
+            outputs, metrics = results, []
+        ret = {}
+        for k, v in zip(self.metrics, metrics):
+            ret[k] = v
+        return outputs, ret
+
+    def summary(self):
+        return tf.get_default_session().run(self.summary_op, feed_dict=self.feed_dict)
 
     def export_model_pb(self, export_dir='.', export_name='model.pb', **kwargs):
         r"""export model as a constant protobuf. Unlike saved model, this one is not trainable

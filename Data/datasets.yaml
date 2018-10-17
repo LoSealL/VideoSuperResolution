@@ -1,0 +1,96 @@
+# VSR Dataset Description File
+# Date: Oct 17th 2018
+# Ver: v1.0
+---
+Path:
+  BSD100: /mnt/data/datasets/BSD100_SR/image_SRF_2/*HR.*
+  BSD500-Train: /mnt/data/datasets/BSR_bsds500/BSR/BSDS500/data/images/train/*.jpg
+  BSD500-Val: /mnt/data/datasets/BSR_bsds500/BSR/BSDS500/data/images/val/*.jpg
+  BSD500-Test: /mnt/data/datasets/BSR_bsds500/BSR/BSDS500/data/images/test/*.jpg
+  91-IMAGE: /mnt/data/datasets/91-image/
+  IMAGENET: /mnt/data/datasets/Imagenet/20180122/*.jpg
+  GOPRO-Train: /mnt/data/datasets/GOPRO_Large_all/train
+  GOPRO-Val: /mnt/data/datasets/GOPRO_Large_all/test
+  MCL-V: /mnt/data/datasets/MCL-V/train/*.yuv
+  WATERLOO: /mnt/data/datasets/exploration_database_and_code/pristine_images/
+  DIV2K-Train: /mnt/data/datasets/DIV2K/DIV2K_train_HR/
+  DIV2K-Val: /mnt/data/datasets/DIV2K/DIV2K_valid_HR/
+  DIV2K-Pred: /mnt/data/datasets/DIV2K/DIV2K_valid_LR_bicubic/X4/
+  PIRM-SelfVal: /mnt/data/datasets/PIRM/PIRM_Self-Val_set/HR
+  PIRM-Val: /mnt/data/datasets/PIRM/PIRM_Val_set/LR
+  FlyingChairs: /mnt/data/datasets/FlyingChairs/data
+  FlyingChairsFlow: /mnt/data/datasets/FlyingChairs/flow/*.flo
+  MiniFlyingChairs: /mnt/data/datasets/FlyingChairs/small
+  FlyingChairsVal: /mnt/data/datasets/FlyingChairs/val
+  FlyingChairsTest: /mnt/data/datasets/FlyingChairs/test
+
+Path_Tracked:
+  URBAN100: /mnt/data/datasets/Urban100_SR/image_SRF_2/*HR.*
+  SUNHAY80: /mnt/data/datasets/SunHays80_SR/image_SRF_8/*HR.*
+  SET5: /mnt/data/datasets/Set5_SR/Set5/image_SRF_4/*HR.*
+  SET14: /mnt/data/datasets/Set14_SR/Set14/image_SRF_4/*HR.*
+  PIRM-SelfTest: /mnt/data/datasets/PIRM/PIRM_Self-Val_set/LR
+  PIRM-Test: /mnt/data/datasets/PIRM/PIRM_Test/LR
+  VID4-HR: /mnt/data/datasets/vid4/original/
+
+# bind datasets to a name, called in scripts
+Dataset:
+  NONE:  # empty set, do nothing
+    train: []
+    val: []
+    test: []
+  BSD:  # Combined BSD100 and BSD500 data
+    train: [BSD100 BSD500-Train]
+    val: [BSD500-Val]
+    test: [BSD500-Test]
+
+  91-IMAGE:  # Yang's 91 images
+    train: 91-IMAGE
+    val: [SET5]
+    test: [SET5 SET14]
+
+  WATERLOO:  # https://ece.uwaterloo.ca/~k29ma/exploration/
+    train: WATERLOO
+    val: [SET5 SET14]
+    test: [URBAN100 SUNHAY80]
+
+  DIV2K:  # NTIRE-2017 Challenge
+    train: DIV2K-Train
+    val: [DIV2K-Val]
+    test: [SET5 SET14]
+
+  PIRM:  # PIRM-2018 Challenge (no training data)
+    train: DIV2K-Train
+    val: PIRM-SelfVal
+    test: PIRM-SelfTest
+    infer: PIRM-Test
+
+  MCL-V:  # http://mcl.usc.edu/mcl-v-database/, small set videos
+    train: MCL-V
+    val: /mnt/data/datasets/MCL-V/test/*.yuv
+    test: [/mnt/data/datasets/MCL-V/test/*.yuv]
+    param:  # As MCL-V is raw data, these param must be specified
+      mode: YV12
+      width: 1920
+      height: 1080
+
+  GOPRO: # https://github.com/SeungjunNah/DeepDeblur_release
+    train: [GOPRO-Train]
+    val: [GOPRO-Val]
+    test: [VID4-HR]
+
+  VID4:  # popular video benchmark baseline
+    test: VID4-HR
+    infer: /mnt/data/datasets/vid4/input/
+
+  CHAIRS:  # flying chairs, a popular optical flow train-set
+    train: FlyingChairs
+    flow: FlyingChairsFlow
+    val: FlyingChairsVal
+    test: FlyingChairsTest
+
+  MINICHAIRS:  # a small set of flying chairs, for quick testing
+    train: MiniFlyingChairs
+    flow: FlyingChairsFlow
+    val: FlyingChairsVal
+    test: FlyingChairsTest

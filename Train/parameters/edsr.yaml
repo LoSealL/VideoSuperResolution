@@ -1,0 +1,4 @@
+edsr:
+  layers: 32
+  filters: 256
+  clip: 0.1

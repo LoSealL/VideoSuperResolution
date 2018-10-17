@@ -1,0 +1,8 @@
+# note our rdn implementation has fewer layers than paper's
+# (hard to train...)
+---
+rdn:
+  rdb_blocks: 8
+  rdb_conv: 8
+  global_filters: 64
+  rdb_filters: 64

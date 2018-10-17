@@ -13,7 +13,7 @@ import numpy as np
 import tensorflow as tf
 
 from VSR.DataLoader.Dataset import load_datasets
-from VSR.DataLoader.Loader import MpLoader, QuickLoader
+from VSR.DataLoader.Loader import QuickLoader, BasicLoader
 from VSR.Util import FID
 from VSR.Util.ImageProcess import imresize, array_to_img
 
@@ -35,7 +35,7 @@ def main(*args):
             return
 
         # calc mean [R G B]
-        loader = MpLoader(1, d, 'train', 1, convert_to='RGB')
+        loader = QuickLoader(1, d, 'train', 1, convert_to='RGB')
         colors = []
         for img, _, _ in loader.make_one_shot_iterator(shard=8):
             rgb = np.reshape(img, [-1, 3])

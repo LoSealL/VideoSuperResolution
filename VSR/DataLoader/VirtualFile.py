@@ -357,7 +357,11 @@ class ImageFile(File):
 
     @property
     def shape(self):
-        with Image.open(self.file[0]) as img:
+        if self.file:
+            file = self.file[0]
+        else:
+            file = self.read_file[0]
+        with Image.open(file) as img:
             return img.width, img.height
 
     @property

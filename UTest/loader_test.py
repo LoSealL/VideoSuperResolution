@@ -2,7 +2,10 @@
 Unit test for DataLoader.Loader
 """
 
-from VSR.DataLoader.Loader import *
+import numpy as np
+from VSR.DataLoader.Loader import BasicLoader, QuickLoader, Select
+from VSR.Util import ImageProcess
+from VSR.Util.Config import Config
 from VSR.DataLoader.Dataset import *
 
 try:
@@ -14,7 +17,8 @@ except FileNotFoundError:
 def test_quickloader_prob():
     DUT = DATASETS['SET5']
     PROB = [0.46196357, 0.14616816, 0.11549089, 0.13816049, 0.13821688]
-    r = QuickLoader(1, DUT, 'test', 1, 1)
+    config = Config(batch=1, scale=1, depth=1, steps_per_epoch=-1, convert_to='RGB')
+    r = BasicLoader(DUT, 'test', config)
     MC = 10000
     P = r._random_select(MC).values()
     epsilon = 1e-2
@@ -32,8 +36,8 @@ def test_quickloader_prob():
 
 def test_quickloader_iter():
     DUT = DATASETS['DIV2K']
-    DUT.setattr(patch_size=48, depth=1)
-    r = QuickLoader(16, DUT, 'train', 4, 200)
+    config = Config(batch=16, scale=4, depth=1, steps_per_epoch=200, convert_to='RGB', crop='random')
+    r = BasicLoader(DUT, 'train', config, True)
     it = r.make_one_shot_iterator('8GB')
     for hr, lr, name in it:
         print(name, flush=True)
@@ -44,8 +48,8 @@ def test_quickloader_iter():
 
 def test_mploader_iter():
     DUT = DATASETS['DIV2K']
-    DUT.setattr(patch_size=48, depth=1)
-    r = MpLoader(16, DUT, 'train', 4, 200)
+    config = Config(batch=16, scale=4, depth=1, steps_per_epoch=200, convert_to='RGB', crop='random')
+    r = QuickLoader(DUT, 'train', config, True)
     it = r.make_one_shot_iterator('8GB', 8)
     for hr, lr, name in it:
         print(name, flush=True)
@@ -56,9 +60,9 @@ def test_mploader_iter():
 
 def test_benchmark_quickloader():
     DUT = DATASETS['DIV2K']
-    DUT.setattr(patch_size=196, depth=1, random=True, max_patches=100 * 8)
     EPOCHS = 4
-    l = QuickLoader(8, DUT, 'train', 4, 100)
+    config = Config(batch=8, scale=4, depth=1, patch_size=196, steps_per_epoch=100, convert_to='RGB', crop='random')
+    l = BasicLoader(DUT, 'train', config, True)
     for _ in range(EPOCHS):
         r = l.make_one_shot_iterator()
         for hr, lr, name in r:
@@ -67,11 +71,11 @@ def test_benchmark_quickloader():
 
 def test_benchmark_mploader():
     DUT = DATASETS['DIV2K']
-    DUT.setattr(patch_size=196, depth=1, random=True, max_patches=100 * 8)
     EPOCHS = 4
-    l = MpLoader(8, DUT, 'train', 4, 100)
+    config = Config(batch=8, scale=4, depth=1, patch_size=196, steps_per_epoch=100, convert_to='RGB', crop='random')
+    l = QuickLoader(DUT, 'train', config, True, n_threads=8)
     for _ in range(EPOCHS):
-        r = l.make_one_shot_iterator(shard=8)
+        r = l.make_one_shot_iterator()
         for hr, lr, name in r:
             pass
 
@@ -79,13 +83,14 @@ def test_benchmark_mploader():
 def test_read_flow():
     DUT = DATASETS['MINICHAIRS']
     DUT.setattr(patch_size=96, depth=2)
-    l = MpLoader(8, DUT, 'train', 1, 100, convert_to='RGB', no_patch=True)
-    r = l.make_one_shot_iterator('8GB', shard=8, shuffle=True)
+    config = Config(batch=8, scale=1, depth=2, patch_size=96, steps_per_epoch=100, convert_to='RGB')
+    l = QuickLoader(DUT, 'train', config, True, n_threads=8)
+    r = l.make_one_shot_iterator('8GB', shuffle=True)
     img, flow, name = next(r)
     img, flow, name = next(r)
     img, flow, name = next(r)
     img, flow, name = next(r)
-    r = l.make_one_shot_iterator('8GB', shard=8, shuffle=True)
+    r = l.make_one_shot_iterator('8GB', shuffle=True)
     img, flow, name = next(r)
     img, flow, name = next(r)
     img, flow, name = next(r)
@@ -102,3 +107,18 @@ def test_read_flow():
     v = (v / H + 1) / 2 * 255
     ImageProcess.array_to_img(u, 'L').show()
     ImageProcess.array_to_img(v, 'L').show()
+
+
+def test_mp():
+    import time
+    DUT = DATASETS['91-IMAGE']
+    config = Config(batch=4, scale=4, depth=1, patch_size=56, steps_per_epoch=200, convert_to='RGB', crop='random')
+    l1 = QuickLoader(DUT, 'train', config, True, n_threads=4)
+    start = time.time()
+    it = l1.make_one_shot_iterator()
+    res = list(it)
+    print(time.time() - start)
+
+
+if __name__ == '__main__':
+    test_mp()
