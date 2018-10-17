@@ -14,6 +14,7 @@ and provide inheritable API for specific loaders.
 import numpy as np
 import tensorflow as tf
 import threading as th
+import copy
 from psutil import virtual_memory
 
 from .VirtualFile import RawFile, ImageFile, _ALLOWED_RAW_FORMAT
@@ -363,7 +364,7 @@ class BasicLoader:
             prop = memory_usage / capacity / shard * 0.8  # 0.8 is a scale factor
             size = int(np.round(len(self) * prop))
             for file, amount in self._random_select(size).items():
-                frames += self._process_at_file(file, amount)
+                frames += self._process_at_file(copy.deepcopy(file), amount)
             self.frames = frames
 
     def make_one_shot_iterator(self, memory_usage=None, shuffle=False):
@@ -378,7 +379,7 @@ class BasicLoader:
         Return:
             An EpochIterator
         """
-        self._prefetch(memory_usage, 1)
+        self._prefetch(memory_usage, 1, 0)
         grids = self._generate_crop_grid(self.frames, self.patches_per_epoch, shuffle=shuffle)
         return EpochIterator(self, grids)
 
