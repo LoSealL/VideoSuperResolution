@@ -379,7 +379,7 @@ class BasicLoader:
         return EpochIterator(self, grids)
 
 
-class QuickLoader:
+class QuickLoader(BasicLoader):
     """Async data loader with high efficiency.
 
     `QuickLoader` concurrently pre-fetches clips into memory every n iterations,
@@ -405,10 +405,10 @@ class QuickLoader:
         self.shard = n_threads
         self.threads = []
         self.results = [None] * n_threads
-        self.loader = BasicLoader(dataset, method, config, augmentation, **kwargs)
+        super(QuickLoader, self).__init__(dataset, method, config, augmentation, **kwargs)
 
     def _prefetch_handler(self, results, memory_usage=None, shard=1, index=0):
-        results[index] = self.loader._prefetch(memory_usage, shard, index)
+        results[index] = self._prefetch(memory_usage, shard, index)
 
     def prefetch(self, memory_usage=None):
         for i in range(self.shard):
@@ -438,11 +438,11 @@ class QuickLoader:
             returns.
         """
 
-        if self.loader.all_loaded:
+        if self.all_loaded:
             # TODO a work around 'cause AssertionError when map functions again
-            grids = self.loader._generate_crop_grid(
-                self.loader.frames, self.loader.patches_per_epoch, shuffle=shuffle)
-            return EpochIterator(self.loader, grids)
+            grids = self._generate_crop_grid(
+                self.frames, self.patches_per_epoch, shuffle=shuffle)
+            return EpochIterator(self, grids)
 
         if not self.threads:
             self.prefetch(memory_usage)
@@ -450,12 +450,12 @@ class QuickLoader:
             t.join()
         self.threads.clear()
         # update loader object in current process
-        self.loader.all_loaded = self.results[0][1]
-        self.loader.frames = []
+        self.all_loaded = self.results[0][1]
+        self.frames = []
         # reduce
         grids = []
         for i in range(self.shard):
-            self.loader.frames += self.results[i][0]
-            grids += self.loader._generate_crop_grid(
-                self.results[i][0], self.loader.patches_per_epoch // self.shard, shuffle=shuffle)
-        return EpochIterator(self.loader, grids)
+            self.frames += self.results[i][0]
+            grids += self._generate_crop_grid(
+                self.results[i][0], self.patches_per_epoch // self.shard, shuffle=shuffle)
+        return EpochIterator(self, grids)
