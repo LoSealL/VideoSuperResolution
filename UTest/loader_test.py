@@ -34,7 +34,7 @@ def test_loader_prob():
 
 
 def test_basicloader_iter():
-    dut = DATASETS['DIV2K']
+    dut = DATASETS['91-IMAGE']
     config = Config(batch=16, scale=4, depth=1, steps_per_epoch=200, convert_to='RGB', crop='random')
     config.patch_size = 48
     r = BasicLoader(dut, 'train', config, True)
@@ -99,8 +99,20 @@ def test_read_flow():
     ImageProcess.array_to_img(_viz_flow(u, v), 'RGB').show()
 
 
+def test_cifar_loader():
+    from tensorflow.keras.datasets import cifar10
+    from tqdm import tqdm
+    train, test = cifar10.load_data()
+    train_data, _ = train
+    train_set = Dataset(train=[train_data], mode='numpy')
+    config = Config(batch=8, scale=1, depth=2, patch_size=32, steps_per_epoch=100, convert_to='RGB')
+    loader = BasicLoader(train_set, 'train', config, False)
+    r = loader.make_one_shot_iterator()
+    list(tqdm(r))
+
+
 def main():
-    test_read_flow()
+    test_cifar_loader()
     pass
 
 

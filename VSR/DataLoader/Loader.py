@@ -125,10 +125,10 @@ class BasicLoader:
         else:
             tf.logging.warning(f'Unknown format {config.convert_to}, use grayscale by default')
             self.color_format = 'L'
-        self.prob = self._read_file(dataset)._calc_select_prob()
         self.loaded = 0
         self.free_memory_on_start = virtual_memory().free
         self.frames = []  # a list of tuple represents (HR, LR, name) of a clip
+        self.prob = self._read_file(dataset)._calc_select_prob()
 
     def _parse_config(self, config, **kwargs):
         assert isinstance(config, Config)
@@ -167,6 +167,21 @@ class BasicLoader:
             self.file_objects = [
                 RawFile(fp, dataset.mode, (dataset.width, dataset.height))
                 for fp in self.file_names]
+        elif dataset.mode.lower() == 'numpy':
+            # already loaded numpy array, in case anyone want to use external loaders
+            # dataset.train can be a 4-D or 5-D ndarray
+            data = self.file_names[0]  # trick
+            if isinstance(data, np.ndarray):
+                if data.ndim == 4:
+                    for hr in data:
+                        img_hr = [ImageProcess.array_to_img(hr, 'RGB')]
+                        self.frames.append((img_hr, img_hr, dataset.name))
+                if data.ndim == 5:
+                    for hr in data:
+                        img_hr = [ImageProcess.array_to_img(x, 'RGB') for x in hr]
+                        self.frames.append((img_hr, img_hr, dataset.name))
+                self.loaded = 1
+                self.file_objects = []
         return self
 
     def _calc_select_prob(self, method=Select.EQUAL_PIXEL):
@@ -300,9 +315,7 @@ class BasicLoader:
                 y = np.zeros([amount])
             x -= x % self.scale[0]
             y -= y % self.scale[1]
-            grids += [(ImageProcess.img_to_array(hr),
-                       ImageProcess.img_to_array(lr),
-                       [_x, _y, _x + _pw, _y + _ph], name) for _x, _y in zip(x, y)]
+            grids += [(hr, lr, [_x, _y, _x + _pw, _y + _ph], name) for _x, _y in zip(x, y)]
         if shuffle:
             np.random.shuffle(grids)
         return grids
