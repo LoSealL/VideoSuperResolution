@@ -6,3 +6,5 @@ idn:
   leaky_slope: 0.05
   weight_decay: 1.0e-4
   fine_tune_epoch: 200
+  scale: 4
+  channel: 3

@@ -1,3 +1,5 @@
 dbpn:
   bp_layers: 7
   use_dense: true
+  scale: 4
+  channel: 3

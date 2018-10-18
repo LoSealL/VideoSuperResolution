@@ -3,3 +3,5 @@ carn:
   n_residual: 3
   n_blocks: 3
   filters: 64
+  scale: 4
+  channel: 3

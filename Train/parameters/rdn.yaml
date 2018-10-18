@@ -6,3 +6,5 @@ rdn:
   rdb_conv: 8
   global_filters: 64
   rdb_filters: 64
+  scale: 4
+  channel: 3

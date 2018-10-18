@@ -1,4 +1,6 @@
-dncnn
+dncnn:
   layers: 16
   use_bn: true
   weight_decay: 1.0e-6
+  scale: 4
+  channel: 3

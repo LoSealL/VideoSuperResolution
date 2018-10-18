@@ -2,3 +2,5 @@
 vdsr:
   layers: 20
   filters: 64
+  scale: 4
+  channel: 1

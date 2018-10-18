@@ -1,3 +1,5 @@
 espcn:
   layers: 12
   weight_decay: 1.0e-4
+  scale: 4
+  channel: 3

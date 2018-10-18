@@ -8,3 +8,5 @@ srgan:
   mse_weight: 0.1
   gan_weight: 0.001
   fixed_train_hr_size: 192
+  scale: 4
+  channel: 3

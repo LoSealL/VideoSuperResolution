@@ -2,3 +2,5 @@ drrn:
   residual_unit: 9
   recursive_block: 1
   grad_clip: 0.01
+  scale: 4
+  channel: 3

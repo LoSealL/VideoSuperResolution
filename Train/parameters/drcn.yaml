@@ -3,3 +3,5 @@ drcn:
   filters: 256
   alpha: 1
   weight_decay: 1.0e-4
+  scale: 4
+  channel: 3
