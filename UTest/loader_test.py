@@ -82,10 +82,10 @@ def test_benchmark_mp():
 def test_read_flow():
     from VSR.Framework.Callbacks import _viz_flow
     dut = DATASETS['MINICHAIRS']
-    config = Config(batch=8, scale=1, depth=2, patch_size=96, steps_per_epoch=100, convert_to='RGB')
+    config = Config(batch=8, scale=1, depth=2, patch_size=96, steps_per_epoch=100, convert_to='RGB', crop='random')
     loader = QuickLoader(dut, 'train', config, True, n_threads=8)
-    r = loader.make_one_shot_iterator('8GB', shuffle=True)
-    loader.prefetch('8GB')
+    r = loader.make_one_shot_iterator('1GB', shuffle=True)
+    loader.prefetch('1GB')
     list(r)
     r = loader.make_one_shot_iterator('8GB', shuffle=True)
     img, flow, name = list(r)[0]
@@ -100,6 +100,7 @@ def test_read_flow():
 
 
 def main():
+    test_read_flow()
     pass
 
 

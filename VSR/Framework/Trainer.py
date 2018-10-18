@@ -59,15 +59,19 @@ class Trainer:
         tf.logging.set_verbosity(self._verb)
         self._saved.mkdir(parents=True, exist_ok=True)
         self._logd.mkdir(parents=True, exist_ok=True)
-        if not self._m.compiled:
-            self._m.compile()
+        if self._m.compiled:
+            self.graph = tf.get_default_graph()
+        else:
+            with tf.Graph().as_default() as g:
+                self._m.compile()
+                self.graph = g
 
     def __enter__(self):
         """Create session of tensorflow and build model graph"""
 
-        sess = tf.Session()
-        sess.__enter__()
         self._startup()
+        sess = tf.Session(graph=self.graph)
+        sess.__enter__()
         self.savers = self._m.savers
         sess.run(tf.global_variables_initializer())
         return self
@@ -401,7 +405,16 @@ class FRVSR(Trainer):
 
 class ZSSR(Trainer):
     """Specialized trainer for ZSSR(zero-shot super resolution)"""
-    pass
+
+    def fit(self, *args, **kwargs):
+        tf.logging.warning("ZSSR doesn't need to fit model, do nothing.")
+        return
+
+    def infer(self, loader, config, **kwargs):
+        pass
+
+    def benchmark(self, loader, config, **kwargs):
+        pass
 
 
 class GAN(Trainer):

@@ -19,9 +19,9 @@ from VSR.Util.ImageProcess import rgb_to_yuv
 from VSR.Util.Config import Config
 
 try:
-    DATASETS = load_datasets('./Data/datasets.json')
+    DATASETS = load_datasets('./Data/datasets.yaml')
 except FileNotFoundError:
-    DATASETS = load_datasets('../Data/datasets.json')
+    DATASETS = load_datasets('../Data/datasets.yaml')
 
 tf.flags.DEFINE_string("input_dir", None, "images to test")
 tf.flags.DEFINE_string("dataset", None, "dataset to compare")

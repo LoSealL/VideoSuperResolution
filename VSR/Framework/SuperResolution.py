@@ -55,14 +55,12 @@ class SuperResolution(Layers):
         self.feed_dict = {}
         self.savers = {}
         self.global_steps = None
+        self.training_phase = None
+        self.learning_rate = None
         self.summary_op = None
         self.summary_writer = None
         self.compiled = False
         self.unknown_args = kwargs
-
-        self.global_steps = tf.Variable(0, trainable=False, name='global_step')
-        self.training_phase = tf.placeholder(tf.bool, name='is_training')
-        self.learning_rate = tf.placeholder(tf.float32, name='learning_rate')
 
     def __getattr__(self, item):
         """return extra initialized parameters"""
@@ -73,6 +71,9 @@ class SuperResolution(Layers):
     def compile(self):
         """build entire graph and training ops"""
 
+        self.global_steps = tf.Variable(0, trainable=False, name='global_step')
+        self.training_phase = tf.placeholder(tf.bool, name='is_training')
+        self.learning_rate = tf.placeholder(tf.float32, name='learning_rate')
         self.build_graph()
         self.build_loss()
         self.build_summary()

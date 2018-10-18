@@ -30,7 +30,7 @@ tf.flags.DEFINE_integer('output_index', -1, help="specify access index of output
 tf.flags.DEFINE_string('test', None, help="specify another dataset for testing")
 tf.flags.DEFINE_string('infer', None, help="specify a file, a path or a dataset for inferring")
 tf.flags.DEFINE_string('save_dir', '../Results', help="specify a folder to save checkpoint and output images")
-tf.flags.DEFINE_string('data_config', '../Data/datasets.json', help="path to data config file")
+tf.flags.DEFINE_string('data_config', '../Data/datasets.yaml', help="path to data config file")
 tf.flags.DEFINE_string('dataset', None, help="specify a dataset alias for training")
 tf.flags.DEFINE_string('memory_limit', None, help="limit the memory usage. i.e. '4GB', '1024MB'")
 tf.flags.DEFINE_string('comment', None, help="append a postfix string to save dir")
@@ -102,7 +102,6 @@ def init_loader_config(opt):
 
 def main(*args):
     flags = tf.flags.FLAGS
-    flags.mark_as_parsed()
     opt = Config()
     for key in flags:
         opt.setdefault(key, flags.get_flag_value(key, None))
