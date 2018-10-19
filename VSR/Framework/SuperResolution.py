@@ -168,35 +168,6 @@ class SuperResolution(Layers):
             ret[k] = v
         return ret
 
-    def validate_batch(self, feature, label, **kwargs):
-        """validate one batch for one step.
-
-        Args:
-            feature: input tensors, LR image1 for SR use case
-            label: labels, HR image1 for SR use case
-            kwargs: for future use
-
-        Return:
-            Tuple: a dict of metrics defined in model, the summary op, the outputs
-
-        'validate_batch' is deprecated. Use 'test_batch' with 'summary'.
-        """
-
-        feature = to_list(feature)
-        label = to_list(label)
-        self.feed_dict.update({self.training_phase: False})
-        for i in range(len(self.inputs)):
-            self.feed_dict[self.inputs[i]] = feature[i]
-        for i in range(len(self.label)):
-            self.feed_dict[self.label[i]] = label[i]
-        results = tf.get_default_session().run(self.outputs + list(self.metrics.values()) + [self.summary_op],
-                                               feed_dict=self.feed_dict)
-        ret = {}
-        output, metrics, summary = results[:len(self.outputs)], results[len(self.outputs):-1], results[-1]
-        for k, v in zip(self.metrics, metrics):
-            ret[k] = v
-        return ret, summary, output
-
     def test_batch(self, inputs, label=None, **kwargs):
         r"""test one batch
 
