@@ -1,7 +1,7 @@
 ---
 rlsgan:
   name: rlsgan
-  output_size: 32
+  patch_size: 32
   z_dim: 128
   init_filter: 512
   linear: true  # dense layer at the entry

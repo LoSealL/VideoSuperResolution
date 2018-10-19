@@ -13,6 +13,56 @@ import tensorflow as tf
 import numpy as np
 
 
+def _preprocess_for_inception(images):
+    """Preprocess images for inception.
+
+    Args:
+      images: images minibatch. Shape [batch size, width, height,
+        channels]. Values are in [0..255].
+
+    Returns:
+      preprocessed_images
+    """
+
+    images = tf.cast(images, tf.float32)
+
+    # tfgan_eval.preprocess_image function takes values in [0, 255]
+    with tf.control_dependencies([tf.assert_greater_equal(images, 0.0),
+                                  tf.assert_less_equal(images, 255.0)]):
+        images = tf.identity(images)
+
+    preprocessed_images = tf.map_fn(
+        fn=tf.contrib.gan.eval.preprocess_image,
+        elems=images,
+        back_prop=False)
+
+    return preprocessed_images
+
+
+def fid_score(real_image, gen_image):
+    """FID function from tf.contrib
+
+    Args:
+        real_image: must be 4-D tensor, ranges from [0, 255]
+        gen_image: must be 4-D tensor, ranges from [0, 255]
+    """
+    fid = tf.contrib.gan.eval.frechet_inception_distance(
+        real_images=_preprocess_for_inception(real_image),
+        generated_images=_preprocess_for_inception(gen_image),
+        num_batches=1)
+    return fid
+
+
+def inception_score(images):
+    """IS function from tf.contrib
+
+    Args:
+        images: must be 4-D tensor, ranges from [0, 255]
+    """
+    return tf.contrib.gan.eval.inception_score(
+        images=_preprocess_for_inception(images), num_batches=1)
+
+
 def Discriminator(net,
                   input_shape=None,
                   filters=64,

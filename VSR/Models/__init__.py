@@ -37,9 +37,9 @@ exp = {
     'wgan': ('Exp.Gan', 'WGAN'),
     'wgangp': ('Exp.Gan', 'WGANGP'),
     'rgan': ('Exp.Gan', 'RGAN'),
-    'ragan': ('Exp.Gan', 'RAGAN'),
+    'ragan': ('Exp.Gan', 'RaGAN'),
     'rlsgan': ('Exp.Gan', 'RLSGAN'),
-    'ralsgan': ('Exp.Gan', 'RALSGAN'),
+    'ralsgan': ('Exp.Gan', 'RaLSGAN'),
 }
 
 for module in exp:

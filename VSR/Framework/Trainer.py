@@ -14,7 +14,6 @@ import time
 import tqdm
 from pathlib import Path
 
-from .SuperResolution import SuperResolution
 from ..Util.Utility import to_list
 from ..Util.Config import Config
 
@@ -47,8 +46,6 @@ class Trainer:
        """
 
     def __init__(self, model, work_dir, verbose=tf.logging.INFO):
-        assert isinstance(model, SuperResolution)
-
         self._m = model
         self._saved = Path(work_dir) / 'save'
         self._logd = Path(work_dir) / 'log'
