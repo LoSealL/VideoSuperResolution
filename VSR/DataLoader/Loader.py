@@ -170,6 +170,7 @@ class BasicLoader:
         elif dataset.mode.lower() == 'numpy':
             # already loaded numpy array, in case anyone want to use external loaders
             # dataset.train can be a 4-D or 5-D ndarray
+            tf.logging.debug('reading numpy array')
             data = self.file_names[0]  # trick
             if isinstance(data, np.ndarray):
                 if data.ndim == 4:
@@ -362,6 +363,7 @@ class BasicLoader:
         memory_usage = np.min([np.uint64(memory_usage), self.free_memory_on_start])
         capacity = self.size
         frames = []
+        tf.logging.debug('memory limit: ' + str(memory_usage))
         if capacity <= memory_usage:
             # load all clips
             interval = int(np.ceil(len(self.file_objects) / shard))

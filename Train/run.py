@@ -36,6 +36,7 @@ tf.flags.DEFINE_string('comment', None, help="append a postfix string to save di
 tf.flags.DEFINE_multi_string('add_custom_callbacks', None, help="")
 tf.flags.DEFINE_bool('export', False, help="whether to export tf model")
 tf.flags.DEFINE_bool('v', False, help="show verbose")
+tf.flags.DEFINE_bool('cifar', False, help="temp use, delete if not need")  # TODO delete me
 
 
 def check_args(opt):
@@ -67,13 +68,19 @@ def fetch_datasets(data_config_file, opt):
             infer_data = all_datasets[opt.infer.upper()]
     else:
         infer_data = test_data
+    # TODO temp use, delete if not need
+    if opt.cifar:
+        cifar_data, cifar_test = tf.keras.datasets.cifar10.load_data()
+        dataset = Dataset(**dataset)
+        dataset.train = [cifar_data[0]]
+        dataset.val = [cifar_test[0]]
     return dataset, test_data, infer_data
 
 
 def init_loader_config(opt):
-    train_config = Config(**opt, crop='random', feature_calbacks=[], label_callbacks=[])
-    benchmark_config = Config(**opt, crop=None, feature_calbacks=[], label_callbacks=[], output_callbacks=[])
-    infer_config = Config(**opt, feature_calbacks=[], label_callbacks=[], output_callbacks=[])
+    train_config = Config(**opt, crop='random', feature_callbacks=[], label_callbacks=[])
+    benchmark_config = Config(**opt, crop=None, feature_callbacks=[], label_callbacks=[], output_callbacks=[])
+    infer_config = Config(**opt, feature_callbacks=[], label_callbacks=[], output_callbacks=[])
     benchmark_config.batch = 1
     benchmark_config.steps_per_epoch = -1
     if opt.channel == 1:
