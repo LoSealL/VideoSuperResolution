@@ -11,7 +11,6 @@ import tensorflow as tf
 
 from VSR.DataLoader.Dataset import load_datasets, Dataset
 from VSR.DataLoader.Loader import QuickLoader
-from VSR.Framework.Trainer import VSR, FRVSR, ZSSR, GAN
 from VSR.Models import get_model, list_supported_models
 from VSR.Util.Config import Config
 from VSR.Framework.Callbacks import *
@@ -126,13 +125,8 @@ def main(*args):
         root += '_' + opt.comment
     opt.root = root
     verbosity = tf.logging.DEBUG if opt.v else tf.logging.INFO
-    # map model to trainer, manually
-    if opt.model == 'zssr':
-        trainer = ZSSR
-    elif opt.model == 'frvsr':
-        trainer = FRVSR
-    else:
-        trainer = VSR
+    # map model to trainer, ~~manually~~ automatically, by setting _trainer attribute in models
+    trainer = model.trainer
     train_data, test_data, infer_data = fetch_datasets(data_config_file, opt)
     train_config, test_config, infer_config = init_loader_config(opt)
     test_config.subdir = test_data.name

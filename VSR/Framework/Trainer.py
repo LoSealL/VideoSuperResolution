@@ -415,8 +415,3 @@ class ZSSR(Trainer):
 
     def benchmark(self, loader, config, **kwargs):
         pass
-
-
-class GAN(Trainer):
-    """Specialized trainer for generative adversarial network"""
-    pass

@@ -137,18 +137,30 @@ def loss_bce_gan(y_real, y_fake):
 
     d_loss = tf.losses.sigmoid_cross_entropy(tf.ones_like(y_real), y_real) + \
              tf.losses.sigmoid_cross_entropy(tf.zeros_like(y_fake), y_fake)
+
     g_loss = tf.losses.sigmoid_cross_entropy(tf.ones_like(y_fake), y_fake)
     return g_loss, d_loss
 
 
-def loss_wgan(y_true, y_pred, discriminator):
+def loss_relative_bce_gan(y_real, y_fake, average=False):
+    """R(A)GAN"""
+
+    if average:
+        d_loss = tf.losses.sigmoid_cross_entropy(tf.ones_like(y_real), y_real - tf.reduce_mean(y_fake)) + \
+                 tf.losses.sigmoid_cross_entropy(tf.zeros_like(y_fake), y_fake - tf.reduce_mean(y_real))
+
+        g_loss = tf.losses.sigmoid_cross_entropy(tf.ones_like(y_fake), y_fake - tf.reduce_mean(y_real)) + \
+                 tf.losses.sigmoid_cross_entropy(tf.zeros_like(y_real), y_real - tf.reduce_mean(y_fake))
+    else:
+        d_loss = tf.losses.sigmoid_cross_entropy(tf.ones_like(y_real), y_real - y_fake) + \
+                 tf.losses.sigmoid_cross_entropy(tf.zeros_like(y_fake), y_fake - y_real)
+
+        g_loss = tf.losses.sigmoid_cross_entropy(tf.ones_like(y_fake), y_fake - y_real)
+    return g_loss, d_loss
+
+
+def loss_wgan(y_real, y_fake):
     """W-GAN"""
-
-    if not callable(discriminator):
-        raise TypeError('Discriminator is not a callable!')
-
-    y_real = discriminator(y_true)
-    y_fake = discriminator(y_pred)
 
     d_loss = tf.reduce_mean(y_fake - y_real)
     g_loss = -tf.reduce_mean(y_fake)
@@ -156,18 +168,19 @@ def loss_wgan(y_true, y_pred, discriminator):
     return g_loss, d_loss
 
 
-def loss_wgan_gp(y_true, y_pred, discriminator, lamb=10):
-    """W-GAN Gradient penalty"""
+def gradient_penalty(y_true, y_pred, graph_fn, lamb=10):
+    """Gradient penalty"""
 
-    g_loss, d_loss = loss_wgan(y_true, y_pred, discriminator)
+    if not callable(graph_fn):
+        raise TypeError('graph callee is not a callable!')
 
     diff = y_pred - y_true
     alpha = tf.random_uniform(tf.shape(diff), minval=0., maxval=1.)
     interp = y_true + alpha * diff
-    gradients = tf.gradients(discriminator(interp), [interp])
+    gradients = tf.gradients(graph_fn(interp), [interp])
     slopes = tf.sqrt(tf.reduce_sum(tf.square(gradients[0]), reduction_indices=[1]))
     gp = tf.reduce_mean((slopes - 1.) ** 2.)
-    return g_loss, d_loss + lamb * gp
+    return lamb * gp
 
 
 def loss_lsgan(y_real, y_fake):

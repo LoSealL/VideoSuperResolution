@@ -32,6 +32,14 @@ exp = {
     'flownets': ('Exp.FlowNet', 'FlowNetS'),
     'exp': ('Exp.Exp', 'Exp'),
     'duf': ('Exp.Duf', 'DUF'),
+    'sgan': ('Exp.Gan', 'StdGAN'),
+    'lsgan': ('Exp.Gan', 'LSGAN'),
+    'wgan': ('Exp.Gan', 'WGAN'),
+    'wgangp': ('Exp.Gan', 'WGANGP'),
+    'rgan': ('Exp.Gan', 'RGAN'),
+    'ragan': ('Exp.Gan', 'RAGAN'),
+    'rlsgan': ('Exp.Gan', 'RLSGAN'),
+    'ralsgan': ('Exp.Gan', 'RALSGAN'),
 }
 
 for module in exp:

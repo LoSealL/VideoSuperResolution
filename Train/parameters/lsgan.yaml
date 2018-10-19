@@ -1,0 +1,13 @@
+---
+lsgan:
+  name: lsgan
+  output_size: 32
+  z_dim: 128
+  init_filter: 512
+  linear: true  # dense layer at the entry
+  norm: null  # null, bn or sn
+  use_bias: false
+  optimizer:
+    name: adam
+  channel: 3
+  scale: 1  # keep scale is necessary though it's unused

@@ -12,6 +12,7 @@ from pathlib import Path
 
 from ..Util.Utility import to_list
 from .LayersHelper import Layers
+from .Trainer import VSR
 
 
 class SuperResolution(Layers):
@@ -28,7 +29,7 @@ class SuperResolution(Layers):
         and call its super method at the end
     """
 
-    def __init__(self, scale, channel, weight_decay=1e-4, rgb_input=False, **kwargs):
+    def __init__(self, scale, channel, weight_decay=1e-4, **kwargs):
         r"""Common initialize parameters
 
         Args:
@@ -41,7 +42,8 @@ class SuperResolution(Layers):
         self.scale = to_list(scale, repeat=2)
         self.channel = channel
         self.weight_decay = weight_decay
-        self.rgba = rgb_input
+        self.rgba = False  # deprecated
+        self._trainer = VSR  # default trainer
 
         self.trainable_weights = []
         self.bias = []
@@ -67,6 +69,10 @@ class SuperResolution(Layers):
         if item in self.unknown_args:
             return self.unknown_args.get(item)
         return super(SuperResolution, self).__getattr__(item)
+
+    @property
+    def trainer(self):
+        return self._trainer
 
     def compile(self):
         """build entire graph and training ops"""
