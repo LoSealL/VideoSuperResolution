@@ -72,6 +72,7 @@ def fetch_datasets(data_config_file, opt):
     if opt.cifar:
         cifar_data, cifar_test = tf.keras.datasets.cifar10.load_data()
         dataset = Dataset(**dataset)
+        dataset.mode = 'numpy'
         dataset.train = [cifar_data[0]]
         dataset.val = [cifar_test[0]]
     return dataset, test_data, infer_data
