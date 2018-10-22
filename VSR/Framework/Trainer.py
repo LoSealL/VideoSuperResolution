@@ -228,7 +228,7 @@ class VSR(Trainer):
         for feature, _, name in tqdm.tqdm(it, 'Infer', ascii=True):
             for fn in feature_callbacks:
                 feature = fn(feature, name=name)
-            outputs = self._m.test_batch(feature, None)
+            outputs, _ = self._m.test_batch(feature, None)
             for fn in output_callbacks:
                 outputs = fn(outputs, input=feature, mode=loader.color_format, name=name)
 

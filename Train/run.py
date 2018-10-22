@@ -58,7 +58,7 @@ def fetch_datasets(data_config_file, opt):
         if infer_dir.exists():
             # infer files in this directory
             if infer_dir.is_file():
-                images = str(infer_dir)
+                images = [str(infer_dir)]
             else:
                 images = list(infer_dir.glob('*'))
                 if not images:
