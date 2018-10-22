@@ -8,14 +8,14 @@ Updated Date: May 25th 2018
 SRGAN implementation (CVPR 2017)
 See https://arxiv.org/abs/1609.04802
 """
-from VSR.Framework.SuperResolution import SuperResolution
-from VSR.Framework import GAN
+from VSR.Framework.SuperResolution import SuperResolutionDisc
+from VSR.Framework.GAN import loss_bce_gan
 from VSR.Util.Utility import *
 
 import tensorflow as tf
 
 
-class SRGAN(SuperResolution):
+class SRGAN(SuperResolutionDisc):
     """Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network
 
     Args:
@@ -29,10 +29,10 @@ class SRGAN(SuperResolution):
         fixed_train_hr_size:
     """
 
-    def __init__(self, glayers=16, dlayers=8, vgg_layer=(2, 2),
+    def __init__(self, glayers=16, dlayers=4, vgg_layer=(2, 2),
                  init_epoch=100, mse_weight=1, gan_weight=1e-3,
                  use_vgg=False, vgg_weight=2e-6,
-                 fixed_train_hr_size=None, name='srgan', **kwargs):
+                 patch_size=None, name='srgan', **kwargs):
         super(SRGAN, self).__init__(**kwargs)
         self.name = name
         self.g_layers = glayers
@@ -43,8 +43,8 @@ class SRGAN(SuperResolution):
         self.vgg_layer = to_list(vgg_layer, 2)
         self.use_vgg = use_vgg
         self.vgg = None
-        self.D = GAN.Discriminator(self, input_shape=[-1, fixed_train_hr_size, fixed_train_hr_size, self.channel],
-                                   depth=dlayers, use_bn=True, use_bias=True)
+        self.D = self.standard_d([patch_size, patch_size, self.channel], 64, dlayers,
+                                 norm='BN', dup_layer=True, name='Critic')
 
     def compile(self):
         if self.use_vgg:
@@ -79,7 +79,7 @@ class SRGAN(SuperResolution):
         disc_fake = self.D(sr)
 
         with tf.name_scope('Loss'):
-            loss_gen, loss_disc = GAN.loss_bce_gan(disc_real, disc_fake)
+            loss_gen, loss_disc = loss_bce_gan(disc_real, disc_fake)
             mse = tf.losses.mean_squared_error(label_norm, sr)
             reg = tf.losses.get_regularization_losses()
 
@@ -120,9 +120,18 @@ class SRGAN(SuperResolution):
         tf.summary.scalar('ssim', self.metrics['ssim'])
         tf.summary.image('SR', tf.cast(self.outputs[-1], 'uint8'))
 
+    def build_saver(self):
+        super(SRGAN, self).build_saver()
+        var_d = tf.trainable_variables('Critic') + tf.model_variables('Critic')
+        var_g = tf.trainable_variables(self.name) + tf.model_variables(self.name)
+        self.savers.update({
+            'Critic': tf.train.Saver(var_d, max_to_keep=1),
+            'Gen': tf.train.Saver(var_g, max_to_keep=1)
+        })
+
     def train_batch(self, feature, label, learning_rate=1e-4, **kwargs):
         epoch = kwargs.get('epochs')
-        if epoch < self.init_epoch:
+        if epoch <= self.init_epoch:
             loss = self.loss[0]
         else:
             loss = self.loss[1:]

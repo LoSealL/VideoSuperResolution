@@ -126,7 +126,8 @@ class Layers(object):
             x = activator(x)
         return x
 
-    def _act(self, activation):
+    @staticmethod
+    def _act(activation):
         activator = None
         if activation:
             if isinstance(activation, str):
@@ -247,32 +248,32 @@ class Layers(object):
         except KeyError:
             name = None
         with tf.variable_scope(name, 'NonLocal'):
-            C = inputs.shape[-1]
-            C_inner = C // channel_scale
+            c = inputs.shape[-1]
+            c_inner = c // channel_scale
             shape = tf.shape(inputs)
             # NOTE: here we use `he_normal` to initialize kernel, TODO other options?
-            g = self.conv2d(inputs, C_inner, 1)
-            theta = self.conv2d(inputs, C_inner, 1)
-            phi = self.conv2d(inputs, C_inner, 1)
-            theta = tf.reshape(theta, [shape[0], -1, C_inner])  # N*C'
-            phi = tf.reshape(phi, [shape[0], -1, C_inner])  # N*C'
+            g = self.conv2d(inputs, c_inner, 1)
+            theta = self.conv2d(inputs, c_inner, 1)
+            phi = self.conv2d(inputs, c_inner, 1)
+            theta = tf.reshape(theta, [shape[0], -1, c_inner])  # N*C'
+            phi = tf.reshape(phi, [shape[0], -1, c_inner])  # N*C'
             if softmax:
                 beta = tf.matmul(theta, phi, transpose_b=True)  # N*N
                 beta = tf.nn.softmax(beta, axis=-1)
-                non_local = tf.matmul(beta, tf.reshape(g, [shape[0], -1, C_inner]))  # N*C'
+                non_local = tf.matmul(beta, tf.reshape(g, [shape[0], -1, c_inner]))  # N*C'
             else:
-                beta = tf.matmul(phi, tf.reshape(g, [shape[0], -1, C_inner]), transpose_a=True)
+                beta = tf.matmul(phi, tf.reshape(g, [shape[0], -1, c_inner]), transpose_a=True)
                 beta = tf.matmul(theta, beta)
                 non_local = beta / tf.to_float(shape[1] * shape[2])
-            non_local = tf.reshape(non_local, [shape[0], shape[1], shape[2], C_inner])  # H*W*C'
+            non_local = tf.reshape(non_local, [shape[0], shape[1], shape[2], c_inner])  # H*W*C'
             use_bn = kwargs.get('use_batchnorm')
-            non_local = self.conv2d(non_local, C, 1, kernel_initializer='zeros', use_batchnorm=use_bn)
+            non_local = self.conv2d(non_local, c, 1, kernel_initializer='zeros', use_batchnorm=use_bn)
         return non_local
 
     """ frequently used bindings """
 
     def __getattr__(self, item):
-        from functools import partial as P
+        from functools import partial as _p
         """Make an alignment for easy call. You can add more patterns as below.
         
         >>> Layers.relu_conv2d = Layers.conv2d(activation='relu')
@@ -303,7 +304,7 @@ class Layers(object):
                 kwargs.update(activation='prelu')
             if 'tanh' in items:
                 kwargs.update(activation='tanh')
-            return P(self.conv2d, **kwargs)
+            return _p(self.conv2d, **kwargs)
         elif 'conv3d' in item:
             items = item.split('_')
             kwargs = {
@@ -321,24 +322,13 @@ class Layers(object):
                 kwargs.update(activation='prelu')
             if 'tanh' in items:
                 kwargs.update(activation='tanh')
-            return P(self.conv3d, **kwargs)
+            return _p(self.conv3d, **kwargs)
 
         return None
 
-    def resblock(self, x,
-                 filters,
-                 kernel_size,
-                 strides=(1, 1),
-                 padding='same',
-                 data_format='channels_last',
-                 activation=None,
-                 use_bias=True,
-                 use_batchnorm=False,
-                 use_sn=False,
-                 kernel_initializer='he_normal',
-                 kernel_regularizer='l2',
-                 placement=None,
-                 **kwargs):
+    def resblock(self, x, filters, kernel_size, strides=(1, 1), padding='same', data_format='channels_last',
+                 activation=None, use_bias=True, use_batchnorm=False, use_sn=False, kernel_initializer='he_normal',
+                 kernel_regularizer='l2', placement=None, **kwargs):
         """make a residual block
 
         Args:
@@ -356,7 +346,8 @@ class Layers(object):
             'kernel_initializer': kernel_initializer,
             'kernel_regularizer': kernel_regularizer
         })
-        if placement is None: placement = 'behind'
+        if placement is None:
+            placement = 'behind'
         assert placement in ('front', 'behind')
         name = pop_dict_wo_keyerror(kwargs, 'name')
         reuse = pop_dict_wo_keyerror(kwargs, 'reuse')
@@ -366,10 +357,12 @@ class Layers(object):
                 act = self._act(activation)
                 if use_batchnorm:
                     x = tf.layers.batch_normalization(x, training=self.training_phase)
-                if act: x = act(x)
+                if callable(act):
+                    x = act(x)
             x = self.conv2d(x, filters, kernel_size, **kwargs)
             kwargs.pop('activation')
-            if placement == 'front': kwargs.pop('use_batchnorm')
+            if placement == 'front':
+                kwargs.pop('use_batchnorm')
             x = self.conv2d(x, filters, kernel_size, **kwargs)
             if ori.shape[-1] != x.shape[-1]:
                 # short cut
@@ -377,19 +370,9 @@ class Layers(object):
             ori += x
         return ori
 
-    def resblock3d(self, x,
-                   filters,
-                   kernel_size,
-                   strides=(1, 1, 1),
-                   padding='same',
-                   data_format='channels_last',
-                   activation=None,
-                   use_bias=True,
-                   use_batchnorm=False,
-                   kernel_initializer='he_normal',
-                   kernel_regularizer='l2',
-                   placement=None,
-                   **kwargs):
+    def resblock3d(self, x, filters, kernel_size, strides=(1, 1, 1), padding='same', data_format='channels_last',
+                   activation=None, use_bias=True, use_batchnorm=False, kernel_initializer='he_normal',
+                   kernel_regularizer='l2', placement=None, **kwargs):
         """make a residual block
 
         Args:
@@ -406,7 +389,8 @@ class Layers(object):
             'kernel_initializer': kernel_initializer,
             'kernel_regularizer': kernel_regularizer
         })
-        if placement is None: placement = 'behind'
+        if placement is None:
+            placement = 'behind'
         assert placement in ('front', 'behind')
         name = pop_dict_wo_keyerror(kwargs, 'name')
         reuse = pop_dict_wo_keyerror(kwargs, 'reuse')
@@ -416,10 +400,12 @@ class Layers(object):
                 act = self._act(activation)
                 if use_batchnorm:
                     x = tf.layers.batch_normalization(x, training=self.training_phase)
-                if act: x = act(x)
+                if act:
+                    x = act(x)
             x = self.conv3d(x, filters, kernel_size, **kwargs)
             kwargs.pop('activation')
-            if placement == 'front': kwargs.pop('use_batchnorm')
+            if placement == 'front':
+                kwargs.pop('use_batchnorm')
             x = self.conv3d(x, filters, kernel_size, **kwargs)
             if ori.shape[-1] != x.shape[-1]:
                 # short cut

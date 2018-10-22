@@ -8,6 +8,7 @@ Updated Date: June 15th 2018
 Framework for network model (tensorflow)
 """
 import tensorflow as tf
+import numpy as np
 from pathlib import Path
 
 from ..Util.Utility import to_list
@@ -231,3 +232,118 @@ class SuperResolution(Layers):
         tf.identity_n(self.outputs, name='output/hr')
         builder.add_meta_graph_and_variables(sess, tf.saved_model.tag_constants.SERVING)
         builder.save()
+
+
+class SuperResolutionDisc(SuperResolution):
+    """SuperResolution with Discriminator.
+
+    Bind some common discriminators for GAN + SR training
+    """
+
+    @staticmethod
+    def _view(inputs, input_shape):
+        input_shape = np.asarray(input_shape, dtype='int32').tolist()
+        input_shape = list(input_shape)
+        if len(input_shape) == 3:
+            input_shape.insert(0, -1)
+        if len(input_shape) != 4:
+            raise ValueError('invalid shape (HWC or BHWC) for discriminator: ' + str(input_shape))
+        if input_shape[1] and input_shape[2]:
+            if input_shape[0] is None:
+                input_shape[0] = -1
+            x = tf.reshape(inputs, input_shape)
+            has_shape = True
+        else:
+            has_shape = False
+            x = tf.identity(inputs)
+        return x, has_shape
+
+    def standard_d(self, input_shape, filters, depth, dup_layer=False,
+                   activation='lrelu', bias=True, norm=None, name='SDisc'):
+        """Standard Discriminator
+
+        Args:
+            input_shape: a tuple of 3 or 4 integers, [H, W, C] or [B, H, W, C], where B can be None
+            filters: an integer representing initial filter numbers
+            depth: an integer representing layer depth of the discriminator
+            dup_layer: a boolean, whether duplicate each layer with strides=1
+            activation: override activation function of every layer
+            bias: a boolean, whether add bias to each layer
+            norm: a string, representing normalization method (BN or SN for now)
+            name: a string specify scope of the discriminator, if None, the default scope is 'SDisc'
+
+        Return:
+            a callable with reuse flag
+        """
+        bn = np.any([word in norm for word in ('bn', 'batch')])
+        sn = np.any([word in norm for word in ('sn', 'spectral')])
+
+        def critic(inputs):
+            with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+                x, has_shape = self._view(inputs, input_shape)
+                f = filters
+                for _ in range(depth):
+                    if dup_layer:
+                        x = self.conv2d(x, f, 3, use_batchnorm=bn, use_sn=sn, use_bias=bias, activation=activation)
+                    x = self.conv2d(x, f, 4, 2, use_batchnorm=bn, use_sn=sn, use_bias=bias, activation=activation)
+                    f *= 2
+                if has_shape:
+                    x = tf.layers.flatten(x)
+                    x = tf.layers.dense(x, 1024, activation=self._act(activation), use_bias=bias)
+                    x = tf.layers.dense(x, 1, use_bias=bias)
+                else:
+                    x = self.conv2d(x, 1, 3, use_bias=bias)
+                    x = tf.reduce_mean(x, [1, 2, 3])
+                return x
+
+        return critic
+
+    def project_d(self, input_shape, filters, depth, dup_layer=False, extract_layer=None,
+                  activation='lrelu', bias=True, norm=None, name='ProjDisc'):
+        """Projection Discriminator
+
+        Args:
+            input_shape: a tuple of 3 or 4 integers, [H, W, C] or [B, H, W, C], where B can be None
+            filters: an integer representing initial filter numbers
+            depth: an integer representing layer depth of the discriminator
+            dup_layer: a boolean, whether duplicate each layer with strides=1
+            extract_layer: an integer or None, combine which layer's output with linear output
+            activation: override activation function of every layer
+            bias: a boolean, whether add bias to each layer
+            norm: a string, representing normalization method (BN or SN for now)
+            name: a string specify scope of the discriminator, if None, the default scope is 'ProjDisc'
+
+        Return:
+            a callable with reuse flag
+        """
+        bn = np.any([word in norm for word in ('bn', 'batch')])
+        sn = np.any([word in norm for word in ('sn', 'spectral')])
+
+        def critic(inputs, conditions=None):
+            with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+                x, has_shape = self._view(inputs, input_shape)
+                if not has_shape:
+                    raise ValueError('Input shape must be specified!')
+                f = filters
+                x = self.conv2d(x, f, 3, activation=activation, use_sn=sn, use_batchnorm=bn, use_bias=bias)
+                for i in range(depth):
+                    x = self.resblock(x, f, 3, activation=activation, use_bias=bias, placement='front',
+                                      use_sn=sn, use_batchnorm=bn)
+                    x = tf.layers.average_pooling2d(x, 2, 2)
+                    if dup_layer:
+                        x = self.resblock(x, f, 3, activation=activation, use_bias=bias, placement='front',
+                                          use_sn=sn, use_batchnorm=bn)
+                    if extract_layer == i + 1:
+                        phi = x
+                    f *= 2
+                x = tf.layers.flatten(x)
+                x = tf.layers.dense(x, 1024, activation=self._act(activation), use_bias=bias)
+                x = tf.layers.dense(x, 1, use_bias=bias)
+                if conditions is not None and extract_layer:
+                    phi = self.conv2d(phi, self.channel, 3, use_sn=sn, use_batchnorm=bn, use_bias=bias)
+                    phi = tf.layers.flatten(phi)
+                    phi = tf.matmul(phi, tf.layers.flatten(conditions), transpose_b=True)
+                    return x + phi
+                return x
+
+        return critic

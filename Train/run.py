@@ -30,7 +30,7 @@ tf.flags.DEFINE_string('test', None, help="specify another dataset for testing")
 tf.flags.DEFINE_string('infer', None, help="specify a file, a path or a dataset for inferring")
 tf.flags.DEFINE_string('save_dir', '../Results', help="specify a folder to save checkpoint and output images")
 tf.flags.DEFINE_string('data_config', '../Data/datasets.yaml', help="path to data config file")
-tf.flags.DEFINE_string('dataset', None, help="specify a dataset alias for training")
+tf.flags.DEFINE_string('dataset', 'none', help="specify a dataset alias for training")
 tf.flags.DEFINE_string('memory_limit', None, help="limit the memory usage. i.e. '4GB', '1024MB'")
 tf.flags.DEFINE_string('comment', None, help="append a postfix string to save dir")
 tf.flags.DEFINE_multi_string('add_custom_callbacks', None, help="")
@@ -40,7 +40,7 @@ tf.flags.DEFINE_bool('cifar', False, help="temp use, delete if not need")  # TOD
 
 
 def check_args(opt):
-    _required = ('model', 'dataset')
+    _required = ('model',)
     for r in _required:
         if r not in opt or not opt.get(r):
             raise ValueError('--' + r + ' must be set')
@@ -139,6 +139,7 @@ def main(*args):
     train_config, test_config, infer_config = init_loader_config(opt)
     test_config.subdir = test_data.name
     # start fitting!
+    dump(opt)
     with trainer(model, root, verbosity) as t:
         # prepare loader
         loader = partial(QuickLoader, n_threads=opt.threads)
@@ -153,7 +154,15 @@ def main(*args):
         # do inference
         t.infer(infer_loader, infer_config)
         if opt.export:
-            t.export(opt.root)
+            t.export(opt.root + '/exported')
+
+
+def dump(config):
+    print('=============================')
+    for k, v in config.items():
+        print('| [{}]: {}'.format(k, v))
+    print('=============================')
+    print('', flush=True)
 
 
 if __name__ == '__main__':
