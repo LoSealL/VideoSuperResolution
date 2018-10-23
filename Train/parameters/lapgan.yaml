@@ -1,5 +1,5 @@
 lapgan:
-  name: "LapGAN"
+  name: "lapGAN"
   filters: 64
   layers: 20
   norm: "SN+BN"

@@ -138,13 +138,14 @@ def main(*args):
     train_data, test_data, infer_data = fetch_datasets(data_config_file, opt)
     train_config, test_config, infer_config = init_loader_config(opt)
     test_config.subdir = test_data.name
+    infer_config.subdir = 'infer'
     # start fitting!
     dump(opt)
     with trainer(model, root, verbosity) as t:
         # prepare loader
         loader = partial(QuickLoader, n_threads=opt.threads)
         train_loader = loader(train_data, 'train', train_config, augmentation=True)
-        val_loader = loader(train_data, 'val', train_config, augmentation=True, crop='center', steps_per_epoch=1)
+        val_loader = loader(train_data, 'val', train_config, crop='center', steps_per_epoch=1)
         test_loader = loader(test_data, 'test', test_config)
         infer_loader = loader(infer_data, 'infer', infer_config)
         # fit
