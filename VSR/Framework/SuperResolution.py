@@ -278,7 +278,7 @@ class SuperResolutionDisc(SuperResolution):
         bn = np.any([word in norm for word in ('bn', 'batch')])
         sn = np.any([word in norm for word in ('sn', 'spectral')])
 
-        def critic(inputs):
+        def critic(inputs, conditions=None):
             with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
                 x, has_shape = self._view(inputs, input_shape)
                 f = filters
