@@ -30,8 +30,8 @@ def _save_model_predicted_images(output, index, mode='YCbCr', **kwargs):
     seq = int(seq)
     frames = int(frames)
     if output is not None:
-        img = output[index] if isinstance(output, list) else output
-        img = _to_normalized_image(img, mode)
+        imgs = output[index] if isinstance(output, list) else output
+        imgs = _to_normalized_image(imgs, mode)
         path = Path(save_dir) / sub_dir
         if frames > 1:
             path /= f'{name}/{seq:04d}_PR.png'
@@ -43,7 +43,8 @@ def _save_model_predicted_images(output, index, mode='YCbCr', **kwargs):
         while path2.exists():
             path2 = path.parent / f'{path.stem}_{rep}.png'
             rep += 1
-        img.convert('RGB').save(str(path2))
+        for img in imgs:
+            img.convert('RGB').save(str(path2))
     return output
 
 
@@ -63,18 +64,15 @@ def _colored_grayscale_image(outputs, input, **kwargs):
 
 def _to_normalized_image(img, mode):
     img = np.asarray(img)
-    # squeeze to [H, W, C]
-    try:
-        img = np.squeeze(img)
-    except ValueError:
-        pass
-    if img.ndim < 2 or img.ndim > 3:
-        raise ValueError('Invalid img data, must be an array of 2D image1 with channel less than 3')
-    if img.shape[-1] == 2:
-        # treat 2 channels image as optical flow
-        return _flow_to_image(img, mode)
-    img = np.clip(img, 0, 255)
-    return array_to_img(img, mode)
+    assert img.ndim == 4
+    return_img = []
+    for single_img in img:
+        if single_img.shape[-1] == 2:
+            # treat 2 channels image as optical flow
+            return_img.append(_flow_to_image(img, mode))
+        single_img = np.clip(single_img, 0, 255)
+        return_img.append(array_to_img(single_img, mode))
+    return return_img
 
 
 def _color_wheel():
