@@ -82,7 +82,7 @@ def init_loader_config(opt):
     train_config = Config(**opt, crop='random', feature_callbacks=[], label_callbacks=[])
     benchmark_config = Config(**opt, crop=None, feature_callbacks=[], label_callbacks=[], output_callbacks=[])
     infer_config = Config(**opt, feature_callbacks=[], label_callbacks=[], output_callbacks=[])
-    benchmark_config.batch = 1
+    benchmark_config.batch = opt.test_batch or 1
     benchmark_config.steps_per_epoch = -1
     if opt.channel == 1:
         train_config.convert_to = 'gray'

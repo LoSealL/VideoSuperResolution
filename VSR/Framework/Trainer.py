@@ -218,6 +218,7 @@ class VSR(Trainer):
         """
         assert isinstance(config, Config)
         config.update(kwargs)
+        subdir = config.subdir
         feature_callbacks = config.feature_callbacks or []
         output_callbacks = config.output_callbacks or []
 
@@ -233,7 +234,7 @@ class VSR(Trainer):
                 feature = fn(feature, name=name)
             outputs, _ = self._m.test_batch(feature, None)
             for fn in output_callbacks:
-                outputs = fn(outputs, input=feature, mode=loader.color_format, name=name)
+                outputs = fn(outputs, input=feature, mode=loader.color_format, name=name, subdir=subdir)
 
     def benchmark(self, loader, config, **kwargs):
         """Benchmark/validate the model.

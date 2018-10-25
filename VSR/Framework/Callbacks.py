@@ -40,10 +40,10 @@ def _save_model_predicted_images(output, index, mode='YCbCr', **kwargs):
         path.parent.mkdir(parents=True, exist_ok=True)
         rep = 1
         path2 = path
-        while path2.exists():
-            path2 = path.parent / f'{path.stem}_{rep}.png'
-            rep += 1
         for img in imgs:
+            while path2.exists():
+                path2 = path.parent / f'{path.stem}_{rep}.png'
+                rep += 1
             img.convert('RGB').save(str(path2))
     return output
 
