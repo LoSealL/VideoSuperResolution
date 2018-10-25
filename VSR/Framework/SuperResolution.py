@@ -42,23 +42,21 @@ class SuperResolution(Layers):
 
         self.scale = to_list(scale, repeat=2)
         self.channel = channel
-        self.weight_decay = weight_decay
+        self.weight_decay = weight_decay  # weights regularization
         self.rgba = False  # deprecated
         self._trainer = VSR  # default trainer
 
-        self.trainable_weights = []
-        self.bias = []
-        self.inputs = []
-        self.inputs_preproc = []
-        self.label = []
-        self.outputs = []
-        self.loss = []
-        self.train_metric = {}
-        self.metrics = {}
+        self.inputs = []  # hold placeholder for model inputs
+        self.inputs_preproc = []  # hold some image procession for inputs (i.e. RGB->YUV, if you need)
+        self.label = []  # hold placeholder for model labels
+        self.outputs = []  # hold output tensors
+        self.loss = []  # this is the optimize op
+        self.train_metric = {}  # metrics show at training phase
+        self.metrics = {}  # metrics record in tf.summary and show at benchmark
         self.feed_dict = {}
         self.savers = {}
         self.global_steps = None
-        self.training_phase = None
+        self.training_phase = None  # only useful for bn
         self.learning_rate = None
         self.summary_op = None
         self.summary_writer = None

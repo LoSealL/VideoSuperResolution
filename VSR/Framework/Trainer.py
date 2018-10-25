@@ -67,7 +67,10 @@ class Trainer:
         """Create session of tensorflow and build model graph"""
 
         self._startup()
-        sess = tf.Session(graph=self.graph)
+        conf = tf.ConfigProto(
+            allow_soft_placement=True,
+            gpu_options=tf.GPUOptions(allow_growth=True))
+        sess = tf.Session(graph=self.graph, config=conf)
         sess.__enter__()
         self.savers = self._m.savers
         sess.run(tf.global_variables_initializer())
