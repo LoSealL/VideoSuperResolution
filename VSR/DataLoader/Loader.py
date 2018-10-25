@@ -112,6 +112,7 @@ class BasicLoader:
     def __init__(self, dataset, method, config, augmentation=False, **kwargs):
         self._parse_config(config, **kwargs)
         self.file_names = dataset.__getattr__(method.lower()) or []
+        self.method = method
         self.flow = dataset.flow
         self.aug = augmentation
         if config.convert_to.lower() in ('gray', 'l'):
