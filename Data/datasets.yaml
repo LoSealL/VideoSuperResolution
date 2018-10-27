@@ -4,7 +4,9 @@
 ---
 # Add root dir to dataset
 # In current version, Root only affects members in "Path" and "Path_Tracked"
-Root: /mnt/data/datasets/  # c:/work/datasets
+Root:
+  /mnt/data/datasets/
+#  c:/work/datasets
 Path:
   BSD100: BSD100_SR/image_SRF_2/*HR.*
   BSD500-Train: BSR_bsds500/BSR/BSDS500/data/images/train/*.jpg
@@ -43,8 +45,8 @@ Dataset:
     val: []
     test: []
   BSD:  # Combined BSD100 and BSD500 data
-    train: [BSD100 BSD500-Train]
-    val: [BSD500-Val]
+    train: [BSD100 BSD500-Train]  # collected in array
+    val: BSD500-Val               # point as a single set
     test: [BSD500-Test]
 
   91-IMAGE:  # Yang's 91 images
@@ -70,8 +72,8 @@ Dataset:
 
   MCL-V:  # http://mcl.usc.edu/mcl-v-database/, small set videos
     train: MCL-V
-    val: /mnt/data/datasets/MCL-V/test/*.yuv
-    test: [/mnt/data/datasets/MCL-V/test/*.yuv]
+    val: /mnt/data/datasets/MCL-V/test/*.yuv     # You can still write absolute path patterns like this,
+    test: [/mnt/data/datasets/MCL-V/test/*.yuv]  # or as array like this
     param:  # As MCL-V is raw data, these param must be specified
       mode: YV12
       width: 1920
