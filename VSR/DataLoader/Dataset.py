@@ -82,6 +82,7 @@ def load_datasets(describe_file):
     datasets = {}
     with open(describe_file, 'r') as fd:
         config = yaml.load(fd)
+        root = Path(config["Root"])
         all_set_path = config["Path"]
         all_set_path.update(config["Path_Tracked"])
         for name, value in config["Dataset"].items():
@@ -93,7 +94,7 @@ def load_datasets(describe_file):
                 sets = []
                 for j in to_list(value[i]):
                     try:
-                        sets += _glob_absolute_pattern(all_set_path[j])
+                        sets += _glob_absolute_pattern(root / all_set_path[j])
                     except KeyError:
                         sets += _glob_absolute_pattern(j)
                 setattr(datasets[name], i, sets)

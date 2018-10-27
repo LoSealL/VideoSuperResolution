@@ -8,6 +8,7 @@ REQUIRED_PACKAGES = [
     'Image',
     'pypng',
     'pytest',
+    'PyYAML',
     'psutil',
     'tqdm',
     'easydict >= 1.9',

@@ -1,37 +1,40 @@
 # VSR Dataset Description File
 # Date: Oct 17th 2018
-# Ver: v1.0
+# Ver: v1.1
 ---
+# Add root dir to dataset
+# In current version, Root only affects members in "Path" and "Path_Tracked"
+Root: /mnt/data/datasets/  # c:/work/datasets
 Path:
-  BSD100: /mnt/data/datasets/BSD100_SR/image_SRF_2/*HR.*
-  BSD500-Train: /mnt/data/datasets/BSR_bsds500/BSR/BSDS500/data/images/train/*.jpg
-  BSD500-Val: /mnt/data/datasets/BSR_bsds500/BSR/BSDS500/data/images/val/*.jpg
-  BSD500-Test: /mnt/data/datasets/BSR_bsds500/BSR/BSDS500/data/images/test/*.jpg
-  91-IMAGE: /mnt/data/datasets/91-image/
-  IMAGENET: /mnt/data/datasets/Imagenet/20180122/*.jpg
-  GOPRO-Train: /mnt/data/datasets/GOPRO_Large_all/train
-  GOPRO-Val: /mnt/data/datasets/GOPRO_Large_all/test
-  MCL-V: /mnt/data/datasets/MCL-V/train/*.yuv
-  WATERLOO: /mnt/data/datasets/exploration_database_and_code/pristine_images/
-  DIV2K-Train: /mnt/data/datasets/DIV2K/DIV2K_train_HR/
-  DIV2K-Val: /mnt/data/datasets/DIV2K/DIV2K_valid_HR/
-  DIV2K-Pred: /mnt/data/datasets/DIV2K/DIV2K_valid_LR_bicubic/X4/
-  PIRM-SelfVal: /mnt/data/datasets/PIRM/PIRM_Self-Val_set/HR
-  PIRM-Val: /mnt/data/datasets/PIRM/PIRM_Val_set/LR
-  FlyingChairs: /mnt/data/datasets/FlyingChairs/data
-  FlyingChairsFlow: /mnt/data/datasets/FlyingChairs/flow/*.flo
-  MiniFlyingChairs: /mnt/data/datasets/FlyingChairs/small
-  FlyingChairsVal: /mnt/data/datasets/FlyingChairs/val
-  FlyingChairsTest: /mnt/data/datasets/FlyingChairs/test
+  BSD100: BSD100_SR/image_SRF_2/*HR.*
+  BSD500-Train: BSR_bsds500/BSR/BSDS500/data/images/train/*.jpg
+  BSD500-Val: BSR_bsds500/BSR/BSDS500/data/images/val/*.jpg
+  BSD500-Test: BSR_bsds500/BSR/BSDS500/data/images/test/*.jpg
+  91-IMAGE: 91-image/
+  IMAGENET: Imagenet/20180122/*.jpg
+  GOPRO-Train: GOPRO_Large_all/train
+  GOPRO-Val: GOPRO_Large_all/test
+  MCL-V: MCL-V/train/*.yuv
+  WATERLOO: exploration_database_and_code/pristine_images/
+  DIV2K-Train: DIV2K/DIV2K_train_HR/
+  DIV2K-Val: DIV2K/DIV2K_valid_HR/
+  DIV2K-Pred: DIV2K/DIV2K_valid_LR_bicubic/X4/
+  PIRM-SelfVal: PIRM/PIRM_Self-Val_set/HR
+  PIRM-Val: PIRM/PIRM_Val_set/LR
+  FlyingChairs: FlyingChairs/data
+  FlyingChairsFlow: FlyingChairs/flow/*.flo
+  MiniFlyingChairs: FlyingChairs/data
+  FlyingChairsVal: FlyingChairs/val
+  FlyingChairsTest: FlyingChairs/test
 
 Path_Tracked:
-  URBAN100: /mnt/data/datasets/Urban100_SR/image_SRF_2/*HR.*
-  SUNHAY80: /mnt/data/datasets/SunHays80_SR/image_SRF_8/*HR.*
-  SET5: /mnt/data/datasets/Set5_SR/Set5/image_SRF_4/*HR.*
-  SET14: /mnt/data/datasets/Set14_SR/Set14/image_SRF_4/*HR.*
-  PIRM-SelfTest: /mnt/data/datasets/PIRM/PIRM_Self-Val_set/LR
-  PIRM-Test: /mnt/data/datasets/PIRM/PIRM_Test/LR
-  VID4-HR: /mnt/data/datasets/vid4/original/
+  URBAN100: Urban100_SR/image_SRF_4/*HR.*
+  SUNHAY80: SunHays80_SR/image_SRF_8/*HR.*
+  SET5: Set5_SR/Set5/image_SRF_4/*HR.*
+  SET14: Set14_SR/Set14/image_SRF_4/*HR.*
+  PIRM-SelfTest: PIRM/PIRM_Self-Val_set/LR
+  PIRM-Test: PIRM/PIRM_Test/LR
+  VID4-HR: vid4/original/
 
 # bind datasets to a name, called in scripts
 Dataset:
@@ -94,3 +97,9 @@ Dataset:
     flow: FlyingChairsFlow
     val: FlyingChairsVal
     test: FlyingChairsTest
+
+  CELEBA:
+    train: /mnt/data/datasets/celeba/resize64/*.png
+    val: [SET5]  # just used as a placeholder
+    test: []
+    infer: []
