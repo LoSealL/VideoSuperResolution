@@ -1,0 +1,14 @@
+lapres:
+  name: "lapRes"
+  filters: 64
+  layers: 20
+  norm: "null"
+  phase: 8
+  patch_size: 128 
+  weight_decay: 0
+  l1_weight: 1
+  vgg_weight: 10
+  scale: 8
+  channel: 3
+batch: 64
+lr: 1.0e-4
