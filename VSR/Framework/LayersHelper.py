@@ -14,26 +14,19 @@ from ..Util.Utility import (
 
 
 class Layers(object):
-    def conv2d(self, x,
-               filters,
-               kernel_size,
-               strides=(1, 1),
-               padding='same',
-               data_format='channels_last',
-               dilation_rate=(1, 1),
-               activation=None,
-               use_bias=True,
-               use_batchnorm=False,
-               use_sn=False,
-               kernel_initializer='he_normal',
-               kernel_regularizer='l2',
-               **kwargs):
+    def conv2d(self, x, filters, kernel_size, strides=(1, 1), padding='same',
+               data_format='channels_last', dilation_rate=(1, 1),
+               activation=None, use_bias=True, use_batchnorm=False,
+               use_sn=False, kernel_initializer='he_normal',
+               kernel_regularizer='l2', **kwargs):
         """wrap a convolution for common use case"""
 
         ki, kr = self._kernel(kernel_initializer, kernel_regularizer)
-        nn = tf.layers.Conv2D(filters, kernel_size, strides=strides, padding=padding, data_format=data_format,
+        nn = tf.layers.Conv2D(filters, kernel_size, strides=strides,
+                              padding=padding, data_format=data_format,
                               dilation_rate=dilation_rate, use_bias=use_bias,
-                              kernel_initializer=ki, kernel_regularizer=kr, **kwargs)
+                              kernel_initializer=ki, kernel_regularizer=kr,
+                              **kwargs)
         nn.build(x.shape.as_list())
         if use_sn:
             nn.kernel = SpectralNorm()(nn.kernel)
@@ -45,23 +38,17 @@ class Layers(object):
             x = activator(x)
         return x
 
-    def conv3d(self, x,
-               filters,
-               kernel_size,
-               strides=(1, 1, 1),
-               padding='same',
-               data_format='channels_last',
-               dilation_rate=(1, 1, 1),
-               activation=None,
-               use_bias=True,
-               use_batchnorm=False,
-               kernel_initializer='he_normal',
-               kernel_regularizer='l2',
+    def conv3d(self, x, filters, kernel_size, strides=(1, 1, 1), padding='same',
+               data_format='channels_last', dilation_rate=(1, 1, 1),
+               activation=None, use_bias=True, use_batchnorm=False,
+               kernel_initializer='he_normal', kernel_regularizer='l2',
                **kwargs):
         ki, kr = self._kernel(kernel_initializer, kernel_regularizer)
-        nn = tf.layers.Conv3D(filters, kernel_size, strides=strides, padding=padding, data_format=data_format,
+        nn = tf.layers.Conv3D(filters, kernel_size, strides=strides,
+                              padding=padding, data_format=data_format,
                               dilation_rate=dilation_rate, use_bias=use_bias,
-                              kernel_initializer=ki, kernel_regularizer=kr, **kwargs)
+                              kernel_initializer=ki, kernel_regularizer=kr,
+                              **kwargs)
         nn.build(x.shape.as_list())
         x = nn(x)
         if use_batchnorm:
@@ -87,9 +74,12 @@ class Layers(object):
         """warp a conv2d_transpose op for simplicity usage"""
 
         ki, kr = self._kernel(kernel_initializer, kernel_regularizer)
-        nn = tf.layers.Conv2DTranspose(filters, kernel_size, strides=strides, padding=padding,
-                                       data_format=data_format, use_bias=use_bias,
-                                       kernel_initializer=ki, kernel_regularizer=kr, **kwargs)
+        nn = tf.layers.Conv2DTranspose(filters, kernel_size, strides=strides,
+                                       padding=padding,
+                                       data_format=data_format,
+                                       use_bias=use_bias,
+                                       kernel_initializer=ki,
+                                       kernel_regularizer=kr, **kwargs)
         nn.build(x.shape.as_list())
         if use_sn:
             nn.kernel = SpectralNorm()(nn.kernel)
@@ -114,9 +104,12 @@ class Layers(object):
                  kernel_regularizer='l2',
                  **kwargs):
         ki, kr = self._kernel(kernel_initializer, kernel_regularizer)
-        nn = tf.layers.Conv3DTranspose(filters, kernel_size, strides=strides, padding=padding,
-                                       data_format=data_format, use_bias=use_bias,
-                                       kernel_initializer=ki, kernel_regularizer=kr, **kwargs)
+        nn = tf.layers.Conv3DTranspose(filters, kernel_size, strides=strides,
+                                       padding=padding,
+                                       data_format=data_format,
+                                       use_bias=use_bias,
+                                       kernel_initializer=ki,
+                                       kernel_regularizer=kr, **kwargs)
         nn.build(x.shape.as_list())
         x = nn(x)
         if use_batchnorm:
@@ -125,6 +118,24 @@ class Layers(object):
         if activation:
             x = activator(x)
         return x
+
+    def dense(self, x, units, activation=None, use_bias=True, use_sn=False,
+              kernel_initializer='he_normal', kernel_regularizer='l2',
+              **kwargs):
+        act = self._act(activation)
+        ki, kr = self._kernel(kernel_initializer, kernel_regularizer)
+        nn = tf.layers.Dense(units, use_bias=use_bias,
+                             kernel_initializer=ki,
+                             kernel_regularizer=kr, **kwargs)
+        nn.build(x.shape.as_list())
+        if use_sn:
+            nn.kernel = SpectralNorm()(nn.kernel)
+        x = nn(x)
+        if act:
+            x = act(x)
+        return x
+
+    linear = dense
 
     @staticmethod
     def _act(activation):
@@ -161,16 +172,19 @@ class Layers(object):
         kr = None
         if isinstance(kernel_regularizer, str):
             if kernel_regularizer == 'l1':
-                kr = tf.keras.regularizers.l1(self.weight_decay) if self.weight_decay else None
+                kr = tf.keras.regularizers.l1(
+                    self.weight_decay) if self.weight_decay else None
             elif kernel_regularizer == 'l2':
-                kr = tf.keras.regularizers.l2(self.weight_decay) if self.weight_decay else None
+                kr = tf.keras.regularizers.l2(
+                    self.weight_decay) if self.weight_decay else None
         elif callable(kernel_regularizer):
             kr = kernel_regularizer
         elif kernel_regularizer:
             raise ValueError('invalid kernel regularizer!')
         return ki, kr
 
-    def upscale(self, image, method='espcn', scale=None, direct_output=True, **kwargs):
+    def upscale(self, image, method='espcn', scale=None, direct_output=True,
+                **kwargs):
         """Image up-scale layer
 
         Upsample `image` width and height by scale factor `scale[0]` and `scale[1]`.
@@ -251,7 +265,8 @@ class Layers(object):
             c = inputs.shape[-1]
             c_inner = c // channel_scale
             shape = tf.shape(inputs)
-            # NOTE: here we use `he_normal` to initialize kernel, TODO other options?
+            # NOTE: here we use `he_normal` to initialize kernel,
+            # TODO other options?
             g = self.conv2d(inputs, c_inner, 1)
             theta = self.conv2d(inputs, c_inner, 1)
             phi = self.conv2d(inputs, c_inner, 1)
@@ -260,21 +275,23 @@ class Layers(object):
             if softmax:
                 beta = tf.matmul(theta, phi, transpose_b=True)  # N*N
                 beta = tf.nn.softmax(beta, axis=-1)
-                non_local = tf.matmul(beta, tf.reshape(g, [shape[0], -1, c_inner]))  # N*C'
+                non_local = tf.matmul(beta, tf.reshape(g, [shape[0], -1,
+                                                           c_inner]))  # N*C'
             else:
-                beta = tf.matmul(phi, tf.reshape(g, [shape[0], -1, c_inner]), transpose_a=True)
+                beta = tf.matmul(phi, tf.reshape(g, [shape[0], -1, c_inner]),
+                                 transpose_a=True)
                 beta = tf.matmul(theta, beta)
                 non_local = beta / tf.to_float(shape[1] * shape[2])
-            non_local = tf.reshape(non_local, [shape[0], shape[1], shape[2], c_inner])  # H*W*C'
+            non_local = tf.reshape(non_local, [shape[0], shape[1], shape[2],
+                                               c_inner])  # H*W*C'
             use_bn = kwargs.get('use_batchnorm')
-            non_local = self.conv2d(non_local, c, 1, kernel_initializer='zeros', use_batchnorm=use_bn)
+            non_local = self.conv2d(non_local, c, 1, kernel_initializer='zeros',
+                                    use_batchnorm=use_bn)
         return non_local
-
-    """ frequently used bindings """
 
     def __getattr__(self, item):
         from functools import partial as _p
-        """Make an alignment for easy call. You can add more patterns as below.
+        """Make an alignment for easy calls. You can add more patterns as below.
         
         >>> Layers.relu_conv2d = Layers.conv2d(activation='relu')
         >>> Layers.bn_conv2d = Layers.conv2d(use_batchnorm=True)
@@ -323,15 +340,48 @@ class Layers(object):
             if 'tanh' in items:
                 kwargs.update(activation='tanh')
             return _p(self.conv3d, **kwargs)
+        elif 'dense' in item or 'linear' in item:
+            items = item.split('_')
+            kwargs = {
+                'kernel_initializer': 'he_normal',
+                'kernel_regularizer': 'l2',
+                'use_batchnorm': False,
+                'use_sn': False,
+            }
+            if 'sn' in items or 'spectralnorm' in items:
+                kwargs.update(use_sn=True)
+            if 'relu' in items:
+                kwargs.update(activation='relu')
+            if 'leaky' in items or 'lrelu' in items or 'leakyrelu' in items:
+                kwargs.update(activation='lrelu')
+            if 'prelu' in items:
+                kwargs.update(activation='prelu')
+            if 'tanh' in items:
+                kwargs.update(activation='tanh')
+            return _p(self.dense, **kwargs)
 
         return None
 
-    def resblock(self, x, filters, kernel_size, strides=(1, 1), padding='same', data_format='channels_last',
-                 activation=None, use_bias=True, use_batchnorm=False, use_sn=False, kernel_initializer='he_normal',
+    def resblock(self, x, filters, kernel_size, strides=(1, 1), padding='same',
+                 data_format='channels_last', activation=None, use_bias=True,
+                 use_batchnorm=False, use_sn=False,
+                 kernel_initializer='he_normal',
                  kernel_regularizer='l2', placement=None, **kwargs):
         """make a residual block
 
         Args:
+            x:
+            filters:
+            kernel_size:
+            strides:
+            padding:
+            data_format:
+            activation:
+            use_bias:
+            use_batchnorm:
+            use_sn:
+            kernel_initializer:
+            kernel_regularizer:
             placement: 'front' or 'behind', use BN layer in front of or behind after the 1st conv2d layer.
         """
 
@@ -356,7 +406,8 @@ class Layers(object):
             if placement == 'front':
                 act = self._act(activation)
                 if use_batchnorm:
-                    x = tf.layers.batch_normalization(x, training=self.training_phase)
+                    x = tf.layers.batch_normalization(
+                        x, training=self.training_phase)
                 if callable(act):
                     x = act(x)
             x = self.conv2d(x, filters, kernel_size, **kwargs)
@@ -366,16 +417,31 @@ class Layers(object):
             x = self.conv2d(x, filters, kernel_size, **kwargs)
             if ori.shape[-1] != x.shape[-1]:
                 # short cut
-                ori = self.conv2d(ori, x.shape[-1], 1, kernel_initializer=kernel_initializer)
+                ori = self.conv2d(ori, x.shape[-1], 1,
+                                  kernel_initializer=kernel_initializer)
             ori += x
         return ori
 
-    def resblock3d(self, x, filters, kernel_size, strides=(1, 1, 1), padding='same', data_format='channels_last',
-                   activation=None, use_bias=True, use_batchnorm=False, kernel_initializer='he_normal',
+    def resblock3d(self, x, filters, kernel_size, strides=(1, 1, 1),
+                   padding='same',
+                   data_format='channels_last', activation=None, use_bias=True,
+                   use_batchnorm=False, kernel_initializer='he_normal',
                    kernel_regularizer='l2', placement=None, **kwargs):
         """make a residual block
 
         Args:
+            x:
+            filters:
+            kernel_size:
+            strides:
+            padding:
+            data_format:
+            activation:
+            use_bias:
+            use_batchnorm:
+            use_sn:
+            kernel_initializer:
+            kernel_regularizer:
             placement: 'front' or 'behind', use BN layer in front of or behind after the 1st conv2d layer.
         """
 
@@ -399,7 +465,8 @@ class Layers(object):
             if placement == 'front':
                 act = self._act(activation)
                 if use_batchnorm:
-                    x = tf.layers.batch_normalization(x, training=self.training_phase)
+                    x = tf.layers.batch_normalization(
+                        x, training=self.training_phase)
                 if act:
                     x = act(x)
             x = self.conv3d(x, filters, kernel_size, **kwargs)
@@ -409,6 +476,7 @@ class Layers(object):
             x = self.conv3d(x, filters, kernel_size, **kwargs)
             if ori.shape[-1] != x.shape[-1]:
                 # short cut
-                ori = self.conv3d(ori, x.shape[-1], 1, kernel_initializer=kernel_initializer)
+                ori = self.conv3d(ori, x.shape[-1], 1,
+                                  kernel_initializer=kernel_initializer)
             ori += x
         return ori
