@@ -345,7 +345,6 @@ class Layers(object):
             kwargs = {
                 'kernel_initializer': 'he_normal',
                 'kernel_regularizer': 'l2',
-                'use_batchnorm': False,
                 'use_sn': False,
             }
             if 'sn' in items or 'spectralnorm' in items:

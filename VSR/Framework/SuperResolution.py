@@ -307,13 +307,12 @@ class SuperResolutionDisc(SuperResolution):
                     f *= 2
                 if has_shape:
                     x = tf.layers.flatten(x)
-                    x = tf.layers.dense(x, 1024,
-                                        activation=self._act(activation),
-                                        use_bias=bias)
-                    x = tf.layers.dense(x, 1, use_bias=bias)
+                    x = self.dense(x, 1024, use_sn=sn,
+                                   activation=self._act(activation),
+                                   use_bias=bias)
                 else:
-                    x = self.conv2d(x, 1, 3, use_bias=bias)
-                    x = tf.reduce_mean(x, [1, 2, 3])
+                    x = tf.reduce_sum(x, [1, 2])
+                x = self.dense(x, 1, use_bias=bias, use_sn=sn)
                 return x
 
         return critic
