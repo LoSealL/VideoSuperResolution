@@ -45,24 +45,24 @@ Dataset:
     val: []
     test: []
   BSD:  # Combined BSD100 and BSD500 data
-    train: [BSD100 BSD500-Train]  # collected in array
+    train: [BSD100, BSD500-Train]  # collected in array
     val: BSD500-Val               # point as a single set
     test: [BSD500-Test]
 
   91-IMAGE:  # Yang's 91 images
     train: 91-IMAGE
     val: [SET5]
-    test: [SET5 SET14]
+    test: [SET5, SET14]
 
   WATERLOO:  # https://ece.uwaterloo.ca/~k29ma/exploration/
     train: WATERLOO
-    val: [SET5 SET14]
-    test: [URBAN100 SUNHAY80]
+    val: [SET5, SET14]
+    test: [URBAN100, SUNHAY80]
 
   DIV2K:  # NTIRE-2017 Challenge
     train: DIV2K-Train
     val: [DIV2K-Val]
-    test: [SET5 SET14]
+    test: [SET5, SET14]
 
   PIRM:  # PIRM-2018 Challenge (no training data)
     train: DIV2K-Train
