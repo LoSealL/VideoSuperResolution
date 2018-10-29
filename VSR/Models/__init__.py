@@ -28,9 +28,9 @@ alias = {
 exp = {
     # name: (package, class)
     'lapgan': ('Exp.LapGAN', 'LapGAN'),
+    'lapres': ('Exp.LapRes', 'LapRes'),
     'pwc': ('Exp.PWC', 'PWC'),
     'flownets': ('Exp.FlowNet', 'FlowNetS'),
-    'exp': ('Exp.Exp', 'Exp'),
     'duf': ('Exp.Duf', 'DUF'),
     'sgan': ('Exp.Gan', 'StdGAN'),
     'lsgan': ('Exp.Gan', 'LSGAN'),
