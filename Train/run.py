@@ -22,7 +22,7 @@ except ImportError:
 
 tf.flags.DEFINE_enum('model', None, list_supported_models(), help="specify a model to use")
 tf.flags.DEFINE_enum('output_color', 'RGB', ('RGB', 'L', 'GRAY', 'Y'), help="specify output color format")
-tf.flags.DEFINE_enum('lr_decay', None, (None, 'auto', 'multistep'), help="learning rate decay schedule")
+tf.flags.DEFINE_enum('lr_decay', 'none', ('none', 'auto', 'multistep'), help="learning rate decay schedule")
 tf.flags.DEFINE_integer('epochs', 50, lower_bound=1, help="training epochs")
 tf.flags.DEFINE_integer('steps_per_epoch', 200, lower_bound=1, help="specify steps in every epoch training")
 tf.flags.DEFINE_integer('threads', 1, lower_bound=1, help="number of threads to use while reading data")
