@@ -22,10 +22,13 @@ except ImportError:
 
 tf.flags.DEFINE_enum('model', None, list_supported_models(), help="specify a model to use")
 tf.flags.DEFINE_enum('output_color', 'RGB', ('RGB', 'L', 'GRAY', 'Y'), help="specify output color format")
+tf.flags.DEFINE_enum('lr_decay', None, (None, 'auto', 'multistep'), help="learning rate decay schedule")
 tf.flags.DEFINE_integer('epochs', 50, lower_bound=1, help="training epochs")
 tf.flags.DEFINE_integer('steps_per_epoch', 200, lower_bound=1, help="specify steps in every epoch training")
 tf.flags.DEFINE_integer('threads', 1, lower_bound=1, help="number of threads to use while reading data")
 tf.flags.DEFINE_integer('output_index', -1, help="specify access index of output array")
+tf.flags.DEFINE_string('c', None, help="specify a configure file")
+tf.flags.DEFINE_string('p', None, help="specify a parameter file, otherwise will use the file in ./parameters")
 tf.flags.DEFINE_string('test', None, help="specify another dataset for testing")
 tf.flags.DEFINE_string('infer', None, help="specify a file, a path or a dataset for inferring")
 tf.flags.DEFINE_string('save_dir', '../Results', help="specify a folder to save checkpoint and output images")
@@ -40,6 +43,8 @@ tf.flags.DEFINE_bool('cifar', False, help="temp use, delete if not need")  # TOD
 
 
 def check_args(opt):
+    if opt.c:
+        opt.update(Config(opt.c))
     _required = ('model',)
     for r in _required:
         if r not in opt or not opt.get(r):
@@ -116,10 +121,13 @@ def main(*args):
     data_config_file = Path(opt.data_config)
     if not data_config_file.exists():
         raise RuntimeError("dataset config file doesn't exist!")
-    for _suffix in ('json', 'yaml'):
+    for _suffix in ('json', 'yaml'):  # for compatibility
         # apply a 2-stage (or master-slave) configuration, master can be override by slave
         model_config_root = Path('parameters/{}.{}'.format('root', _suffix))
-        model_config_file = Path('parameters/{}.{}'.format(opt.model, _suffix))
+        if opt.p:
+            model_config_file = Path(opt.p)
+        else:
+            model_config_file = Path('parameters/{}.{}'.format(opt.model, _suffix))
         if model_config_root.exists():
             opt.update(Config(str(model_config_root)))
         if model_config_file.exists():
@@ -128,7 +136,7 @@ def main(*args):
     model_params = opt.get(opt.model)
     opt.update(model_params)
     model = get_model(opt.model)(**model_params)
-    root = '{}/{}_sc{}_c{}'.format(opt.save_dir, model.name, opt.scale, opt.channel)
+    root = '{}/{}'.format(opt.save_dir, model.name)
     if opt.comment:
         root += '_' + opt.comment
     opt.root = root
