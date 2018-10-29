@@ -104,5 +104,5 @@ def load_datasets(describe_file):
         for name, path in config["Path_Tracked"].items():
             if name not in datasets:
                 datasets[name] = Dataset(name=name)
-                setattr(datasets[name], 'test', _glob_absolute_pattern(path))
+                setattr(datasets[name], 'test', _glob_absolute_pattern(root / path))
     return datasets
