@@ -233,18 +233,41 @@ class SuperResolution(Layers):
         tf.logging.info(f"Model exported to \
         [ {Path(export_dir).resolve() / export_name} ].")
 
-    def export_saved_model(self, export_dir='.'):
+    def export_saved_model(self, export_dir='.', version=1):
         """export a saved model
 
         Args:
             export_dir: directory to save the saved model
+            version: version of the exported model
         """
 
         sess = tf.get_default_session()
-        builder = tf.saved_model.builder.SavedModelBuilder(export_dir)
-        tf.identity_n(self.outputs, name='output/hr')
+        export_path = Path(export_dir) / str(version)
+        while export_path.exists():
+            version += 1  # step ahead 1 version
+            export_path = Path(export_dir) / str(version)
+        export_path.mkdir(exist_ok=False, parents=True)
+        export_path = str(export_path)
+        tf.logging.debug("exporting to {}".format(export_path))
+        builder = tf.saved_model.builder.SavedModelBuilder(export_path)
+        # build the signature_def_map
+        inputs, outputs = {}, {}
+        for n, inp in enumerate(self.inputs):
+            tag = 'input_' + str(n)
+            inputs[tag] = tf.saved_model.utils.build_tensor_info(inp)
+        for n, outp in enumerate(self.outputs):
+            tag = 'output_' + str(n)
+            outputs[tag] = tf.saved_model.utils.build_tensor_info(outp)
+        sig = tf.saved_model.signature_def_utils.build_signature_def(
+            inputs=inputs, outputs=outputs,
+            method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME)
+
         builder.add_meta_graph_and_variables(
-            sess, tf.saved_model.tag_constants.SERVING)
+            sess, tf.saved_model.tag_constants.SERVING,
+            signature_def_map={
+                tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY: sig
+            },
+            strip_default_attrs=True)
         builder.save()
 
 
