@@ -246,7 +246,6 @@ class SuperResolution(Layers):
         while export_path.exists():
             version += 1  # step ahead 1 version
             export_path = Path(export_dir) / str(version)
-        export_path.mkdir(exist_ok=False, parents=True)
         export_path = str(export_path)
         tf.logging.debug("exporting to {}".format(export_path))
         builder = tf.saved_model.builder.SavedModelBuilder(export_path)
