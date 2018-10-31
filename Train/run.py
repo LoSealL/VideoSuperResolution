@@ -95,10 +95,11 @@ def init_loader_config(opt):
     benchmark_config.steps_per_epoch = -1
     if opt.channel == 1:
         train_config.convert_to = 'gray'
-        benchmark_config.convert_to = 'yuv'
-        benchmark_config.feature_callbacks = train_config.feature_callbacks + [to_gray()]
-        benchmark_config.label_callbacks = train_config.label_callbacks + [to_gray()]
+        benchmark_config.convert_to = 'gray'
         if opt.output_color == 'RGB':
+            benchmark_config.convert_to = 'yuv'
+            benchmark_config.feature_callbacks = train_config.feature_callbacks + [to_gray()]
+            benchmark_config.label_callbacks = train_config.label_callbacks + [to_gray()]
             benchmark_config.output_callbacks = [to_rgb()]
         benchmark_config.output_callbacks += [save_image(opt.root, opt.output_index)]
         infer_config.update(benchmark_config)

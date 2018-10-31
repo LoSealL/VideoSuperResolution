@@ -189,11 +189,11 @@ class VSR(Trainer):
             if hasattr(train_loader, 'prefetch'):
                 train_loader.prefetch(memory_usage)
             date = time.strftime('%Y-%m-%d %T', time.localtime())
-            print('| {} | Epoch: {}/{} | LR: {:.2g} |'.format(
-                date, epoch, epochs, lr))
             avg_meas = {}
             if lr_schedule and callable(lr_schedule):
                 lr = lr_schedule(steps=global_step)
+            print('| {} | Epoch: {}/{} | LR: {:.2g} |'.format(
+                date, epoch, epochs, lr))
             with tqdm.tqdm(train_iter, unit='batch', ascii=True) as r:
                 for label, feature, name in r:
                     for fn in feature_callbacks:
@@ -242,12 +242,13 @@ class VSR(Trainer):
             return
         # use original images in inferring
         for feature, _, name in tqdm.tqdm(it, 'Infer', ascii=True):
+            origin_feat = feature
             for fn in feature_callbacks:
                 feature = fn(feature, name=name)
             outputs, _ = self._m.test_batch(feature, None)
             for fn in output_callbacks:
-                outputs = fn(outputs, input=feature, mode=loader.color_format,
-                             name=name, subdir=subdir)
+                outputs = fn(outputs, input=origin_feat, name=name,
+                             subdir=subdir, mode=loader.color_format)
 
     def benchmark(self, loader, config, **kwargs):
         """Benchmark/validate the model.
@@ -270,6 +271,7 @@ class VSR(Trainer):
         it = loader.make_one_shot_iterator(memory_usage, shuffle=False)
         mean_metrics = {}
         for label, feature, name in tqdm.tqdm(it, 'Test', ascii=True):
+            origin_feat = feature
             for fn in feature_callbacks:
                 feature = fn(feature, name=name)
             for fn in label_callbacks:
@@ -280,8 +282,8 @@ class VSR(Trainer):
                     mean_metrics[k] = []
                 mean_metrics[k] += [v]
             for fn in output_callbacks:
-                outputs = fn(outputs, input=feature, label=label,
-                             mode=loader.color_format, name=name, subdir=subdir)
+                outputs = fn(outputs, input=origin_feat, label=label, name=name,
+                             mode=loader.color_format, subdir=subdir)
         for k, v in mean_metrics.items():
             print('{}: {:.6f}'.format(k, np.mean(v)), end=', ')
         print('')
