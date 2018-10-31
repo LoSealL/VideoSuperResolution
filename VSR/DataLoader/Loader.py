@@ -83,14 +83,14 @@ class EpochIterator:
             batch_name.append(name)
 
         if batch_hr and batch_lr and batch_name:
-            batch_hr = np.stack(batch_hr)
-            batch_lr = np.stack(batch_lr)
-            batch_name = np.stack(batch_name)
-        if isinstance(batch_hr, np.ndarray) and isinstance(batch_lr, np.ndarray):
-            try:
-                return np.squeeze(batch_hr, 1), np.squeeze(batch_lr, 1), np.squeeze(batch_name)
-            except ValueError:
-                return batch_hr, batch_lr, np.squeeze(batch_name)
+            batch_hr = np.squeeze(np.stack(batch_hr), 1)
+            batch_lr = np.squeeze(np.stack(batch_lr), 1)
+            batch_name = np.squeeze(np.stack(batch_name))
+
+        if np.ndim(batch_hr) == 3:
+            batch_hr = np.expand_dims(batch_hr, -1)
+        if np.ndim(batch_lr) == 3:
+            batch_lr = np.expand_dims(batch_lr, -1)
 
         return batch_hr, batch_lr, batch_name
 
