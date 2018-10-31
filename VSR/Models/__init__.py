@@ -41,6 +41,7 @@ exp = {
     'rlsgan': ('Exp.Gan', 'RLSGAN'),
     'ralsgan': ('Exp.Gan', 'RaLSGAN'),
     'srcgan': ('Exp.SRcGan', 'SRCGAN'),
+    'cyclesr': ('Exp.Exp', 'CycleSR'),
 }
 
 for module in exp:

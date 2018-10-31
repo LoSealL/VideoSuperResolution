@@ -372,7 +372,8 @@ class Layers(object):
             x:
             filters:
             kernel_size:
-            strides:
+            strides: if strides is more than 1, resblock downsample in the 2nd
+              conv, and the short cut 1x1 conv
             padding:
             data_format:
             activation:
@@ -381,11 +382,11 @@ class Layers(object):
             use_sn:
             kernel_initializer:
             kernel_regularizer:
-            placement: 'front' or 'behind', use BN layer in front of or behind after the 1st conv2d layer.
+            placement: 'front' or 'behind', use BN layer in front of or behind
+              after the 1st conv2d layer.
         """
 
         kwargs.update({
-            'strides': strides,
             'padding': padding,
             'data_format': data_format,
             'activation': activation,
@@ -413,10 +414,11 @@ class Layers(object):
             kwargs.pop('activation')
             if placement == 'front':
                 kwargs.pop('use_batchnorm')
-            x = self.conv2d(x, filters, kernel_size, **kwargs)
-            if ori.shape[-1] != x.shape[-1]:
+            strides = to_list(strides, 2)
+            x = self.conv2d(x, filters, kernel_size, strides=strides, **kwargs)
+            if ori.shape[-1] != x.shape[-1] or strides[0] > 1:
                 # short cut
-                ori = self.conv2d(ori, x.shape[-1], 1,
+                ori = self.conv2d(ori, x.shape[-1], 1, strides=strides,
                                   kernel_initializer=kernel_initializer)
             ori += x
         return ori
@@ -445,7 +447,6 @@ class Layers(object):
         """
 
         kwargs.update({
-            'strides': strides,
             'padding': padding,
             'data_format': data_format,
             'activation': activation,
@@ -472,10 +473,11 @@ class Layers(object):
             kwargs.pop('activation')
             if placement == 'front':
                 kwargs.pop('use_batchnorm')
-            x = self.conv3d(x, filters, kernel_size, **kwargs)
-            if ori.shape[-1] != x.shape[-1]:
+            strides = to_list(strides, 3)
+            x = self.conv3d(x, filters, kernel_size, strides=strides, **kwargs)
+            if ori.shape[-1] != x.shape[-1] or strides[0] > 1:
                 # short cut
-                ori = self.conv3d(ori, x.shape[-1], 1,
+                ori = self.conv3d(ori, x.shape[-1], 1, strides=strides,
                                   kernel_initializer=kernel_initializer)
             ori += x
         return ori
