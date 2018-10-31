@@ -49,7 +49,7 @@ def _save_model_predicted_images(output, index, mode='YCbCr', **kwargs):
 
 
 def _colored_grayscale_image(outputs, input, **kwargs):
-    ret = []
+    return_img = []
     for img in outputs:
         assert img.shape[-1] == 1
         scale = np.array(img.shape[1:3]) // np.array(input.shape[1:3])
@@ -57,9 +57,8 @@ def _colored_grayscale_image(outputs, input, **kwargs):
         uv = imresize(uv, scale)
         uv = img_to_array(uv)[..., 1:]
         img = np.concatenate([img[0], uv], axis=-1)
-        img = np.clip(img, 0, 255)
-        ret.append(array_to_img(img, 'YCbCr'))
-    return ret
+        return_img.append(img)
+    return np.stack(return_img)
 
 
 def _to_normalized_image(img, mode):
