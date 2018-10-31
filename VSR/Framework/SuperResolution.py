@@ -17,7 +17,7 @@ from .Trainer import VSR
 
 
 class SuperResolution(Layers):
-    r"""A utility class helps for building SR architectures easily
+    """A utility class helps for building SR architectures easily
 
     Usage:
         Inherit from `SuperResolution` and implement:
@@ -26,7 +26,7 @@ class SuperResolution(Layers):
           >>> build_summary()
           >>> build_saver()
         If you want to export gragh as a protobuf (say model.pb), implement:
-          >>> export_model_pb()
+          >>> export_freeze_model()
         and call its super method at the end
     """
 
@@ -180,7 +180,8 @@ class SuperResolution(Layers):
 
         Args:
             inputs: LR images
-            label: if None, return only predicted outputs; else return outputs along with metrics
+            label: if None, return only predicted outputs;
+              else return outputs along with metrics
             kwargs: for future use
 
         Return:
@@ -213,25 +214,29 @@ class SuperResolution(Layers):
         return tf.get_default_session().run(self.summary_op,
                                             feed_dict=self.feed_dict)
 
-    def export_model_pb(self, export_dir='.', export_name='model.pb', **kwargs):
+    def export_freeze_model(self, export_dir='.', version=1):
         """export model as a constant protobuf.
 
         Unlike saved model, this one is not trainable
 
         Args:
             export_dir: directory to save the exported model
-            export_name: model name
+            version: version of the exported model
         """
 
         self.outputs = tf.identity_n(self.outputs, name='output/hr')
         sess = tf.get_default_session()
+        export_path = Path(export_dir) / str(version)
+        while export_path.exists():
+            version += 1  # step ahead 1 version
+            export_path = Path(export_dir) / str(version)
+        export_path = str(export_path)
         graph = sess.graph.as_graph_def()
         graph = tf.graph_util.remove_training_nodes(graph)
         graph = tf.graph_util.convert_variables_to_constants(
             sess, graph, [outp.name.split(':')[0] for outp in self.outputs])
-        tf.train.write_graph(graph, export_dir, export_name, as_text=False)
-        tf.logging.info(f"Model exported to \
-        [ {Path(export_dir).resolve() / export_name} ].")
+        tf.train.write_graph(graph, export_path, self.name, as_text=False)
+        tf.logging.info(f"Model exported to {export_path}/{self.name}.")
 
     def export_saved_model(self, export_dir='.', version=1):
         """export a saved model
@@ -301,14 +306,16 @@ class SuperResolutionDisc(SuperResolution):
         """Standard Discriminator
 
         Args:
-            input_shape: a tuple of 3 or 4 integers, [H, W, C] or [B, H, W, C], where B can be None
+            input_shape: a tuple of 3 or 4 integers, [H, W, C] or [B, H, W, C],
+              where B can be None
             filters: an integer representing initial filter numbers
             depth: an integer representing layer depth of the discriminator
             dup_layer: a boolean, whether duplicate each layer with strides=1
             activation: override activation function of every layer
             bias: a boolean, whether add bias to each layer
             norm: a string, representing normalization method (BN or SN for now)
-            name: a string specify scope of the discriminator, if None, the default scope is 'SDisc'
+            name: a string specify scope of the discriminator, if None,
+              the default scope is 'SDisc'
 
         Return:
             a callable with reuse flag

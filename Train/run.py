@@ -8,12 +8,16 @@ Improved train/benchmark/infer script
 """
 
 import tensorflow as tf
+from functools import partial
+from pathlib import Path
 
 from VSR.DataLoader.Dataset import load_datasets, Dataset
 from VSR.DataLoader.Loader import QuickLoader
 from VSR.Models import get_model, list_supported_models
 from VSR.Util.Config import Config
-from VSR.Framework.Callbacks import *
+from VSR.Framework.Callbacks import (
+    save_image, to_rgb, to_gray, lr_decay
+)
 
 try:
     from .custom_api import *
@@ -22,7 +26,6 @@ except ImportError:
 
 tf.flags.DEFINE_enum('model', None, list_supported_models(), help="specify a model to use")
 tf.flags.DEFINE_enum('output_color', 'RGB', ('RGB', 'L', 'GRAY', 'Y'), help="specify output color format")
-tf.flags.DEFINE_enum('lr_decay', 'none', ('none', 'auto', 'multistep'), help="learning rate decay schedule")
 tf.flags.DEFINE_integer('epochs', 50, lower_bound=1, help="training epochs")
 tf.flags.DEFINE_integer('steps_per_epoch', 200, lower_bound=1, help="specify steps in every epoch training")
 tf.flags.DEFINE_integer('threads', 1, lower_bound=1, help="number of threads to use while reading data")
@@ -38,6 +41,7 @@ tf.flags.DEFINE_string('memory_limit', None, help="limit the memory usage. i.e. 
 tf.flags.DEFINE_string('comment', None, help="append a postfix string to save dir")
 tf.flags.DEFINE_multi_string('add_custom_callbacks', None, help="")
 tf.flags.DEFINE_bool('export', False, help="whether to export tf model")
+tf.flags.DEFINE_bool('freeze', False, help="whether to export freeze model, ignored if export is False")
 tf.flags.DEFINE_bool('v', False, help="show verbose")
 tf.flags.DEFINE_bool('cifar', False, help="temp use, delete if not need")  # TODO delete me
 
@@ -106,6 +110,8 @@ def init_loader_config(opt):
     if opt.add_custom_callbacks is not None:
         for fn in opt.add_custom_callbacks:
             train_config.feature_callbacks += [globals()[fn]]
+    if opt.lr_decay:
+        train_config.lr_schedule = lr_decay(lr=opt.lr, **opt.lr_decay)
     # modcrop: A boolean to specify whether to crop the edge of images to be divisible
     #          by `scale`. It's useful when to provide batches with original shapes.
     infer_config.modcrop = False
@@ -163,7 +169,7 @@ def main(*args):
         # do inference
         t.infer(infer_loader, infer_config)
         if opt.export:
-            t.export(opt.root + '/exported')
+            t.export(opt.root + '/exported', opt.freeze)
 
 
 def dump(config):

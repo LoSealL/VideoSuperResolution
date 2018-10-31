@@ -23,11 +23,14 @@ Path:
   DIV2K-Pred: DIV2K/DIV2K_valid_LR_bicubic/X4/
   PIRM-SelfVal: PIRM/PIRM_Self-Val_set/HR
   PIRM-Val: PIRM/PIRM_Val_set/LR
-  FlyingChairs: FlyingChairs/data
-  FlyingChairsFlow: FlyingChairs/flow/*.flo
+  # FlyingChairs datasets are split with below file >>
+  # https://lmb.informatik.uni-freiburg.de/resources/datasets/FlyingChairs/FlyingChairs_train_val.txt
+  # but for convenience, all .flo files are put into a separate folder 'flow'
+  FlyingChairs: FlyingChairs/train
+  FlyingChairsVal: FlyingChairs/validate
   MiniFlyingChairs: FlyingChairs/data
-  FlyingChairsVal: FlyingChairs/val
   FlyingChairsTest: FlyingChairs/test
+  FlyingChairsFlow: FlyingChairs/flow/*.flo
 
 Path_Tracked:
   URBAN100: Urban100_SR/image_SRF_4/*HR.*

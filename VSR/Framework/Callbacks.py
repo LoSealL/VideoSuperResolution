@@ -173,16 +173,23 @@ def _gaussian_blur(feature, width, size, **kwargs):
     return np.stack(y)
 
 
-def _exponential_decay(lr, start_lr, epochs, steps, decay_step, decay_rate):
+def _exponential_decay(start_lr, steps, decay_step, decay_rate, **kwargs):
     return start_lr * decay_rate ** (steps / decay_step)
 
 
-def _poly_decay(lr, start_lr, end_lr, epochs, steps, decay_step, power):
+def _poly_decay(start_lr, end_lr, steps, decay_step, power, **kwargs):
     return (start_lr - end_lr) * (1 - steps / decay_step) ** power + end_lr
 
 
-def _stair_decay(lr, start_lr, epochs, steps, decay_step, decay_rate):
+def _stair_decay(start_lr, steps, decay_step, decay_rate, **kwargs):
     return start_lr * decay_rate ** (steps // decay_step)
+
+
+def _multistep_decay(start_lr, steps, decay_step, decay_rate, **kwargs):
+    for n, s in enumerate(decay_step):
+        if steps < s:
+            return start_lr * (decay_rate ** n)
+    return start_lr
 
 
 def _eval_psnr(outputs, label, max_val, name, **kwargs):
@@ -252,8 +259,11 @@ def lr_decay(method, lr, **kwargs):
         return partial(_poly_decay, start_lr=lr, **kwargs)
     elif method == 'stair':
         return partial(_stair_decay, start_lr=lr, **kwargs)
+    elif method == 'multistep':
+        return partial(_multistep_decay, start_lr=lr, **kwargs)
     else:
-        raise ValueError('invalid decay method!')
+        print('invalid decay method!')
+        return None
 
 
 def blur(kernel_width, kernel_size, method='gaussian'):

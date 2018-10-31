@@ -104,7 +104,9 @@ class Trainer:
                 try:
                     saver.restore(sess, str(ckpt))
                 except tf.errors.NotFoundError:
-                    tf.logging.warning('{} of model {} could not be restored'.format(name, self._m.name))
+                    tf.logging.warning(
+                        '{} of model {} could not be restored'.format(
+                            name, self._m.name))
                 last_checkpoint_step = _parse_ckpt_name(ckpt)
         return last_checkpoint_step
 
@@ -125,15 +127,19 @@ class Trainer:
         self._restored = True
         return sess
 
-    def export(self, export_dir='.'):
+    def export(self, export_dir='.', freeze_model=False):
         """Export model as protobuf
 
         Args:
             export_dir: directory to save the exported model
+            freeze_model: freeze all trainable variables
         """
 
         self._restore()
-        self._m.export_saved_model(export_dir)
+        if freeze_model:
+            self._m.export_freeze_model(export_dir)
+        else:
+            self._m.export_saved_model(export_dir)
 
     def fit(self, *args, **kwargs):
         raise NotImplementedError
@@ -172,29 +178,34 @@ class VSR(Trainer):
             return
         tf.logging.info('Fitting: {}'.format(self._m.name.upper()))
         self._m.display()
-        summary_writer = tf.summary.FileWriter(str(self._logd), graph=tf.get_default_graph())
+        summary_writer = tf.summary.FileWriter(str(self._logd),
+                                               graph=tf.get_default_graph())
         train_loader, val_loader = loaders
         global_step = self._m.global_steps.eval()
 
         for epoch in range(self.last_epoch + 1, epochs + 1):
-            train_iter = train_loader.make_one_shot_iterator(memory_usage, shuffle=True)
+            train_iter = train_loader.make_one_shot_iterator(memory_usage,
+                                                             shuffle=True)
             if hasattr(train_loader, 'prefetch'):
                 train_loader.prefetch(memory_usage)
             date = time.strftime('%Y-%m-%d %T', time.localtime())
-            print('| {} | Epoch: {}/{} | LR: {:.2g} |'.format(date, epoch, epochs, lr))
+            print('| {} | Epoch: {}/{} | LR: {:.2g} |'.format(
+                date, epoch, epochs, lr))
             avg_meas = {}
             if lr_schedule and callable(lr_schedule):
-                lr = lr_schedule(lr, epochs=epoch, steps=global_step)
+                lr = lr_schedule(steps=global_step)
             with tqdm.tqdm(train_iter, unit='batch', ascii=True) as r:
                 for label, feature, name in r:
                     for fn in feature_callbacks:
                         feature = fn(feature, name=name)
                     for fn in label_callbacks:
                         label = fn(label, name=name)
-                    loss = self._m.train_batch(feature, label, learning_rate=lr, epochs=epoch)
+                    loss = self._m.train_batch(feature, label, learning_rate=lr,
+                                               epochs=epoch)
                     global_step = self._m.global_steps.eval()
                     for k, v in loss.items():
-                        avg_meas[k] = avg_meas[k] + [v] if avg_meas.get(k) else [v]
+                        avg_meas[k] = \
+                            avg_meas[k] + [v] if avg_meas.get(k) else [v]
                         loss[k] = '{:08.5f}'.format(v)
                     r.set_postfix(loss)
             for k, v in avg_meas.items():
@@ -225,7 +236,8 @@ class VSR(Trainer):
         self._restore()
         it = loader.make_one_shot_iterator()
         if len(it):
-            tf.logging.info('Inferring {} at epoch {}'.format(self._m.name, self.last_epoch))
+            tf.logging.info('Inferring {} at epoch {}'.format(
+                self._m.name, self.last_epoch))
         else:
             return
         # use original images in inferring
@@ -234,7 +246,8 @@ class VSR(Trainer):
                 feature = fn(feature, name=name)
             outputs, _ = self._m.test_batch(feature, None)
             for fn in output_callbacks:
-                outputs = fn(outputs, input=feature, mode=loader.color_format, name=name, subdir=subdir)
+                outputs = fn(outputs, input=feature, mode=loader.color_format,
+                             name=name, subdir=subdir)
 
     def benchmark(self, loader, config, **kwargs):
         """Benchmark/validate the model.
@@ -267,8 +280,8 @@ class VSR(Trainer):
                     mean_metrics[k] = []
                 mean_metrics[k] += [v]
             for fn in output_callbacks:
-                outputs = fn(outputs, input=feature, label=label, mode=loader.color_format,
-                             name=name, subdir=subdir)
+                outputs = fn(outputs, input=feature, label=label,
+                             mode=loader.color_format, name=name, subdir=subdir)
         for k, v in mean_metrics.items():
             print('{}: {:.6f}'.format(k, np.mean(v)), end=', ')
         print('')

@@ -53,16 +53,3 @@ class DnCNN(SuperResolution):
         tf.summary.scalar('loss/mse', self.metrics['mse'])
         tf.summary.scalar('psnr', self.metrics['psnr'])
         tf.summary.scalar('ssim', self.metrics['ssim'])
-
-    def export_model_pb(self, export_dir='.', export_name='model.pb', **kwargs):
-        y_pred = self.outputs[-1]
-        if self.rgba:
-            y_pred = tf.concat([y_pred / 255, self.inputs_preproc[-2]], axis=-1)
-            y_pred = tf.image.yuv_to_rgb(y_pred) * 255
-        else:
-            y_pred = tf.image.grayscale_to_rgb(y_pred)
-        y_pred = tf.cast(tf.clip_by_value(y_pred, 0, 255), tf.uint8)
-        y_pred = tf.concat([y_pred, tf.zeros_like(y_pred)[..., 0:1]], axis=-1, name='output/hr/rgba')
-        self.outputs[-1] = y_pred
-        # tf.get_default_graph().prevent_feeding(self.training_phase)
-        super(DnCNN, self).export_model_pb(export_dir, f'{self.name}.pb', **kwargs)
