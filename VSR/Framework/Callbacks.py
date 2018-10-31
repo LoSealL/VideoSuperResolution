@@ -186,10 +186,13 @@ def _stair_decay(start_lr, steps, decay_step, decay_rate, **kwargs):
 
 
 def _multistep_decay(start_lr, steps, decay_step, decay_rate, **kwargs):
+    if not decay_step:
+        return start_lr
     for n, s in enumerate(decay_step):
-        if steps < s:
+        if steps <= s:
             return start_lr * (decay_rate ** n)
-    return start_lr
+    if steps > decay_step[-1]:
+        return start_lr * (decay_rate ** len(decay_step))
 
 
 def _eval_psnr(outputs, label, max_val, name, **kwargs):
