@@ -73,18 +73,18 @@ def loss_bce_gan(y_real, y_fake):
 
 def loss_relative_bce_gan(y_real, y_fake, average=False):
     """R(A)GAN"""
-
+    bce = tf.losses.sigmoid_cross_entropy
     if average:
-        d_loss = tf.losses.sigmoid_cross_entropy(tf.ones_like(y_real), y_real - tf.reduce_mean(y_fake)) + \
-                 tf.losses.sigmoid_cross_entropy(tf.zeros_like(y_fake), y_fake - tf.reduce_mean(y_real))
+        d_loss = bce(tf.ones_like(y_real), y_real - tf.reduce_mean(y_fake)) + \
+                 bce(tf.zeros_like(y_fake), y_fake - tf.reduce_mean(y_real))
 
-        g_loss = tf.losses.sigmoid_cross_entropy(tf.ones_like(y_fake), y_fake - tf.reduce_mean(y_real)) + \
-                 tf.losses.sigmoid_cross_entropy(tf.zeros_like(y_real), y_real - tf.reduce_mean(y_fake))
+        g_loss = bce(tf.ones_like(y_fake), y_fake - tf.reduce_mean(y_real)) + \
+                 bce(tf.zeros_like(y_real), y_real - tf.reduce_mean(y_fake))
     else:
-        d_loss = tf.losses.sigmoid_cross_entropy(tf.ones_like(y_real), y_real - y_fake) + \
-                 tf.losses.sigmoid_cross_entropy(tf.zeros_like(y_fake), y_fake - y_real)
+        d_loss = bce(tf.ones_like(y_real), y_real - y_fake) + \
+                 bce(tf.zeros_like(y_fake), y_fake - y_real)
 
-        g_loss = tf.losses.sigmoid_cross_entropy(tf.ones_like(y_fake), y_fake - y_real)
+        g_loss = bce(tf.ones_like(y_fake), y_fake - y_real)
     return g_loss, d_loss
 
 
@@ -107,7 +107,8 @@ def gradient_penalty(y_true, y_pred, graph_fn, lamb=10):
     alpha = tf.random_uniform(tf.shape(diff), minval=0., maxval=1.)
     interp = y_true + alpha * diff
     gradients = tf.gradients(graph_fn(interp), [interp])
-    slopes = tf.sqrt(tf.reduce_sum(tf.square(gradients[0]), reduction_indices=[1]))
+    slopes = tf.sqrt(
+        tf.reduce_sum(tf.square(gradients[0]), reduction_indices=[1]))
     gp = tf.reduce_mean((slopes - 1.) ** 2.)
     return lamb * gp
 

@@ -26,15 +26,16 @@ class YV12Decoder(ImageFile.PyDecoder):
             # discard UV channel
             self.set_as_raw(buffer, 'L')
         else:
-            W, H = self.im.size
-            y = np.frombuffer(buffer, 'uint8', count=W * H)
-            u = np.frombuffer(buffer, 'uint8', count=W * H // 4, offset=W * H)
-            v = np.frombuffer(buffer, 'uint8', count=W * H // 4, offset=W * H + W * H // 4)
-            y = np.reshape(y, [H, W])
-            u = np.reshape(u, [H // 2, W // 2])
-            v = np.reshape(v, [H // 2, W // 2])
-            u = u[np.arange(H) // 2][:, np.arange(W) // 2]
-            v = v[np.arange(H) // 2][:, np.arange(W) // 2]
+            w, h = self.im.size
+            y = np.frombuffer(buffer, 'uint8', count=w * h)
+            u = np.frombuffer(buffer, 'uint8', count=w * h // 4, offset=w * h)
+            v = np.frombuffer(
+                buffer, 'uint8', count=w * h // 4, offset=w * h + w * h // 4)
+            y = np.reshape(y, [h, w])
+            u = np.reshape(u, [h // 2, w // 2])
+            v = np.reshape(v, [h // 2, w // 2])
+            u = u[np.arange(h) // 2][:, np.arange(w) // 2]
+            v = v[np.arange(h) // 2][:, np.arange(w) // 2]
             yuv = np.stack([y, u, v], axis=-1)
             self.set_as_raw(yuv.flatten().tobytes())
         return -1, 0
@@ -54,15 +55,16 @@ class YV21Decoder(ImageFile.PyDecoder):
             # discard UV channel
             self.set_as_raw(buffer, 'L')
         else:
-            W, H = self.im.size
-            y = np.frombuffer(buffer, 'uint8', count=W * H)
-            v = np.frombuffer(buffer, 'uint8', count=W * H // 4, offset=W * H)
-            u = np.frombuffer(buffer, 'uint8', count=W * H // 4, offset=W * H + W * H // 4)
-            y = np.reshape(y, [H, W])
-            u = np.reshape(u, [H // 2, W // 2])
-            v = np.reshape(v, [H // 2, W // 2])
-            u = u[np.arange(H) // 2][:, np.arange(W) // 2]
-            v = v[np.arange(H) // 2][:, np.arange(W) // 2]
+            w, h = self.im.size
+            y = np.frombuffer(buffer, 'uint8', count=w * h)
+            v = np.frombuffer(buffer, 'uint8', count=w * h // 4, offset=w * h)
+            u = np.frombuffer(
+                buffer, 'uint8', count=w * h // 4, offset=w * h + w * h // 4)
+            y = np.reshape(y, [h, w])
+            u = np.reshape(u, [h // 2, w // 2])
+            v = np.reshape(v, [h // 2, w // 2])
+            u = u[np.arange(h) // 2][:, np.arange(w) // 2]
+            v = v[np.arange(h) // 2][:, np.arange(w) // 2]
             yuv = np.stack([y, u, v], axis=-1)
             self.set_as_raw(yuv.flatten().tobytes())
         return -1, 0

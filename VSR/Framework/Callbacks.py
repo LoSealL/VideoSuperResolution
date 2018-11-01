@@ -167,7 +167,8 @@ def _gaussian_blur(feature, width, size, **kwargs):
         c = []
         for channel in np.split(img, img.shape[-1]):
             channel = np.squeeze(channel).astype('float')
-            c.append(gf(channel, width, mode='constant', truncate=(size // 2) / width))
+            c.append(gf(channel, width, mode='constant',
+                        truncate=(size // 2) / width))
         y.append(np.stack(c, axis=-1))
     return np.stack(y)
 
@@ -217,7 +218,8 @@ def _image_align(image, scale, **kwargs):
 
 
 def save_image(save_dir='.', output_index=-1, **kwargs):
-    return partial(_save_model_predicted_images, save_dir=save_dir, index=output_index, **kwargs)
+    return partial(_save_model_predicted_images, save_dir=save_dir,
+                   index=output_index, **kwargs)
 
 
 def print_psnr(max_val=255.0):
@@ -251,7 +253,8 @@ def add_noise(sigma, mean=0, clip=False):
 
 
 def add_random_noise(low, high, step=1, mean=0, clip=False):
-    return partial(_add_random_noise, low=low, high=high, step=step, mean=mean, clip=clip)
+    return partial(_add_random_noise, low=low, high=high, step=step, mean=mean,
+                   clip=clip)
 
 
 def lr_decay(method, lr, **kwargs):

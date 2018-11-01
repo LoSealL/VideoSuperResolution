@@ -138,7 +138,8 @@ def crop(image, box):
 
     Args:
         image: an ndarray, of shape [H, W, C] or [B, H, W, C]
-        box: a list of int, representing cropping boundary (left, upper, right, lower)
+        box: a list of int, representing cropping boundary
+          (left, upper, right, lower)
     """
 
     if isinstance(image, np.ndarray):
@@ -220,11 +221,13 @@ def rgb_to_yuv(img, max_val=1.0, standard='bt601'):
 
     There are plenty of rgb2yuv functions in python modules, but here we want to
     make things more clearly.
+
     Usually there are two standards: BT.601 and BT.709. While bt601 is the most
-    widely used (PIL, opencv, matlab's rgb2gray and also in the lovely tf.image),
-    somehow bt709 is not found used in any libs.
-    However, matlab's rgb2ycbcr uses different weights, which come from C.A. Poynton.
-    Most SR papers use matlab's rgb2ycbcr in benchmark, because it gets the highest PSNR :)
+    widely used (PIL, opencv, matlab's rgb2gray and also in the lovely
+    tf.image), somehow bt709 is not found used in any libs.
+    However, matlab's rgb2ycbcr uses different weights, which come from
+    C.A. Poynton. Most SR papers use matlab's rgb2ycbcr in benchmark,
+    because it gets the highest PSNR :)
 
     Args:
          img: a 3-D numpy array. If `dtype=uint8`, it ranges from [0, 255], if
@@ -241,7 +244,8 @@ def rgb_to_yuv(img, max_val=1.0, standard='bt601'):
     """ matrix used in matlab
       yuv = _T * rgb + _Tbias
     """
-    _T = np.array([[65.481, 128.553, 24.966], [-37.797, -74.203, 112], [112, -93.786, -18.214]], dtype=np.float32)
+    _T = np.array([[65.481, 128.553, 24.966], [-37.797, -74.203, 112],
+                   [112, -93.786, -18.214]], dtype=np.float32)
     _Tbias = np.array([16, 128, 128], dtype=np.float32)
     _T /= 255
     _Tbias /= 255
@@ -307,6 +311,7 @@ def tf_random_crop_batch_image(image, batch, shape, seed=None, name=None):
 
     with tf.name_scope('RandomCropBatchImage'):
         image = tf.expand_dims(image, 0)
-        op = tf.random_crop(image, [1, shape[0], shape[1], shape[2]], seed, name)
+        op = tf.random_crop(image, [1, shape[0], shape[1], shape[2]], seed,
+                            name)
         image = tf.tile(op, [batch, 1, 1, 1])
     return image

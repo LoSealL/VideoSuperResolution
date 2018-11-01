@@ -18,7 +18,9 @@ import copy
 from psutil import virtual_memory
 
 from .VirtualFile import RawFile, ImageFile, _ALLOWED_RAW_FORMAT
-from ..Util import ImageProcess, Utility
+from ..Util.ImageProcess import (
+    crop, imresize, shrink_to_multiple_scale, array_to_img)
+from ..Util import Utility
 from ..Util.Config import Config
 
 
@@ -47,7 +49,8 @@ class EpochIterator:
 
     Args:
         loader: A `BasicLoader` or `QuickLoader` to provide properties.
-        grids: A list of tuple, commonly returned from `BasicLoader._generate_crop_grid`.
+        grids: A list of tuple, commonly returned from
+          `BasicLoader._generate_crop_grid`.
     """
 
     def __init__(self, loader, grids):
@@ -71,10 +74,11 @@ class EpochIterator:
         while self.grids and len(batch_hr) < self.batch:
             hr, lr, box, name = self.grids.pop(0)
             box = np.array(box, 'int32')
+            box_lr = box // [*self.scale, *self.scale]
             if self.loader.method == 'train':
                 assert (np.mod(box, [*self.scale, *self.scale]) == 0).all()
-            crop_hr = [ImageProcess.crop(img, box) for img in hr]
-            crop_lr = [ImageProcess.crop(img, box // [*self.scale, *self.scale]) for img in lr]
+            crop_hr = [crop(img, box) for img in hr]
+            crop_lr = [crop(img, box_lr) for img in lr]
             ops = np.random.randint(0, 2, [3]) if self.aug else [0, 0, 0]
             clip_hr = [_augment(img, ops) for img in crop_hr]
             clip_lr = [_augment(img, ops) for img in crop_lr]
@@ -100,12 +104,12 @@ class BasicLoader:
 
     Args:
         dataset: A `Dataset` to load by this loader.
-        method: A string in ('train', 'val', 'test') specifies which subset to use
-          in the dataset. Also 'train' set will shuffle buffers each epoch.
-        config: A `Config` class, including 'batch', 'depth', 'patch_size', 'scale',
-           'steps_per_epoch' and 'convert_to' arguments.
-        augmentation: A boolean to specify whether call `_augment` to batches. `_augment`
-          will randomly flip or rotate images.
+        method: A string in ('train', 'val', 'test') specifies which subset to
+          use in the dataset. Also 'train' set will shuffle buffers each epoch.
+        config: A `Config` class, including 'batch', 'depth', 'patch_size',
+          'scale', 'steps_per_epoch' and 'convert_to' arguments.
+        augmentation: A boolean to specify whether call `_augment` to batches.
+          `_augment` will randomly flip or rotate images.
         kwargs: override config key-values.
     """
 
@@ -122,7 +126,8 @@ class BasicLoader:
         elif config.convert_to.lower() in ('rgb',):
             self.color_format = 'RGB'
         else:
-            tf.logging.warning(f'Unknown format {config.convert_to}, use grayscale by default')
+            tf.logging.warning(
+                f'Unknown format {config.convert_to}, use grayscale by default')
             self.color_format = 'L'
         self.loaded = 0
         self.free_memory_on_start = virtual_memory().free
@@ -132,11 +137,13 @@ class BasicLoader:
     def _parse_config(self, config, **kwargs):
         assert isinstance(config, Config)
         config.update(kwargs)
-        _needed_args = ('batch', 'depth', 'scale', 'steps_per_epoch', 'convert_to', 'modcrop')
+        _needed_args = ('batch', 'depth', 'scale',
+                        'steps_per_epoch', 'convert_to', 'modcrop')
         for _arg in _needed_args:
+            # Set default and check values
             if _arg not in config:
                 if _arg in ('batch', 'scale'):
-                    raise ValueError(_arg + ' is required in config, but not found.')
+                    raise ValueError(_arg + ' is required in config.')
                 elif _arg == 'depth':
                     config.depth = 1
                 elif _arg == 'steps_per_epoch':
@@ -159,7 +166,8 @@ class BasicLoader:
             if self.flow:
                 # map flow
                 flow = {f.stem: f for f in self.flow}
-                self.file_objects = [ImageFile(fp).attach_flow(flow[fp.stem]) for fp in self.file_names]
+                self.file_objects = [ImageFile(fp).attach_flow(flow[fp.stem])
+                                     for fp in self.file_names]
             else:
                 self.file_objects = [ImageFile(fp) for fp in self.file_names]
         elif dataset.mode.upper() in _ALLOWED_RAW_FORMAT:
@@ -167,18 +175,18 @@ class BasicLoader:
                 RawFile(fp, dataset.mode, (dataset.width, dataset.height))
                 for fp in self.file_names]
         elif dataset.mode.lower() == 'numpy':
-            # already loaded numpy array, in case anyone want to use external loaders
-            # dataset.train can be a 4-D or 5-D ndarray
+            """already loaded numpy array, in case anyone want to use 
+            external loaders dataset.train can be a 4-D or 5-D ndarray"""
             tf.logging.debug('reading numpy array')
             data = self.file_names[0]  # trick
             if isinstance(data, np.ndarray):
                 if data.ndim == 4:
                     for hr in data:
-                        img_hr = [ImageProcess.array_to_img(hr, 'RGB')]
+                        img_hr = [array_to_img(hr, 'RGB')]
                         self.frames.append((img_hr, img_hr, dataset.name))
                 if data.ndim == 5:
                     for hr in data:
-                        img_hr = [ImageProcess.array_to_img(x, 'RGB') for x in hr]
+                        img_hr = [array_to_img(x, 'RGB') for x in hr]
                         self.frames.append((img_hr, img_hr, dataset.name))
                 self.loaded = 1
                 self.file_objects = []
@@ -230,9 +238,10 @@ class BasicLoader:
 
     def _vf_gen_lr_hr_pair(self, vf, depth, index):
         vf.seek(index)
-        frames_hr = [ImageProcess.shrink_to_multiple_scale(img, self.scale)
+        frames_hr = [shrink_to_multiple_scale(img, self.scale)
                      if self.modcrop else img for img in vf.read_frame(depth)]
-        frames_lr = [ImageProcess.imresize(img, np.ones(2) / self.scale) for img in frames_hr]
+        frames_lr = [imresize(img, np.reciprocal(self.scale))
+                     for img in frames_hr]
         frames_hr = [img.convert(self.color_format) for img in frames_hr]
         frames_lr = [img.convert(self.color_format) for img in frames_lr]
         return frames_hr, frames_lr, (vf.name, index, vf.frames)
@@ -244,11 +253,12 @@ class BasicLoader:
         return img, [vf.flow], (vf.name, index, vf.frames)
 
     def _process_at_file(self, vf, clips=1):
-        """load frames of `File` into memory, crop and generate corresponded LR frames.
+        """load frames of `File` into memory, crop and generate corresponded
+         LR frames.
 
         Args:
             vf: A `File` object.
-            clips: an int scalar to specify how many clips to generate from `vf`.
+            clips: an integer to specify how many clips to generate from `vf`.
 
         Return:
             List of Tuple: containing (HR, LR, name) respectively
@@ -280,8 +290,9 @@ class BasicLoader:
             shuffle: a boolean, whether to shuffle the outputs.
 
         Return:
-            list of tuple: containing (HR, LR, box, name) respectively, where HR and LR
-              are reference frames, box is a list of 4 int of crop coordinates.
+            list of tuple: containing (HR, LR, box, name) respectively,
+              where HR and LR are reference frames, box is a list of 4
+              int of crop coordinates.
         """
         if not frames:
             tf.logging.warning('frames is empty. [size={}]'.format(size))
@@ -315,7 +326,8 @@ class BasicLoader:
                 y = np.zeros([amount])
             x -= x % self.scale[0]
             y -= y % self.scale[1]
-            grids += [(hr, lr, [_x, _y, _x + _pw, _y + _ph], name) for _x, _y in zip(x, y)]
+            grids += [(hr, lr, [_x, _y, _x + _pw, _y + _ph], name)
+                      for _x, _y in zip(x, y)]
         if shuffle:
             np.random.shuffle(grids)
         return grids
@@ -327,7 +339,8 @@ class BasicLoader:
         if self.flow:
             bpp += 8  # two more float channel
         # NOTE use uint64 to prevent sum overflow
-        return np.sum([np.prod((*vf.shape, vf.frames, bpp), dtype=np.uint64) for vf in self.file_objects])
+        return np.sum([np.prod((*vf.shape, vf.frames, bpp), dtype=np.uint64)
+                       for vf in self.file_objects])
 
     def __len__(self):
         """length of a BasicLoader is defined as the total frames in Dataset"""
@@ -339,16 +352,18 @@ class BasicLoader:
         return self
 
     def _prefetch(self, memory_usage=None, shard=1, index=0):
-        """Prefetch `size` files and load into memory. Specify `shard` will divide
-        loading files into `shard` shards in order to execute in parallel.
+        """Prefetch `size` files and load into memory. Specify `shard` will
+        divide loading files into `shard` shards in order to execute in
+        parallel.
 
         NOTE: parallelism is implemented via `QuickLoader`
 
         Args:
-            memory_usage: desired virtual memory to use, could be int (in bytes) or
-              a readable string (i.e. '3GB', '1TB'). Default to use all available
+            memory_usage: desired virtual memory to use, could be int (bytes) or
+              a readable string ('3GB', '1TB'). Default to use all available
               memories.
-            shard: an int scalar to specify the number of shards operating in parallel.
+            shard: an int scalar to specify the number of shards operating in
+              parallel.
             index: an int scalar, representing shard index
         """
 
@@ -359,7 +374,8 @@ class BasicLoader:
             memory_usage = Utility.str_to_bytes(memory_usage)
         if not memory_usage:
             memory_usage = self.free_memory_on_start
-        memory_usage = np.min([np.uint64(memory_usage), self.free_memory_on_start])
+        memory_usage = np.min(
+            [np.uint64(memory_usage), self.free_memory_on_start])
         capacity = self.size
         frames = []
         tf.logging.debug('memory limit: ' + str(memory_usage))
@@ -370,12 +386,14 @@ class BasicLoader:
                 for file in self.file_objects[index * interval:]:
                     frames += self._process_at_file(file, file.frames)
             else:
-                for file in self.file_objects[index * interval:(index + 1) * interval]:
+                for file in self.file_objects[
+                            index * interval:(index + 1) * interval]:
                     frames += self._process_at_file(file, file.frames)
             self.frames += frames
             self.loaded |= (1 << index)
         else:
-            prop = memory_usage / capacity / shard * 0.8  # 0.8 is a scale factor
+            scale_factor = 0.8
+            prop = memory_usage / capacity / shard * scale_factor
             size = int(np.round(len(self) * prop))
             for file, amount in self._random_select(size).items():
                 frames += self._process_at_file(copy.deepcopy(file), amount)
@@ -385,16 +403,17 @@ class BasicLoader:
         """make an `EpochIterator` to enumerate batches of the dataset
 
         Args:
-            memory_usage: desired virtual memory to use, could be int (in bytes) or
-              a readable string (i.e. '3GB', '1TB'). Default to use all available
+            memory_usage: desired virtual memory to use, could be int (bytes) or
+              a readable string ('3GB', '1TB'). Default to use all available
               memories.
             shuffle: A boolean whether to shuffle the patch grids.
 
-        Return:
+        Returns:
             An EpochIterator
         """
         self._prefetch(memory_usage, 1, 0)
-        grids = self._generate_crop_grid(self.frames, self.patches_per_epoch, shuffle=shuffle)
+        grids = self._generate_crop_grid(self.frames, self.patches_per_epoch,
+                                         shuffle=shuffle)
         return EpochIterator(self, grids)
 
 
@@ -402,41 +421,46 @@ class QuickLoader(BasicLoader):
     """Async data loader with high efficiency.
 
     `QuickLoader` concurrently pre-fetches clips into memory every n iterations,
-    and provides several methods to select clips. `QuickLoader` won't loads all files
-    in the dataset into memory if your memory isn't enough.
+    and provides several methods to select clips. `QuickLoader` won't loads all
+    files in the dataset into memory if your memory isn't enough.
 
-    NOTE: A clip is a bunch of consecutive frames, which can represent either a dynamic
-    video or single image.
+    NOTE: A clip is a bunch of consecutive frames, which can represent either a
+    dynamic video or single image.
 
     Args:
         dataset: A `Dataset` to load by this loader.
-        method: A string in ('train', 'val', 'test') specifies which subset to use
-          in the dataset. Also 'train' set will shuffle buffers each epoch.
-        config: A `Config` class, including 'batch', 'depth', 'patch_size', 'scale',
-           'steps_per_epoch' and 'convert_to' arguments.
-        augmentation: A boolean to specify whether call `_augment` to batches. `_augment`
-          will randomly flip or rotate images.
+        method: A string in ('train', 'val', 'test') specifies which subset to
+          use in the dataset. Also 'train' set will shuffle buffers each epoch.
+        config: A `Config` class, including 'batch', 'depth', 'patch_size',
+          'scale', 'steps_per_epoch' and 'convert_to' arguments.
+        augmentation: A boolean to specify whether call `_augment` to batches.
+          `_augment` will randomly flip or rotate images.
         n_threads: number of threads to load dataset
         kwargs: override config key-values.
     """
 
-    def __init__(self, dataset, method, config, augmentation=False, n_threads=1, **kwargs):
+    def __init__(self, dataset, method, config, augmentation=False, n_threads=1,
+                 **kwargs):
         self.shard = n_threads
         self.threads = []
-        super(QuickLoader, self).__init__(dataset, method, config, augmentation, **kwargs)
+        super(QuickLoader, self).__init__(dataset, method, config, augmentation,
+                                          **kwargs)
 
     def prefetch(self, memory_usage=None):
         """Prefetch data.
 
-        This call will spawn threads of `_prefetch` and returns immediately. The next call
-        of `make_one_shot_iterator` will join all the threads. If this is not called in advance,
-        data will be fetched at `make_one_shot_iterator`.
-
-        Note: call `prefetch` twice w/o `make_one_shot_iterator` is undefined behaviour.
+        This call will spawn threads of `_prefetch` and returns immediately.
+        The next call of `make_one_shot_iterator` will join all the threads.
+        If this is not called in advance, data will be fetched at
+        `make_one_shot_iterator`.
 
         Args:
-            memory_usage: desired virtual memory to use, could be int (in bytes) or
-              a readable string (i.e. '3GB', '1TB'). Default to use all available memories.
+            memory_usage: desired virtual memory to use, could be int (bytes) or
+              a readable string ('3GB', '1TB'). Default to use all available
+              memories.
+
+        Note: call `prefetch` twice w/o `make_one_shot_iterator` is
+          undefined behaviour.
         """
         for i in range(self.shard):
             t = th.Thread(target=self._prefetch,
@@ -447,21 +471,22 @@ class QuickLoader(BasicLoader):
 
     def make_one_shot_iterator(self, memory_usage=None, shuffle=False):
         """make an `EpochIterator` to enumerate batches of the dataset. Specify
-        `shard` will divide loading files into `shard` shards in order to execute
-        in parallel.
+        `shard` will divide loading files into `shard` shards in order to
+        execute in parallel.
 
         Args:
-            memory_usage: desired virtual memory to use, could be int (in bytes) or
-              a readable string (i.e. '3GB', '1TB'). Default to use all available memories.
+            memory_usage: desired virtual memory to use, could be int (bytes) or
+              a readable string ('3GB', '1TB'). Default to use all available
+              memories.
             shuffle: A boolean whether to shuffle the patch grids.
 
         Return:
             An EpochIterator
 
         Known issues:
-            If data of either shard is too large (i.e. use 1 shard and total frames
-            is around 6GB in my machine), windows Pipe may broke and `get()` never
-            returns.
+            If data of either shard is too large (i.e. use 1 shard and total
+            frames is around 6GB in my machine), windows Pipe may broke and
+            `get()` never returns.
         """
 
         if not self.threads:
@@ -470,5 +495,6 @@ class QuickLoader(BasicLoader):
             t.join()
         self.threads.clear()
         # reduce
-        grids = self._generate_crop_grid(self.frames, self.patches_per_epoch, shuffle=shuffle)
+        grids = self._generate_crop_grid(self.frames, self.patches_per_epoch,
+                                         shuffle=shuffle)
         return EpochIterator(self, grids)

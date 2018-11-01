@@ -27,12 +27,12 @@ class NV12Decoder(ImageFile.PyDecoder):
             # discard UV channel
             self.set_as_raw(buffer, 'L')
         else:
-            W, H = self.im.size
-            y = np.frombuffer(buffer, 'uint8', count=W * H)
-            uv = np.frombuffer(buffer, 'uint8', count=W * H // 2, offset=W * H)
-            y = np.reshape(y, [H, W, 1])
-            uv = np.reshape(uv, [H // 2, W // 2, 2])
-            uv = uv[np.arange(H) // 2][:, np.arange(W) // 2]
+            w, h = self.im.size
+            y = np.frombuffer(buffer, 'uint8', count=w * h)
+            uv = np.frombuffer(buffer, 'uint8', count=w * h // 2, offset=w * h)
+            y = np.reshape(y, [h, w, 1])
+            uv = np.reshape(uv, [h // 2, w // 2, 2])
+            uv = uv[np.arange(h) // 2][:, np.arange(w) // 2]
             yuv = np.concatenate([y, uv], axis=-1)
             self.set_as_raw(yuv.flatten().tobytes())
         return -1, 0
@@ -52,12 +52,12 @@ class NV21Decoder(ImageFile.PyDecoder):
             # discard UV channel
             self.set_as_raw(buffer, 'L')
         else:
-            W, H = self.im.size
-            y = np.frombuffer(buffer, 'uint8', count=W * H)
-            vu = np.frombuffer(buffer, 'uint8', count=W * H // 2, offset=W * H)
-            y = np.reshape(y, [H, W, 1])
-            vu = np.reshape(vu, [H // 2, W // 2, 2])
-            vu = vu[np.arange(H) // 2][:, np.arange(W) // 2]
+            w, h = self.im.size
+            y = np.frombuffer(buffer, 'uint8', count=w * h)
+            vu = np.frombuffer(buffer, 'uint8', count=w * h // 2, offset=w * h)
+            y = np.reshape(y, [h, w, 1])
+            vu = np.reshape(vu, [h // 2, w // 2, 2])
+            vu = vu[np.arange(h) // 2][:, np.arange(w) // 2]
             uv = vu[:, :, ::-1]
             yuv = np.concatenate([y, uv], axis=-1)
             self.set_as_raw(yuv.flatten().tobytes())

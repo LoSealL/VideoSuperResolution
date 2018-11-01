@@ -24,8 +24,9 @@ class Dataset(Config):
         val: a list of file path, representing validation set.
         test: a list of file path, representing test set.
         infer: a list of file path, representing infer set.
-        mode: a string representing data format. 'pil-image' for formatted image,
-          or ('YV12', 'NV12', 'RGB', 'BGR'...) for raw data. See `VirtualFile._ALLOWED_RAW_FORMAT`
+        mode: a string representing data format. 'pil-image' for formatted
+          image, or ('YV12', 'NV12', 'RGB', 'BGR'...) for raw data.
+          See `VirtualFile._ALLOWED_RAW_FORMAT`
         flow: a list of file path representing optical flow files
     """
 
@@ -40,7 +41,8 @@ class Dataset(Config):
             return self[item]
         except KeyError:
             if item in ('train', 'val', 'test', 'infer',):
-                print(f'[WARNING] The {item} files is empty! Check your configurations.')
+                import tensorflow as tf
+                tf.logging.debug(f'The {item} files is empty!')
                 return []
             return None
 
@@ -104,5 +106,5 @@ def load_datasets(describe_file):
         for name, path in config["Path_Tracked"].items():
             if name not in datasets:
                 datasets[name] = Dataset(name=name)
-                setattr(datasets[name], 'test', _glob_absolute_pattern(root / path))
+                datasets[name].test = _glob_absolute_pattern(root / path)
     return datasets

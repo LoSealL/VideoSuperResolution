@@ -30,7 +30,8 @@ def _grid_norm(width, height, bounds=(-1.0, 1.0)):
           >>>  grid = np.vstack([x_t.flatten(), y_t.flatten(), ones])
     """
     x_t = tf.matmul(tf.ones(shape=tf.stack([height, 1])),
-                    tf.transpose(tf.expand_dims(tf.linspace(*bounds, width), 1), [1, 0]))
+                    tf.transpose(tf.expand_dims(
+                        tf.linspace(*bounds, width), 1), [1, 0]))
     y_t = tf.matmul(tf.expand_dims(tf.linspace(*bounds, height), 1),
                     tf.ones(shape=tf.stack([1, width])))
 
