@@ -240,7 +240,7 @@ class BasicLoader:
         vf.seek(index)
         frames_hr = [shrink_to_multiple_scale(img, self.scale)
                      if self.modcrop else img for img in vf.read_frame(depth)]
-        frames_lr = [imresize(img, np.reciprocal(self.scale))
+        frames_lr = [imresize(img, np.reciprocal(self.scale, dtype='float32'))
                      for img in frames_hr]
         frames_hr = [img.convert(self.color_format) for img in frames_hr]
         frames_lr = [img.convert(self.color_format) for img in frames_lr]
