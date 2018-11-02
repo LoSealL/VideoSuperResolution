@@ -111,6 +111,8 @@ def init_loader_config(opt):
     if opt.add_custom_callbacks is not None:
         for fn in opt.add_custom_callbacks:
             train_config.feature_callbacks += [globals()[fn]]
+            benchmark_config.feature_callbacks += [globals()[fn]]
+            infer_config.feature_callbacks += [globals()[fn]]
     if opt.lr_decay:
         train_config.lr_schedule = lr_decay(lr=opt.lr, **opt.lr_decay)
     # modcrop: A boolean to specify whether to crop the edge of images to be divisible
