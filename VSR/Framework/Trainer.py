@@ -166,7 +166,7 @@ class VSR(Trainer):
         self.v.epochs = config.epochs  # total epochs
         self.v.lr = config.lr  # learning rate
         self.v.lr_schedule = config.lr_schedule
-        self.v.memory_usage = config.memory_limit
+        self.v.memory_limit = config.memory_limit
         self.v.feature_callbacks = config.feature_callbacks or []
         self.v.label_callbacks = config.label_callbacks or []
         self.v.output_callbacks = config.output_callbacks or []
@@ -194,9 +194,9 @@ class VSR(Trainer):
     def fn_train_each_epoch(self):
         v = self.v
         train_iter = v.train_loader.make_one_shot_iterator(
-            v.memory_usage, shuffle=True)
+            v.memory_limit, shuffle=True)
         if hasattr(v.train_loader, 'prefetch'):
-            v.train_loader.prefetch(v.memory_usage)
+            v.train_loader.prefetch(v.memory_limit)
         date = time.strftime('%Y-%m-%d %T', time.localtime())
         v.avg_meas = {}
         if v.lr_schedule and callable(v.lr_schedule):
@@ -258,7 +258,7 @@ class VSR(Trainer):
 
     def fn_benchmark_body(self):
         v = self.v
-        it = v.loader.make_one_shot_iterator(v.memory_usage, shuffle=False)
+        it = v.loader.make_one_shot_iterator(v.memory_limit, shuffle=False)
         for label, feature, name in tqdm.tqdm(it, 'Test', ascii=True):
             self.fn_benchmark_each_step(label, feature, name)
 
