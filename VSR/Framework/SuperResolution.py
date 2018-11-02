@@ -141,9 +141,9 @@ class SuperResolution(Layers):
         return mse, loss
 
     def build_summary(self):
-        # the pure abstract method
-        raise NotImplementedError('DO NOT use base SuperResolution directly! \
-        Use inheriting models instead.')
+        """summary scalars in metrics"""
+        for k, v in self.metrics.items():
+            tf.summary.scalar(k, v)
 
     def train_batch(self, feature, label, learning_rate=1e-4, **kwargs):
         """training one batch one step.

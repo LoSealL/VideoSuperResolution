@@ -153,6 +153,119 @@ class Trainer:
 
 class VSR(Trainer):
     """Default trainer for task SISR or VSR"""
+    v = Config()  # local variables
+    """=======================================
+        components, sub-functions, helpers
+       =======================================
+    """
+
+    def query_config(self, config, **kwargs) -> Config:
+        assert isinstance(config, Config)
+        config.update(kwargs)  # override parameters
+        self.v.epoch = config.epoch  # current epoch
+        self.v.epochs = config.epochs  # total epochs
+        self.v.lr = config.lr  # learning rate
+        self.v.lr_schedule = config.lr_schedule
+        self.v.memory_usage = config.memory_limit
+        self.v.feature_callbacks = config.feature_callbacks or []
+        self.v.label_callbacks = config.label_callbacks or []
+        self.v.output_callbacks = config.output_callbacks or []
+        self.v.validate_every_n_epoch = config.validate_every_n_epoch or 1
+        self.v.subdir = config.subdir
+        return self.v
+
+    def fit_init(self) -> bool:
+        v = self.v
+        v.sess = self._restore()
+        if self.last_epoch >= v.epochs:
+            return False
+        tf.logging.info('Fitting: {}'.format(self._m.name.upper()))
+        self._m.display()
+        v.summary_writer = tf.summary.FileWriter(
+            str(self._logd), graph=tf.get_default_graph())
+        v.global_step = self._m.global_steps.eval()
+        return True
+
+    def fit_close(self):
+        # flush all pending summaries to disk
+        if self.v.summary_writer:
+            self.v.summary_writer.close()
+
+    def fn_train_each_epoch(self):
+        v = self.v
+        train_iter = v.train_loader.make_one_shot_iterator(
+            v.memory_usage, shuffle=True)
+        if hasattr(v.train_loader, 'prefetch'):
+            v.train_loader.prefetch(v.memory_usage)
+        date = time.strftime('%Y-%m-%d %T', time.localtime())
+        v.avg_meas = {}
+        if v.lr_schedule and callable(v.lr_schedule):
+            v.lr = v.lr_schedule(steps=v.global_step)
+        print('| {} | Epoch: {}/{} | LR: {:.2g} |'.format(
+            date, v.epoch, v.epochs, v.lr))
+        with tqdm.tqdm(train_iter, unit='batch', ascii=True) as r:
+            for label, feature, name in r:
+                self.fn_train_each_step(label, feature, name)
+                r.set_postfix(v.loss)
+        for _k, _v in v.avg_meas.items():
+            print('| Epoch average {} = {:.6f} |'.format(_k, np.mean(_v)))
+
+        if v.epoch % v.validate_every_n_epoch == 0:
+            self.benchmark(v.val_loader, v, epoch=v.epoch)
+            v.summary_writer.add_summary(self._m.summary(), v.global_step)
+            self._save_model(v.sess, v.epoch)
+
+    def fn_train_each_step(self, label=None, feature=None, name=None):
+        v = self.v
+        for fn in v.feature_callbacks:
+            feature = fn(feature, name=name)
+        for fn in v.label_callbacks:
+            label = fn(label, name=name)
+        loss = self._m.train_batch(feature, label, learning_rate=v.lr,
+                                   epochs=v.epoch)
+        v.global_step = self._m.global_steps.eval()
+        for _k, _v in loss.items():
+            v.avg_meas[_k] = \
+                v.avg_meas[_k] + [_v] if v.avg_meas.get(_k) else [_v]
+            loss[_k] = '{:08.5f}'.format(_v)
+        v.loss = loss
+
+    def fn_infer_each_step(self, label=None, feature=None, name=None):
+        v = self.v
+        origin_feat = feature
+        for fn in v.feature_callbacks:
+            feature = fn(feature, name=name)
+        outputs, _ = self._m.test_batch(feature, None)
+        for fn in v.output_callbacks:
+            outputs = fn(outputs, input=origin_feat, name=name,
+                         subdir=v.subdir, mode=v.color_format)
+
+    def fn_benchmark_each_step(self, label=None, feature=None, name=None):
+        v = self.v
+        origin_feat = feature
+        for fn in v.feature_callbacks:
+            feature = fn(feature, name=name)
+        for fn in v.label_callbacks:
+            label = fn(label, name=name)
+        outputs, metrics = self._m.test_batch(feature, label, epochs=v.epoch)
+        for _k, _v in metrics.items():
+            if _k not in v.mean_metrics:
+                v.mean_metrics[_k] = []
+            v.mean_metrics[_k] += [_v]
+        for fn in v.output_callbacks:
+            outputs = fn(outputs, input=origin_feat, label=label, name=name,
+                         mode=v.color_format, subdir=v.subdir)
+
+    def fn_benchmark_body(self):
+        v = self.v
+        it = v.loader.make_one_shot_iterator(v.memory_usage, shuffle=False)
+        for label, feature, name in tqdm.tqdm(it, 'Test', ascii=True):
+            self.fn_benchmark_each_step(label, feature, name)
+
+    """=======================================
+        Interface: fit, benchmark, infer
+       =======================================
+    """
 
     def fit(self, loaders, config, **kwargs):
         """Fit the model.
@@ -163,61 +276,14 @@ class VSR(Trainer):
             config: fitting configuration, an instance of `Util.Config.Config`
             kwargs: additional arguments to override the same ones in config.
         """
-        assert isinstance(config, Config)
-        config.update(kwargs)
-        epochs = config.epochs
-        lr = config.lr
-        lr_schedule = config.lr_schedule
-        memory_usage = config.memory_limit
-        feature_callbacks = config.feature_callbacks or []
-        label_callbacks = config.label_callbacks or []
-        validate_every_n_epoch = config.validate_every_n_epoch or 1
-
-        sess = self._restore()
-        if self.last_epoch >= epochs:
+        v = self.query_config(config, **kwargs)
+        v.train_loader, v.val_loader = loaders
+        if not self.fit_init():
             return
-        tf.logging.info('Fitting: {}'.format(self._m.name.upper()))
-        self._m.display()
-        summary_writer = tf.summary.FileWriter(str(self._logd),
-                                               graph=tf.get_default_graph())
-        train_loader, val_loader = loaders
-        global_step = self._m.global_steps.eval()
-
-        for epoch in range(self.last_epoch + 1, epochs + 1):
-            train_iter = train_loader.make_one_shot_iterator(memory_usage,
-                                                             shuffle=True)
-            if hasattr(train_loader, 'prefetch'):
-                train_loader.prefetch(memory_usage)
-            date = time.strftime('%Y-%m-%d %T', time.localtime())
-            avg_meas = {}
-            if lr_schedule and callable(lr_schedule):
-                lr = lr_schedule(steps=global_step)
-            print('| {} | Epoch: {}/{} | LR: {:.2g} |'.format(
-                date, epoch, epochs, lr))
-            with tqdm.tqdm(train_iter, unit='batch', ascii=True) as r:
-                for label, feature, name in r:
-                    for fn in feature_callbacks:
-                        feature = fn(feature, name=name)
-                    for fn in label_callbacks:
-                        label = fn(label, name=name)
-                    loss = self._m.train_batch(feature, label, learning_rate=lr,
-                                               epochs=epoch)
-                    global_step = self._m.global_steps.eval()
-                    for k, v in loss.items():
-                        avg_meas[k] = \
-                            avg_meas[k] + [v] if avg_meas.get(k) else [v]
-                        loss[k] = '{:08.5f}'.format(v)
-                    r.set_postfix(loss)
-            for k, v in avg_meas.items():
-                print('| Epoch average {} = {:.6f} |'.format(k, np.mean(v)))
-
-            if epoch % validate_every_n_epoch:
-                continue
-            self.benchmark(val_loader, config, epoch=epoch)
-            summary_writer.add_summary(self._m.summary(), global_step)
-            self._save_model(sess, epoch)
-        # flush all pending summaries to disk
-        summary_writer.close()
+        for epoch in range(self.last_epoch + 1, v.epochs + 1):
+            v.epoch = epoch
+            self.fn_train_each_epoch()
+        self.fit_close()
 
     def infer(self, loader, config, **kwargs):
         """Infer SR images.
@@ -227,11 +293,8 @@ class VSR(Trainer):
             config: inferring configuration, an instance of `Util.Config.Config`
             kwargs: additional arguments to override the same ones in config.
         """
-        assert isinstance(config, Config)
-        config.update(kwargs)
-        subdir = config.subdir
-        feature_callbacks = config.feature_callbacks or []
-        output_callbacks = config.output_callbacks or []
+        v = self.query_config(config, **kwargs)
+        v.color_format = loader.color_format
 
         self._restore()
         it = loader.make_one_shot_iterator()
@@ -242,13 +305,7 @@ class VSR(Trainer):
             return
         # use original images in inferring
         for feature, _, name in tqdm.tqdm(it, 'Infer', ascii=True):
-            origin_feat = feature
-            for fn in feature_callbacks:
-                feature = fn(feature, name=name)
-            outputs, _ = self._m.test_batch(feature, None)
-            for fn in output_callbacks:
-                outputs = fn(outputs, input=origin_feat, name=name,
-                             subdir=subdir, mode=loader.color_format)
+            self.fn_infer_each_step(None, feature, name)
 
     def benchmark(self, loader, config, **kwargs):
         """Benchmark/validate the model.
@@ -258,32 +315,13 @@ class VSR(Trainer):
             config: benchmark configuration, an instance of `Util.Config.Config`
             kwargs: additional arguments to override the same ones in config.
         """
-        assert isinstance(config, Config)
-        config.update(kwargs)
-        epoch = config.epoch
-        memory_usage = config.memory_limit
-        subdir = config.subdir
-        feature_callbacks = config.feature_callbacks or []
-        label_callbacks = config.label_callbacks or []
-        output_callbacks = config.output_callbacks or []
+        v = self.query_config(config, **kwargs)
+        v.color_format = loader.color_format
 
         self._restore()
-        it = loader.make_one_shot_iterator(memory_usage, shuffle=False)
-        mean_metrics = {}
-        for label, feature, name in tqdm.tqdm(it, 'Test', ascii=True):
-            origin_feat = feature
-            for fn in feature_callbacks:
-                feature = fn(feature, name=name)
-            for fn in label_callbacks:
-                label = fn(label, name=name)
-            outputs, metrics = self._m.test_batch(feature, label, epochs=epoch)
-            for k, v in metrics.items():
-                if k not in mean_metrics:
-                    mean_metrics[k] = []
-                mean_metrics[k] += [v]
-            for fn in output_callbacks:
-                outputs = fn(outputs, input=origin_feat, label=label, name=name,
-                             mode=loader.color_format, subdir=subdir)
-        for k, v in mean_metrics.items():
-            print('{}: {:.6f}'.format(k, np.mean(v)), end=', ')
+        v.mean_metrics = {}
+        v.loader = loader
+        self.fn_benchmark_body()
+        for _k, _v in v.mean_metrics.items():
+            print('{}: {:.6f}'.format(_k, np.mean(_v)), end=', ')
         print('')

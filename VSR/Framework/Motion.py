@@ -163,7 +163,24 @@ def _move(image, x, y):
     return tf.add_n([p00, p01, p10, p11])
 
 
-def warp(image, u, v, additive_warp=False, normalized=False):
+def warp(image, u, v, additive_warp=True, normalized=False):
+    """warp the image with flow(u, v)
+
+    If flow=[u, v], representing motion from img1 to img2
+    then `warp(img2, u, v)->img1~`
+
+    Args:
+         image: a 4-D tensor [B, H, W, C], images to warp
+         u: horizontal motion vectors of optical flow
+         v: vertical motion vectors of optical flow
+         additive_warp: a boolean, if False, regard [u, v]
+           as destination coordinate rather than motion
+           vectors.
+         normalized: a boolean, if True, regard [u, v] as
+         [-1, 1] and scaled to [-W, W], [-H, H] respectively.
+
+    Note: usually nobody uses a normalized optical flow...
+    """
     shape = tf.shape(image)
     B, H, W = shape[0], shape[1], shape[2]
 
