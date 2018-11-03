@@ -71,3 +71,22 @@ def chessboard(inputs, **kwargs):
 def noisy(inputs, **kwargs):
     shape = inputs.shape
     return np.random.normal(0, 1, shape)
+
+
+def shave(inputs, **kwargs):
+    h, w = inputs.shape[-3:-1]
+    h_mod = h - h % 64
+    w_mod = w - w % 64
+    return inputs[..., :h_mod, :w_mod, :]
+
+
+def pad(inputs, **kwargs):
+    h, w = inputs.shape[-3:-1]
+    ph = 64 - h % 64
+    pw = 64 - w % 64
+    if ph == 64: ph = 0
+    if pw == 64: pw = 0
+    ph = [ph // 2, ph - ph // 2]
+    pw = [pw // 2, pw - pw // 2]
+    inputs = np.pad(inputs, [[0, 0], [0, 0], ph, pw, [0, 0]], 'edge')
+    return inputs
