@@ -235,18 +235,48 @@ class Vgg:
 
     def __init__(self, include_top=False, input_shape=None, type='vgg19'):
         with tf.variable_scope('VGG'):
+            from tensorflow.keras import utils as keras_utils
             if np.size(input_shape) > 3:
                 input_shape = input_shape[-3:]
             elif np.size(input_shape) < 3:
                 raise ValueError('input shape must be [H, W, 3]')
             if type == 'vgg16':
+                if include_top:
+                    from keras_applications.vgg16 import WEIGHTS_PATH as w_16
+                    self.weights_path = keras_utils.get_file(
+                        'vgg16_weights_tf_dim_ordering_tf_kernels.h5',
+                        w_16,
+                        cache_subdir='models',
+                        file_hash='64373286793e3c8b2b4e3219cbf3544b')
+                else:
+                    from keras_applications.vgg16 import WEIGHTS_PATH_NO_TOP as w_16_notop
+                    self.weights_path = keras_utils.get_file(
+                        'vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5',
+                        w_16_notop,
+                        cache_subdir='models',
+                        file_hash='6d6bbae143d832006294945121d1f1fc')
                 self._m = tf.keras.applications.vgg16.VGG16(
                     include_top=include_top, input_shape=tuple(input_shape))
             elif type == 'vgg19':
+                if include_top:
+                    from keras_applications.vgg19 import WEIGHTS_PATH as w_19
+                    self.weights_path = keras_utils.get_file(
+                        'vgg19_weights_tf_dim_ordering_tf_kernels.h5',
+                        w_19,
+                        cache_subdir='models',
+                        file_hash='cbe5617147190e668d6c5d5026f83318')
+                else:
+                    from keras_applications.vgg19 import WEIGHTS_PATH_NO_TOP as w_19_notop
+                    self.weights_path = keras_utils.get_file(
+                        'vgg19_weights_tf_dim_ordering_tf_kernels_notop.h5',
+                        w_19_notop,
+                        cache_subdir='models',
+                        file_hash='253f8cb515780f3b799900260a226db6')
                 self._m = tf.keras.applications.vgg19.VGG19(
                     include_top=include_top, input_shape=tuple(input_shape))
             self._vgg_mean = [103.939, 116.779, 123.68]
             self.include_top = include_top
+            self.model = None
 
     def __call__(self, x, *args, **kwargs):
         return self.call(x, *args, **kwargs)
@@ -277,8 +307,17 @@ class Vgg:
                 outputs.append(layer.output)
             if not outputs:
                 outputs = self._m.outputs
-            m = tf.keras.Model(self._m.input, outputs, name='VGG')
-            return m(x)
+            self.model = tf.keras.Model(self._m.input, outputs, name='VGG')
+            return self.model(x)
+
+    def restore(self, *args, **kwargs):
+        sess = tf.get_default_session()
+        if sess is None:
+            raise RuntimeError('No session initialized')
+        self.model.load_weights(self.weights_path)
+
+    def save(self, *args, **kwargs):
+        pass
 
     def _normalize(self, x, yuv_to_rgb_convert):
         if yuv_to_rgb_convert:

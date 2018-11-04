@@ -74,6 +74,9 @@ class Trainer:
         sess.__enter__()
         self.savers = self._m.savers
         sess.run(tf.global_variables_initializer())
+        # TODO temp work around for vgg
+        if 'vgg' in self.savers:
+            self.savers['vgg'].restore()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):

@@ -43,13 +43,10 @@ class SRGAN(SuperResolutionDisc):
         self.vgg_layer = to_list(vgg_layer, 2)
         self.use_vgg = use_vgg
         self.vgg = None
-        self.D = self.standard_d([patch_size, patch_size, self.channel], 64, dlayers,
-                                 norm='BN', dup_layer=True, name='Critic')
-
-    def compile(self):
         if self.use_vgg:
             self.vgg = Vgg(input_shape=[None, None, 3], type='vgg19')
-        return super(SRGAN, self).compile()
+        self.D = self.standard_d([patch_size, patch_size, self.channel], 64, dlayers,
+                                 norm='BN', dup_layer=True, name='Critic')
 
     @staticmethod
     def _normalize(x):
@@ -126,7 +123,8 @@ class SRGAN(SuperResolutionDisc):
         var_g = tf.trainable_variables(self.name) + tf.model_variables(self.name)
         self.savers.update({
             'Critic': tf.train.Saver(var_d, max_to_keep=1),
-            'Gen': tf.train.Saver(var_g, max_to_keep=1)
+            'Gen': tf.train.Saver(var_g, max_to_keep=1),
+            'vgg': self.vgg
         })
 
     def train_batch(self, feature, label, learning_rate=1e-4, **kwargs):
