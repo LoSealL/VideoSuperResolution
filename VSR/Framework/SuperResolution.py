@@ -30,7 +30,7 @@ class SuperResolution(Layers):
         and call its super method at the end
     """
 
-    def __init__(self, scale, channel, weight_decay=1e-4, **kwargs):
+    def __init__(self, scale, channel, weight_decay=0, **kwargs):
         """Common initialize parameters
 
         Args:
