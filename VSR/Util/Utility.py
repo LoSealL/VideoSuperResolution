@@ -137,7 +137,8 @@ def bicubic_rescale(img, scale):
         # tf.logging.warning(
         #     "tf.image.resize_bicubic behaves quite differently to PIL.Image.resize, " +
         #     "even if align_corners is enabled or not")
-        return tf.image.resize_area(img, shape_enlarge[1:3], align_corners=False)
+        return tf.image.resize_area(img, shape_enlarge[1:3],
+                                    align_corners=False)
 
 
 def prelu(x, initialize=0, name=None, scope='PReLU'):
@@ -155,7 +156,8 @@ def gaussian_kernel(kernel_size, width):
     kernel_size = np.asarray(to_list(kernel_size, 2), np.int32)
     kernel_size = kernel_size - kernel_size % 2
     half_ksize = kernel_size // 2
-    x, y = np.mgrid[-half_ksize[0]:half_ksize[0] + 1, -half_ksize[1]:half_ksize[1] + 1]
+    x, y = np.mgrid[-half_ksize[0]:half_ksize[0] + 1,
+           -half_ksize[1]:half_ksize[1] + 1]
     kernel = np.exp(-(x ** 2 + y ** 2) / 2 * width) / (2 * np.pi * width ** 2)
     return kernel / kernel.sum()
 
@@ -175,7 +177,8 @@ def imfilter(image, kernel, name=None):
             _m.append(tf.concat(t, -1))
         _k = tf.concat(_m, -2)
         _k = tf.cast(_k, dtype=image.dtype)
-        return tf.nn.conv2d(image, _k, strides=[1, 1, 1, 1], padding='SAME', name=name)
+        return tf.nn.conv2d(image, _k, strides=[1, 1, 1, 1], padding='SAME',
+                            name=name)
 
 
 def pixel_norm(images, epsilon=1.0e-8, scale=1.0, bias=0):
@@ -194,7 +197,8 @@ def pixel_norm(images, epsilon=1.0e-8, scale=1.0, bias=0):
       A 4D `Tensor` with pixel-wise normalized channels.
     """
     return images * scale * tf.rsqrt(
-        tf.reduce_mean(tf.square(images), axis=3, keepdims=True) + epsilon) + bias
+        tf.reduce_mean(tf.square(images), axis=3,
+                       keepdims=True) + epsilon) + bias
 
 
 def color_consistency(feature, label, lambd=5):
@@ -203,13 +207,17 @@ def color_consistency(feature, label, lambd=5):
     See: https://arxiv.org/abs/1710.10916
     """
 
-    m1, m2 = tf.reduce_mean(feature, [1, 2], True), tf.reduce_mean(label, [1, 2], True)
-    B, H, W, C = tf.shape(feature)[0], tf.shape(feature)[1], tf.shape(feature)[2], tf.shape(feature)[3]
+    m1, m2 = tf.reduce_mean(feature, [1, 2], True), tf.reduce_mean(label,
+                                                                   [1, 2], True)
+    B, H, W, C = tf.shape(feature)[0], tf.shape(feature)[1], tf.shape(feature)[
+        2], tf.shape(feature)[3]
     f_hat = tf.reshape(feature - m1, [B, -1, C])
     l_hat = tf.reshape(label - m2, [B, -1, C])
     c1 = tf.matmul(f_hat, f_hat, True) / tf.cast(H * W, tf.float32)
     c2 = tf.matmul(l_hat, l_hat, True) / tf.cast(H * W, tf.float32)
-    cc = tf.losses.mean_squared_error(m1, m2) + tf.losses.mean_squared_error(c1, c2, lambd)
+    cc = tf.losses.mean_squared_error(m1, m2) + tf.losses.mean_squared_error(c1,
+                                                                             c2,
+                                                                             lambd)
     return cc
 
 
@@ -226,6 +234,66 @@ def summary_tensor_image(x, name, shape):
     split each channel and form a huge image
     """
     raise NotImplementedError
+
+
+def _make_vector(x, patch=3, stride=1):
+    """[B, H, W, C]->[B, H, W, c*k1*k2]"""
+    k1, k2 = to_list(patch, 2)
+    h, w = tf.shape(x)[1], tf.shape(x)[2]
+    padded_x = tf.pad(x, [[0, 0], [k1 // 2] * 2, [k2 // 2] * 2, [0, 0]])
+    vec = []
+    for i in range(k1):
+        for j in range(k2):
+            vec.append(padded_x[:, i:i + h:stride, j:j + w:stride, :])
+    return tf.concat(vec, axis=-1)
+
+
+def _make_displacement(x, patch=3, max_dis=1, stride1=1, stride2=1):
+    """[B, H, W, C]->[B, H, W, V, d*d]"""
+    k1, k2 = to_list(patch, 2)
+    d1, d2 = to_list(max_dis, 2)
+    h, w = tf.shape(x)[1], tf.shape(x)[2]
+    padding = [[0, 0], [k1 // 2 + d1] * 2, [k2 // 2 + d2] * 2, [0, 0]]
+    padded_x = tf.pad(x, padding)
+    disp = []
+    vec = []
+    for i in range(0, 2 * d1 + 1, stride2):
+        for j in range(0, 2 * d2 + 1, stride2):
+            for k in range(k1):
+                for l in range(k2):
+                    vec.append(padded_x[
+                               :,
+                               i + k:i + k + h:stride1,
+                               j + l:j + l + w:stride1,
+                               :])
+            disp.append(tf.concat(vec, -1))
+            vec.clear()
+    return tf.stack(disp, axis=-1)
+
+
+def correlation(f1, f2, patch, max_displacement, stride1=1, stride2=1):
+    """calculate correlation between feature map "f1" and "f2".
+    See "FlowNet: Learning Optical Flow with Convolutional Networks" for
+    details.
+
+    Args:
+        f1: a 4-D tensor with shape [B, H, W, C]
+        f2: a 4-D tensor with shape [B, H, W, C]
+        patch: an integer or a list like [k1, k2], window size for comparison
+        max_displacement: an integer, representing the max searching distance
+        stride1: stride for patch
+        stride2: stride for displacement
+
+    Returns:
+        a 4-D correlation tensor with shape [B, H, W, d*d]
+    """
+    channel = f1.shape[-1]
+    norm = channel * (max_displacement * 2 + 1) ** 2
+    v1 = _make_vector(f1, patch, stride1)
+    v1 = tf.expand_dims(v1, -2)
+    v2 = _make_displacement(f2, patch, max_displacement, stride1, stride2)
+    corr = tf.matmul(v1, v2) / tf.to_float(norm)
+    return tf.squeeze(corr, axis=-2)
 
 
 class Vgg:
@@ -249,7 +317,8 @@ class Vgg:
                         cache_subdir='models',
                         file_hash='64373286793e3c8b2b4e3219cbf3544b')
                 else:
-                    from keras_applications.vgg16 import WEIGHTS_PATH_NO_TOP as w_16_notop
+                    from keras_applications.vgg16 import \
+                        WEIGHTS_PATH_NO_TOP as w_16_notop
                     self.weights_path = keras_utils.get_file(
                         'vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5',
                         w_16_notop,
@@ -266,7 +335,8 @@ class Vgg:
                         cache_subdir='models',
                         file_hash='cbe5617147190e668d6c5d5026f83318')
                 else:
-                    from keras_applications.vgg19 import WEIGHTS_PATH_NO_TOP as w_19_notop
+                    from keras_applications.vgg19 import \
+                        WEIGHTS_PATH_NO_TOP as w_19_notop
                     self.weights_path = keras_utils.get_file(
                         'vgg19_weights_tf_dim_ordering_tf_kernels_notop.h5',
                         w_19_notop,
@@ -417,7 +487,8 @@ class SpectralNorm(tf.keras.constraints.Constraint):
             w = tf.reshape(w, [-1, w_shape[-1]])
             u = tf.get_variable(
                 'u', [1, w_shape[-1]],
-                collections=[tf.GraphKeys.MODEL_VARIABLES, tf.GraphKeys.GLOBAL_VARIABLES],
+                collections=[tf.GraphKeys.MODEL_VARIABLES,
+                             tf.GraphKeys.GLOBAL_VARIABLES],
                 initializer=tf.truncated_normal_initializer(),
                 trainable=False)
             u_hat = u
