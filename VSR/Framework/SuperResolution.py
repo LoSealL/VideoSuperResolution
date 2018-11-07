@@ -283,7 +283,6 @@ class SuperResolutionDisc(SuperResolution):
 
     @staticmethod
     def _view(inputs, input_shape):
-        input_shape = np.asarray(input_shape, dtype='int32').tolist()
         input_shape = list(input_shape)
         if len(input_shape) == 3:
             input_shape.insert(0, -1)
