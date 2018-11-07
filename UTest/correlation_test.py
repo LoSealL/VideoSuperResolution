@@ -29,3 +29,13 @@ def test_correlation():
         [[7, 7.1, 7.2], [8, 8.1, 8.2], [9, 9.1, 9.2]]
     ]], 'float32')
     return correlation(x, x, 3, 1)
+
+
+def test_correlation_stride():
+    x = tf.ones([1, 5, 5, 1], 'float32')
+    return correlation(x, x, 3, 2, 2, 2)
+
+
+if __name__ == '__main__':
+    tf.enable_eager_execution()
+    test_correlation_stride()

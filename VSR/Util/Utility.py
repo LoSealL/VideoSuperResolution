@@ -288,7 +288,7 @@ def correlation(f1, f2, patch, max_displacement, stride1=1, stride2=1):
         a 4-D correlation tensor with shape [B, H, W, d*d]
     """
     channel = f1.shape[-1]
-    norm = channel * (max_displacement * 2 + 1) ** 2
+    norm = np.prod(to_list(patch, 2) + [channel])
     v1 = _make_vector(f1, patch, stride1)
     v1 = tf.expand_dims(v1, -2)
     v2 = _make_displacement(f2, patch, max_displacement, stride1, stride2)
