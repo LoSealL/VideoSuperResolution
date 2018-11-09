@@ -345,17 +345,16 @@ class SuperResolutionDisc(SuperResolution):
 
         return critic
 
-    def project_d(self, input_shape, filters, depth, dup_layer=False,
-                  extract_layer=None,
-                  activation='lrelu', bias=True, norm=None, name='ProjDisc'):
+    def project_d(self, input_shape, filters_in, filters_out,
+                  extract_layer=None, norm=None,
+                  activation='lrelu', bias=True, name='ProjDisc'):
         """Projection Discriminator
 
         Args:
             input_shape: a tuple of 3 or 4 integers, [H, W, C] or [B, H, W, C],
               where B can be None
-            filters: an integer representing initial filter numbers
-            depth: an integer representing layer depth of the discriminator
-            dup_layer: a boolean, whether duplicate each layer with strides=1
+            filters_in: an integer representing initial filter numbers
+            filters_out: an integer representing max filter numbers
             extract_layer: an integer or None, combine which layer's output
               with linear output
             activation: override activation function of every layer
@@ -367,40 +366,48 @@ class SuperResolutionDisc(SuperResolution):
         Return:
             a callable with reuse flag
         """
-        bn = np.any([word in norm for word in ('bn', 'batch')])
-        sn = np.any([word in norm for word in ('sn', 'spectral')])
+        if norm:
+            bn = np.any([word in norm for word in ('bn', 'batch')])
+            sn = np.any([word in norm for word in ('sn', 'spectral')])
+        else:
+            bn = sn = False
 
         def critic(inputs, conditions=None):
             with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
                 x, has_shape = self._view(inputs, input_shape)
                 if not has_shape:
                     raise ValueError('Input shape must be specified!')
-                f = filters
-                x = self.conv2d(x, f, 3, activation=activation, use_sn=sn,
-                                use_batchnorm=bn, use_bias=bias)
-                for i in range(depth):
-                    x = self.resblock(x, f, 3, activation=activation,
-                                      use_bias=bias, placement='front',
-                                      use_sn=sn, use_batchnorm=bn)
+                f = filters_in
+                kwargs = dict(activation=activation,
+                              use_sn=sn,
+                              use_batchnorm=bn,
+                              use_bias=bias)
+
+                for i in range(extract_layer):
+                    x = self.resblock(x, f, 3, placement='front', **kwargs)
                     x = tf.layers.average_pooling2d(x, 2, 2)
-                    if dup_layer:
-                        x = self.resblock(x, f, 3, activation=activation,
-                                          use_bias=bias, placement='front',
-                                          use_sn=sn, use_batchnorm=bn)
-                    if extract_layer == i + 1:
-                        phi = x
+                    x = self.resblock(x, f, 3, placement='front', **kwargs)
                     f *= 2
-                x = tf.layers.flatten(x)
-                x = tf.layers.dense(x, 1024, activation=self._act(activation),
-                                    use_bias=bias)
-                x = tf.layers.dense(x, 1, use_bias=bias)
-                if conditions is not None and extract_layer:
-                    phi = self.conv2d(phi, self.channel, 3, use_sn=sn,
+                phi = 0
+                if conditions is not None:
+                    phi = self.conv2d(x, self.channel, 3, use_sn=sn,
                                       use_batchnorm=bn, use_bias=bias)
                     phi = tf.layers.flatten(phi)
                     phi = tf.matmul(phi, tf.layers.flatten(conditions),
                                     transpose_b=True)
-                    return x + phi
-                return x
+                while f <= filters_out:
+                    x = self.resblock(x, f, 3, placement='front', **kwargs)
+                    x = tf.layers.average_pooling2d(x, 2, 2)
+                    f *= 2
+                x = self.resblock(x, filters_out, 3,
+                                  placement='front', **kwargs)
+                x = self._act(activation)(x)
+                if has_shape:
+                    x = tf.layers.flatten(x)
+                    x = self.dense(x, 1024, use_sn=sn, use_bias=bias)
+                else:
+                    x = tf.reduce_sum(x, axis=[1, 2])
+                x = self.dense(x, 1, use_sn=sn, use_bias=bias)
+                return x + phi
 
         return critic

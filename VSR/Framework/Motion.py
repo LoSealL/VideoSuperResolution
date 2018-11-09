@@ -199,6 +199,14 @@ def warp(image, u, v, additive_warp=True, normalized=False):
     return _sample(image, u, v)
 
 
+def epe(label, predict):
+    """End-point error of optical flow"""
+    ux, vx = predict[..., 0], predict[..., 1]
+    uy, vy = label[..., 0], label[..., 1]
+    diff = tf.squared_difference(ux, uy) + tf.squared_difference(vx, vy)
+    return tf.sqrt(diff, name='EPE')
+
+
 def viz_flow(flow):
     """Visualize optical flow in TF"""
     from .Callbacks import _color_wheel
