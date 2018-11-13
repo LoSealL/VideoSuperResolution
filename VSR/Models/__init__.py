@@ -30,6 +30,7 @@ exp = {
     'lapgan': ('Exp.LapGAN', 'LapGAN'),
     'lapres': ('Exp.LapRes', 'LapRes'),
     'flownets': ('Exp.FlowNet', 'FlowNetS'),
+    'frvsr': ('Exp.Frvsr', 'FRVSR'),
     'evsr': ('Exp.Flow', 'EVSR'),
     'duf': ('Exp.Duf', 'DUF'),
     'sgan': ('Exp.Gan', 'StdGAN'),

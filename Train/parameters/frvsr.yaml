@@ -1,0 +1,8 @@
+frvsr:
+    l1_weight: 1
+    flow_weight: 10
+    scale: 4
+    channel: 3
+
+depth: 10
+batch: 16
