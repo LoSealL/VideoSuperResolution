@@ -5,43 +5,49 @@ Email: wenyi.tang@intel.com
 Created Date: May 12th 2018
 Updated Date: May 25th 2018
 
-Spatial transformer motion compensation model
+Efficient Sub-Pixel Convolutional Neural Network
 Ref https://arxiv.org/abs/1609.05158
 """
 from ..Framework.SuperResolution import SuperResolution
-from ..Util import Utility
-
+from ..Util.Utility import to_list
 import tensorflow as tf
-import numpy as np
 
 
 class ESPCN(SuperResolution):
+    """Efficient Sub-Pixel Convolutional Neural Network.
 
-    def __init__(self, scale, layers=3, name='espcn', **kwargs):
-        self.layers = layers
+    Args:
+        layers: layer number of the network
+        filters: a tuple of integer, representing each layer's filters
+        kernel: a tuple of integer, representing each layer's kernel size
+    """
+
+    def __init__(self, layers=3, filters=(64, 32, 32), kernel=(5, 3, 3),
+                 name='espcn', **kwargs):
+        super(ESPCN, self).__init__(**kwargs)
         self.name = name
-        super(ESPCN, self).__init__(scale=scale, **kwargs)
+        self.layers = layers
+        self.filters = to_list(filters, layers)
+        self.kernel_size = to_list(kernel, layers)
+        if len(self.kernel_size) < self.layers:
+            self.kernel_size += to_list(
+                kernel[-1], self.layers - len(self.kernel_size))
 
     def build_graph(self):
         super(ESPCN, self).build_graph()
         with tf.variable_scope(self.name):
-            x = self.inputs_preproc[-1] / 255.0
-            x = self.tanh_conv2d(x, 64, 5)
-            for _ in range(1, self.layers - 1):
-                x = self.tanh_conv2d(x, 32, 3)
-            x = self.upscale(x)
-            self.outputs.append(x * 255.0)
+            x = self.inputs_preproc[-1] / 127.5 - 1
+            for f, k in zip(self.filters, self.kernel_size):
+                x = self.tanh_conv2d(x, f, k)
+            x = self.upscale(x, 'espcn', direct_output=True)
+            self.outputs.append((x + 1) * 127.5)
 
     def build_loss(self):
         with tf.name_scope('loss'):
             mse, loss = super(ESPCN, self).build_loss()
             self.train_metric['loss'] = loss
             self.metrics['mse'] = mse
-            self.metrics['psnr'] = tf.reduce_mean(tf.image.psnr(self.label[-1], self.outputs[-1], max_val=255))
-            self.metrics['ssim'] = tf.reduce_mean(tf.image.ssim(self.label[-1], self.outputs[-1], max_val=255))
-
-    def build_summary(self):
-        tf.summary.scalar('training_loss', self.train_metric['loss'])
-        tf.summary.scalar('loss/mse', self.metrics['mse'])
-        tf.summary.scalar('psnr', self.metrics['psnr'])
-        tf.summary.scalar('ssim', self.metrics['ssim'])
+            self.metrics['psnr'] = tf.reduce_mean(
+                tf.image.psnr(self.label[-1], self.outputs[-1], max_val=255))
+            self.metrics['ssim'] = tf.reduce_mean(
+                tf.image.ssim(self.label[-1], self.outputs[-1], max_val=255))
