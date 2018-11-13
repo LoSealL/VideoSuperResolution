@@ -1,6 +1,6 @@
 from importlib import import_module
-from . import (Srcnn, Espcn, Dcscn, DnCnn, Vdsr, Drcn, Drrn, LapSrn, MemNet, Edsr,
-               Idn, Rdn, Dbpn, Carn, Rcan, SrGan, Vespcn)
+from . import (Srcnn, Espcn, Dcscn, DnCnn, Vdsr, Drcn, Drrn, LapSrn, MemNet,
+               Edsr, Idn, Rdn, Dbpn, Carn, Rcan, SrGan, Vespcn)
 
 __all__ = ['get_model', 'list_supported_models']
 
@@ -29,11 +29,11 @@ exp = {
     # name: (package, class)
     'lapgan': ('Exp.LapGAN', 'LapGAN'),
     'lapres': ('Exp.LapRes', 'LapRes'),
-    'pwc': ('Exp.PWC', 'PWC'),
     'flownets': ('Exp.FlowNet', 'FlowNetS'),
     'evsr': ('Exp.Flow', 'EVSR'),
     'duf': ('Exp.Duf', 'DUF'),
     'sgan': ('Exp.Gan', 'StdGAN'),
+    'gangp': ('Exp.Gan', 'GANGP'),
     'lsgan': ('Exp.Gan', 'LSGAN'),
     'wgan': ('Exp.Gan', 'WGAN'),
     'wgangp': ('Exp.Gan', 'WGANGP'),

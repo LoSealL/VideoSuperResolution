@@ -319,8 +319,11 @@ class SuperResolutionDisc(SuperResolution):
         Return:
             a callable with reuse flag
         """
-        bn = np.any([word in norm for word in ('bn', 'batch')])
-        sn = np.any([word in norm for word in ('sn', 'spectral')])
+        if norm:
+            bn = np.any([word in norm for word in ('bn', 'batch')])
+            sn = np.any([word in norm for word in ('sn', 'spectral')])
+        else:
+            bn = sn = False
 
         def critic(inputs, conditions=None):
             with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
@@ -335,9 +338,8 @@ class SuperResolutionDisc(SuperResolution):
                     f *= 2
                 if has_shape:
                     x = tf.layers.flatten(x)
-                    x = self.dense(x, 1024, use_sn=sn,
-                                   activation=self._act(activation),
-                                   use_bias=bias)
+                    x = self.dense(x, 1024, use_sn=sn, use_bias=bias,
+                                   activation=self._act(activation))
                 else:
                     x = tf.reduce_sum(x, [1, 2])
                 x = self.dense(x, 1, use_bias=bias, use_sn=sn)
@@ -375,8 +377,6 @@ class SuperResolutionDisc(SuperResolution):
         def critic(inputs, conditions=None):
             with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
                 x, has_shape = self._view(inputs, input_shape)
-                if not has_shape:
-                    raise ValueError('Input shape must be specified!')
                 f = filters_in
                 kwargs = dict(activation=activation,
                               use_sn=sn,
@@ -409,5 +409,40 @@ class SuperResolutionDisc(SuperResolution):
                     x = tf.reduce_sum(x, axis=[1, 2])
                 x = self.dense(x, 1, use_sn=sn, use_bias=bias)
                 return x + phi
+
+        return critic
+
+    def feature_d(self, input_shape, filters_in, filters_out,
+                  extract_layer=None, norm=None,
+                  activation='lrelu', bias=True, name='FeatDisc'):
+        if norm:
+            bn = np.any([word in norm for word in ('bn', 'batch')])
+            sn = np.any([word in norm for word in ('sn', 'spectral')])
+        else:
+            bn = sn = False
+
+        def critic(inputs, conditions=None):
+            with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+                x, has_shape = self._view(inputs, input_shape)
+                f = filters_in
+                kwargs = dict(activation=activation,
+                              use_sn=sn,
+                              use_batchnorm=bn,
+                              use_bias=bias)
+                feat = None
+                while f <= filters_out:
+                    x = self.conv2d(x, f, 4, **kwargs)
+                    x = self.conv2d(x, f, 4, 2, **kwargs)
+                    if f // filters_in == extract_layer:
+                        feat = x
+                    f *= 2
+                if has_shape:
+                    x = tf.layers.flatten(x)
+                    x = self.dense(x, 1024, use_sn=sn, use_bias=bias,
+                                   activation=self._act(activation))
+                else:
+                    x = tf.reduce_sum(x, [1, 2])
+                x = self.dense(x, 1, use_bias=bias, use_sn=sn)
+                return x, feat
 
         return critic
