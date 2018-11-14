@@ -10,6 +10,8 @@ for generative adversarial networks
 
 import tensorflow as tf
 
+_INCEPTION_BATCH = 50
+
 
 def _preprocess_for_inception(images):
     """Preprocess images for inception.
@@ -44,10 +46,11 @@ def fid_score(real_image, gen_image):
         real_image: must be 4-D tensor, ranges from [0, 255]
         gen_image: must be 4-D tensor, ranges from [0, 255]
     """
+    batches = real_image.shape[0]
     fid = tf.contrib.gan.eval.frechet_inception_distance(
         real_images=_preprocess_for_inception(real_image),
         generated_images=_preprocess_for_inception(gen_image),
-        num_batches=1)
+        num_batches=(batches + _INCEPTION_BATCH - 1) // _INCEPTION_BATCH)
     return fid
 
 
@@ -57,8 +60,10 @@ def inception_score(images):
     Args:
         images: must be 4-D tensor, ranges from [0, 255]
     """
+    batches = images.shape[0]
     return tf.contrib.gan.eval.inception_score(
-        images=_preprocess_for_inception(images), num_batches=1)
+        images=_preprocess_for_inception(images),
+        num_batches=(batches + _INCEPTION_BATCH - 1) // _INCEPTION_BATCH)
 
 
 def loss_bce_gan(y_real, y_fake):
@@ -118,7 +123,7 @@ def loss_lsgan(y_real, y_fake):
 
     d_loss = tf.reduce_mean((y_real - 1) ** 2) + tf.reduce_mean(y_fake ** 2)
     g_loss = tf.reduce_mean((y_fake - 1) ** 2)
-    return g_loss, d_loss
+    return g_loss * 0.5, d_loss * 0.5
 
 
 def loss_relative_lsgan(y_real, y_fake, average=False):
