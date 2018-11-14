@@ -54,16 +54,20 @@ def fid_score(real_image, gen_image):
     return fid
 
 
-def inception_score(images):
+def inception_score(images, num_batches=None):
     """IS function from tf.contrib
 
     Args:
         images: must be 4-D tensor, ranges from [0, 255]
+        num_batches: Number of batches to split `generated_images` in to in
+          order to efficiently run them through the classifier network.
     """
     batches = images.shape[0]
+    if not num_batches:
+        num_batches = (batches + _INCEPTION_BATCH - 1) // _INCEPTION_BATCH
     return tf.contrib.gan.eval.inception_score(
         images=_preprocess_for_inception(images),
-        num_batches=(batches + _INCEPTION_BATCH - 1) // _INCEPTION_BATCH)
+        num_batches=num_batches)
 
 
 def loss_bce_gan(y_real, y_fake):
