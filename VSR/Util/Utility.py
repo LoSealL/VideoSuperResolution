@@ -481,29 +481,31 @@ class SpectralNorm(tf.keras.constraints.Constraint):
         self.pi = iteration
 
     def __call__(self, w):
-        scope = w.op.name + '/snorm'
+        scope = w.op.name.replace(':', '') + '/snorm'
         with tf.variable_scope(scope):
             w_shape = w.shape.as_list()
             w = tf.reshape(w, [-1, w_shape[-1]])
             u = tf.get_variable(
-                'u', [1, w_shape[-1]],
+                'u',
+                shape=(w_shape[0], 1),
+                dtype=w.dtype,
                 collections=[tf.GraphKeys.MODEL_VARIABLES,
                              tf.GraphKeys.GLOBAL_VARIABLES],
-                initializer=tf.truncated_normal_initializer(),
+                initializer=tf.random_normal_initializer(),
                 trainable=False)
             u_hat = u
             v_hat = None
             for i in range(self.pi):
                 # power iteration
-                v_ = tf.matmul(u_hat, tf.transpose(w))
-                v_hat = v_ / tf.norm(v_, 2)
-                u_ = tf.matmul(v_hat, w)
-                u_hat = u_ / tf.norm(u_, 2)
-
-            sigma = tf.matmul(tf.matmul(v_hat, w), tf.transpose(u_hat))
+                v_hat = tf.nn.l2_normalize(tf.matmul(tf.transpose(w), u_hat),
+                                           axis=None, epsilon=1e-12)
+                u_hat = tf.nn.l2_normalize(tf.matmul(w, v_hat),
+                                           axis=None, epsilon=1e-12)
+            u_hat = tf.stop_gradient(u_hat)
+            v_hat = tf.stop_gradient(v_hat)
+            sigma = tf.matmul(tf.matmul(tf.transpose(u_hat), w), v_hat)
             w_norm = w / sigma
-            with tf.control_dependencies([u.assign(u_hat)]):
-                w_norm = tf.reshape(w_norm, w_shape)
+            w_norm = tf.reshape(w_norm, w_shape)
             return w_norm
 
     def get_config(self):
