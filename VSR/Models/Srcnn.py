@@ -36,7 +36,7 @@ class SRCNN(SuperResolution):
         super(SRCNN, self).build_graph()
         with tf.variable_scope(self.name):
             x = self.inputs_preproc[-1]
-            x = bicubic_rescale(x, self.scale)
+            # x = bicubic_rescale(x, self.scale)
             f = self.filters
             ks = self.kernel_size
             x = self.relu_conv2d(x, f, ks[0])

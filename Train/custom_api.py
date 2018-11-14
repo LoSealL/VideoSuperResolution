@@ -90,3 +90,21 @@ def pad(inputs, **kwargs):
     pw = [pw // 2, pw - pw // 2]
     inputs = np.pad(inputs, [[0, 0], [0, 0], ph, pw, [0, 0]], 'edge')
     return inputs
+
+def upsample(inputs, scale=4, **kwargs):
+    res = []
+    for img in inputs:
+        h, w, c = img.shape
+        if c == 3:
+            img = Image.fromarray(img, 'RGB')
+        elif c == 1:
+            img = Image.fromarray(img[..., 0], 'L')
+        else:
+            raise ValueError
+        img = img.resize([w * scale, h * scale], resample=Image.BICUBIC)
+        res.append(np.array(img))
+    res = np.stack(res)
+    if np.ndim(res) < 4:
+        res = np.expand_dims(res, axis=-1)
+    return res
+
