@@ -14,6 +14,16 @@ from pathlib import Path
 from .Utility import to_list
 
 
+def _resample(name):
+    if 'cubic' in name:
+        return Image.BICUBIC
+    if 'linear' in name:
+        return Image.BILINEAR
+    if 'nearest' in name:
+        return Image.NEAREST
+    return 0
+
+
 def array_to_img(x, mode='YCbCr'):
     """Convert an ndarray to PIL Image."""
     x = np.squeeze(x)
@@ -110,7 +120,7 @@ def img_to_yuv(frame, mode, grayscale=False):
     return img
 
 
-def imresize(image, scale, size=None, mode=None):
+def imresize(image, scale, size=None, mode=None, resample=None):
     """Image resize using simple cubic provided in PIL
 
     @Todo: perhaps more accurate resize kernel should be used.
@@ -120,7 +130,11 @@ def imresize(image, scale, size=None, mode=None):
     if image.mode in ('RGB', 'BGR'):
         image = image.convert('YCbCr')
     mode = image.mode if not mode else mode
-    return image.resize(size, resample=Image.BICUBIC).convert(mode)
+    if isinstance(resample, str):
+        resample = _resample(resample)
+    if not resample:
+        resample = Image.BICUBIC
+    return image.resize(size, resample=resample).convert(mode)
 
 
 def shrink_to_multiple_scale(image, scale):

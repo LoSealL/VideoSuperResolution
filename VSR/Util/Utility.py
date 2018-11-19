@@ -101,7 +101,7 @@ def pixel_shift(image, scale, channel=1):
         r = to_list(scale, 2)
         shape = tf.shape(image)
         H, W = shape[1], shape[2]
-        image = tf.reshape(image, [-1, H, W, *r, channel])
+        image = tf.reshape(image, [-1, H, W, r[1], r[0], channel])
         image = tf.transpose(image, perm=[0, 1, 3, 2, 4, 5])  # B, H, r, W, r, C
         image = tf.reshape(image, [-1, H * r[1], W * r[0], channel])
         return image
@@ -126,19 +126,80 @@ def crop_to_batch(image, scale):
 def bicubic_rescale(img, scale):
     """Resize image in tensorflow.
 
-    NOTE: tf.image.resize_bicubic behaves quite differently to PIL.Image.resize,
+    NOTE: tf.image.resize_bicubic uses different boundary to PIL.Image.resize,
       try to use resize_area without aligned corners.
     """
-    with tf.name_scope('Upsample'):
+    with tf.name_scope('Bicubic'):
         shape = tf.shape(img)
         scale = to_list(scale, 2)
         shape_enlarge = tf.to_float(shape) * [1, *scale, 1]
         shape_enlarge = tf.to_int32(shape_enlarge)
-        # tf.logging.warning(
-        #     "tf.image.resize_bicubic behaves quite differently to PIL.Image.resize, " +
-        #     "even if align_corners is enabled or not")
-        return tf.image.resize_area(img, shape_enlarge[1:3],
-                                    align_corners=False)
+        return tf.image.resize_bicubic(img, shape_enlarge[1:3], False)
+
+
+def _bicubic_filter(x, a=0.5):
+    # https://en.wikipedia.org/wiki/Bicubic_interpolation#Bicubic_convolution_algorithm
+    if x < 0:
+        x = -x
+    if x < 1:
+        return ((a + 2.0) * x - (a + 3.0)) * x * x + 1
+    if x < 2:
+        return (((x - 5) * x + 8) * x - 4) * a
+    return 0
+
+
+def upsample(img, scale):
+    scale = to_list(scale, 2)
+    with tf.name_scope(f'UpsampleX{scale[0]}'):
+        shape = img.shape
+        imgx = tf.pad(img, [[0, 0], [1, 1], [0, 0], [0, 0]], "CONSTANT")
+        imgx = tf.pad(imgx, [[0, 0], [0, 1], [0, 0], [0, 0]], "CONSTANT")
+        dh = [(i + 0.5) / scale[1] for i in range(scale[1])]
+        dw = [(i + 0.5) / scale[0] for i in range(scale[0])]
+        ph, pw = [], []
+        for d in dh:
+            _v = np.array([-1, 0, 1, 2], np.float32) - d + 0.5
+            if d < 0.5:
+                _v[-1] = 2
+            else:
+                _v[0] = 2
+            _k = np.asarray([_bicubic_filter(v) for v in _v], np.float32)
+            _k /= np.sum(_k) + 1e-12
+            _k = _k.reshape([4, 1, 1])
+            if shape[-1] == 3:
+                zero = tf.zeros_like(_k)
+                _r = tf.concat([_k, zero, zero], -1)
+                _g = tf.concat([zero, _k, zero], -1)
+                _b = tf.concat([zero, zero, _k], -1)
+                _k = tf.stack([_r, _g, _b], -1)
+            else:
+                _k = tf.expand_dims(_k, -1)
+            ph += [tf.nn.conv2d(imgx, _k, (1, 1, 1, 1), 'VALID', name='Hori')]
+        img = pixel_shift(tf.concat(ph, -1), [1, scale[1]], shape[-1])
+        img = tf.round(img)
+        imgx = tf.pad(img, [[0, 0], [0, 0], [1, 1], [0, 0]], "CONSTANT")
+        imgx = tf.pad(imgx, [[0, 0], [0, 0], [0, 1], [0, 0]], "CONSTANT")
+        for d in dw:
+            _v = np.array([-1, 0, 1, 2], np.float32) - d + 0.5
+            if d < 0.5:
+                _v[-1] = 2
+            else:
+                _v[0] = 2
+            _k = np.asarray([_bicubic_filter(v) for v in _v], np.float32)
+            _k /= np.sum(_k) + 1e-12
+            _k = _k.reshape([4, 1, 1])
+            if shape[-1] == 3:
+                zero = tf.zeros_like(_k)
+                _r = tf.concat([_k, zero, zero], -1)
+                _g = tf.concat([zero, _k, zero], -1)
+                _b = tf.concat([zero, zero, _k], -1)
+                _k = tf.stack([_r, _g, _b], -1)
+            else:
+                _k = tf.expand_dims(_k, -1)
+            _k = tf.transpose(_k, [1, 0, 2, 3])
+            pw += [tf.nn.conv2d(imgx, _k, (1, 1, 1, 1), 'VALID', name='Vert')]
+        img = pixel_shift(tf.concat(pw, -1), [scale[0], 1], shape[-1])
+        return tf.round(img)
 
 
 def prelu(x, initialize=0, name=None, scope='PReLU'):
@@ -487,7 +548,7 @@ class SpectralNorm(tf.keras.constraints.Constraint):
             w = tf.reshape(w, [-1, w_shape[-1]])
             u = tf.get_variable(
                 'u',
-                shape=(w_shape[0], 1),
+                shape=(w.shape[0], 1),
                 dtype=w.dtype,
                 collections=[tf.GraphKeys.MODEL_VARIABLES,
                              tf.GraphKeys.GLOBAL_VARIABLES],
