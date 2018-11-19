@@ -164,6 +164,7 @@ class BasicLoader:
         self.batch = config.batch
         self.crop = config.crop
         self.modcrop = config.modcrop
+        self.resample = config.resample
 
     def _read_file(self, dataset):
         """Initialize all `File` objects"""
@@ -245,7 +246,9 @@ class BasicLoader:
         vf.seek(index)
         frames_hr = [shrink_to_multiple_scale(img, self.scale)
                      if self.modcrop else img for img in vf.read_frame(depth)]
-        frames_lr = [imresize(img, np.reciprocal(self.scale, dtype='float32'))
+        frames_lr = [imresize(img,
+                              np.reciprocal(self.scale, dtype='float32'),
+                              resample=self.resample)
                      for img in frames_hr]
         frames_hr = [img.convert(self.color_format) for img in frames_hr]
         frames_lr = [img.convert(self.color_format) for img in frames_lr]

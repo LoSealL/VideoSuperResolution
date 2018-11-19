@@ -9,6 +9,7 @@ for generative adversarial networks
 """
 
 import tensorflow as tf
+from functools import partial
 
 _INCEPTION_BATCH = 50
 
@@ -65,8 +66,15 @@ def inception_score(images, num_batches=None):
     batches = images.shape[0]
     if not num_batches:
         num_batches = (batches + _INCEPTION_BATCH - 1) // _INCEPTION_BATCH
-    return tf.contrib.gan.eval.inception_score(
+    graph = tf.contrib.gan.eval.get_graph_def_from_url_tarball(
+        'http://download.tensorflow.org/models/frozen_inception_v1_2015_12_05.tar.gz',
+        'inceptionv1_for_inception_score.pb',
+        '/tmp/frozen_inception_v1_2015_12_05.tar.gz')
+    run_inception = partial(tf.contrib.gan.eval.run_inception,
+                            graph_def=graph)
+    return tf.contrib.gan.eval.classifier_score(
         images=_preprocess_for_inception(images),
+        classifier_fn=run_inception,
         num_batches=num_batches)
 
 

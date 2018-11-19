@@ -15,14 +15,18 @@ from VSR.DataLoader.Dataset import load_datasets, Dataset
 from VSR.DataLoader.Loader import QuickLoader
 from VSR.Models import get_model, list_supported_models
 from VSR.Util.Config import Config
-from VSR.Framework.Callbacks import (
-    save_image, to_rgb, to_gray, lr_decay
-)
-
+from VSR.Framework.Callbacks import save_image, to_rgb, to_gray, lr_decay
+# tricky import for intellisense
 try:
     from .custom_api import *
 except ImportError:
     from custom_api import *
+# Import models in development
+try:
+    from Exp import *
+except ImportError as ex:
+    pass
+
 
 tf.flags.DEFINE_enum('model', None, list_supported_models(), help="specify a model to use")
 tf.flags.DEFINE_enum('output_color', 'RGB', ('RGB', 'L', 'GRAY', 'Y'), help="specify output color format")
@@ -84,13 +88,18 @@ def fetch_datasets(data_config_file, opt):
         dataset.mode = 'numpy'
         dataset.train = [cifar_data[0]]
         dataset.val = [cifar_test[0]]
+        dataset.test = [cifar_test[0]]
+        return dataset, dataset, infer_data
     return dataset, test_data, infer_data
 
 
 def init_loader_config(opt):
-    train_config = Config(**opt, crop='random', feature_callbacks=[], label_callbacks=[])
-    benchmark_config = Config(**opt, crop=None, feature_callbacks=[], label_callbacks=[], output_callbacks=[])
-    infer_config = Config(**opt, feature_callbacks=[], label_callbacks=[], output_callbacks=[])
+    train_config = Config(**opt, crop='random', feature_callbacks=[],
+                          label_callbacks=[])
+    benchmark_config = Config(**opt, crop=None, feature_callbacks=[],
+                              label_callbacks=[], output_callbacks=[])
+    infer_config = Config(**opt, feature_callbacks=[], label_callbacks=[],
+                          output_callbacks=[])
     benchmark_config.batch = opt.test_batch or 1
     benchmark_config.steps_per_epoch = -1
     if opt.channel == 1:
@@ -98,15 +107,17 @@ def init_loader_config(opt):
         benchmark_config.convert_to = 'gray'
         if opt.output_color == 'RGB':
             benchmark_config.convert_to = 'yuv'
-            benchmark_config.feature_callbacks = train_config.feature_callbacks + [to_gray()]
-            benchmark_config.label_callbacks = train_config.label_callbacks + [to_gray()]
+            benchmark_config.feature_callbacks = [to_gray()]
+            benchmark_config.label_callbacks = [to_gray()]
             benchmark_config.output_callbacks = [to_rgb()]
-        benchmark_config.output_callbacks += [save_image(opt.root, opt.output_index)]
+        benchmark_config.output_callbacks += [
+            save_image(opt.root, opt.output_index)]
         infer_config.update(benchmark_config)
     else:
         train_config.convert_to = 'rgb'
         benchmark_config.convert_to = 'rgb'
-        benchmark_config.output_callbacks += [save_image(opt.root, opt.output_index)]
+        benchmark_config.output_callbacks += [
+            save_image(opt.root, opt.output_index)]
         infer_config.update(benchmark_config)
     if opt.add_custom_callbacks is not None:
         for fn in opt.add_custom_callbacks:
@@ -115,8 +126,9 @@ def init_loader_config(opt):
             infer_config.feature_callbacks += [globals()[fn]]
     if opt.lr_decay:
         train_config.lr_schedule = lr_decay(lr=opt.lr, **opt.lr_decay)
-    # modcrop: A boolean to specify whether to crop the edge of images to be divisible
-    #          by `scale`. It's useful when to provide batches with original shapes.
+    # modcrop: A boolean to specify whether to crop the edge of images to be
+    #   divisible by `scale`. It's useful when to provide batches with original
+    #   shapes.
     infer_config.modcrop = False
     return train_config, benchmark_config, infer_config
 
@@ -131,12 +143,13 @@ def main(*args):
     if not data_config_file.exists():
         raise RuntimeError("dataset config file doesn't exist!")
     for _suffix in ('json', 'yaml'):  # for compatibility
-        # apply a 2-stage (or master-slave) configuration, master can be override by slave
-        model_config_root = Path('parameters/{}.{}'.format('root', _suffix))
+        # apply a 2-stage (or master-slave) configuration, master can be
+        # override by slave
+        model_config_root = Path(f'parameters/root.{_suffix}')
         if opt.p:
             model_config_file = Path(opt.p)
         else:
-            model_config_file = Path('parameters/{}.{}'.format(opt.model, _suffix))
+            model_config_file = Path(f'parameters/{opt.model}.{_suffix}')
         if model_config_root.exists():
             opt.update(Config(str(model_config_root)))
         if model_config_file.exists():
@@ -150,7 +163,8 @@ def main(*args):
         root += '_' + opt.comment
     opt.root = root
     verbosity = tf.logging.DEBUG if opt.v else tf.logging.INFO
-    # map model to trainer, ~~manually~~ automatically, by setting _trainer attribute in models
+    # map model to trainer, ~~manually~~ automatically, by setting `_trainer`
+    # attribute in models
     trainer = model.trainer
     train_data, test_data, infer_data = fetch_datasets(data_config_file, opt)
     train_config, test_config, infer_config = init_loader_config(opt)
@@ -161,8 +175,10 @@ def main(*args):
     with trainer(model, root, verbosity) as t:
         # prepare loader
         loader = partial(QuickLoader, n_threads=opt.threads)
-        train_loader = loader(train_data, 'train', train_config, augmentation=True)
-        val_loader = loader(train_data, 'val', train_config, crop='center', steps_per_epoch=1)
+        train_loader = loader(train_data, 'train', train_config,
+                              augmentation=True)
+        val_loader = loader(train_data, 'val', train_config, crop='center',
+                            steps_per_epoch=1)
         test_loader = loader(test_data, 'test', test_config)
         infer_loader = loader(infer_data, 'infer', infer_config)
         # fit

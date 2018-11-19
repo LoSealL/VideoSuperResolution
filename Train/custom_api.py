@@ -91,6 +91,7 @@ def pad(inputs, **kwargs):
     inputs = np.pad(inputs, [[0, 0], [0, 0], ph, pw, [0, 0]], 'edge')
     return inputs
 
+
 def upsample(inputs, scale=4, **kwargs):
     res = []
     for img in inputs:
@@ -107,4 +108,3 @@ def upsample(inputs, scale=4, **kwargs):
     if np.ndim(res) < 4:
         res = np.expand_dims(res, axis=-1)
     return res
-
