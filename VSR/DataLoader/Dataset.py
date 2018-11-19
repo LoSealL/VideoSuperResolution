@@ -30,8 +30,8 @@ class Dataset(Config):
         flow: a list of file path representing optical flow files
     """
 
-    def __init__(self, **kwargs):
-        super(Dataset, self).__init__(kwargs)
+    def __init__(self, d=None, **kwargs):
+        super(Dataset, self).__init__(d, **kwargs)
         # default attr
         if self.mode is None:
             self.mode = 'pil-image1'

@@ -26,7 +26,7 @@ def _sub_residual(**kwargs):
 def _save_model_predicted_images(output, index, mode='YCbCr', **kwargs):
     save_dir = kwargs.get('save_dir') or '.'
     sub_dir = kwargs.get('subdir') or '.'
-    name, seq, frames = kwargs.get('name')
+    name, seq, frames = kwargs.get('name')[0]
     seq = int(seq)
     frames = int(frames)
     if output is not None:

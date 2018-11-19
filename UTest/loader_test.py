@@ -106,14 +106,11 @@ def test_read_flow():
 
 
 def test_cifar_loader():
-    from tensorflow.keras.datasets import cifar10
     from tqdm import tqdm
-    train, test = cifar10.load_data()
-    train_data, _ = train
-    train_set = Dataset(train=[train_data], mode='numpy')
-    config = Config(batch=8, scale=1, depth=2, patch_size=32,
+    dut = DATASETS['CIFAR10']
+    config = Config(batch=8, scale=4, depth=1, patch_size=32,
                     steps_per_epoch=100, convert_to='RGB')
-    loader = BasicLoader(train_set, 'train', config, False)
+    loader = BasicLoader(dut, 'train', config, False)
     r = loader.make_one_shot_iterator()
     list(tqdm(r))
 
@@ -133,7 +130,8 @@ def test_memory_usage():
 def main():
     import tensorflow as tf
     tf.logging.set_verbosity(tf.logging.DEBUG)
-    test_memory_usage()
+    test_cifar_loader()
+    # test_memory_usage()
     pass
 
 

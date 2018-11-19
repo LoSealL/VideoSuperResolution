@@ -47,7 +47,6 @@ tf.flags.DEFINE_multi_string('add_custom_callbacks', None, help="")
 tf.flags.DEFINE_bool('export', False, help="whether to export tf model")
 tf.flags.DEFINE_bool('freeze', False, help="whether to export freeze model, ignored if export is False")
 tf.flags.DEFINE_bool('v', False, help="show verbose")
-tf.flags.DEFINE_bool('cifar', False, help="temp use, delete if not need")  # TODO delete me
 
 
 def check_args(opt):
@@ -81,15 +80,6 @@ def fetch_datasets(data_config_file, opt):
             infer_data = all_datasets[opt.infer.upper()]
     else:
         infer_data = test_data
-    # TODO temp use, delete if not need
-    if opt.cifar:
-        cifar_data, cifar_test = tf.keras.datasets.cifar10.load_data()
-        dataset = Dataset(**dataset)
-        dataset.mode = 'numpy'
-        dataset.train = [cifar_data[0]]
-        dataset.val = [cifar_test[0]]
-        dataset.test = [cifar_test[0]]
-        return dataset, dataset, infer_data
     return dataset, test_data, infer_data
 
 

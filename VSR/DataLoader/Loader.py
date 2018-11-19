@@ -94,7 +94,7 @@ class EpochIterator:
                 # squeeze error
                 batch_hr = np.stack(batch_hr)
                 batch_lr = np.stack(batch_lr)
-            batch_name = np.squeeze(np.stack(batch_name))
+            batch_name = np.stack(batch_name)
 
         if np.ndim(batch_hr) == 3:
             batch_hr = np.expand_dims(batch_hr, -1)
@@ -182,20 +182,35 @@ class BasicLoader:
                 for fp in self.file_names]
         elif dataset.mode.lower() == 'numpy':
             """already loaded numpy array, in case anyone want to use 
-            external loaders dataset.train can be a 4-D or 5-D ndarray"""
+            external loaders, data can be a 4-D or 5-D ndarray"""
             tf.logging.debug('reading numpy array')
-            data = self.file_names[0]  # trick
+            param = dataset.numpy
+            if param.exec is not None:
+                exec(param.exec)
+            src = param.get(self.method)
+            if src:
+                data = eval(param.get(self.method))
+            else:
+                data = None
             if isinstance(data, np.ndarray):
-                if data.ndim == 4:
-                    for hr in data:
-                        img_hr = [array_to_img(hr, 'RGB')]
-                        self.frames.append((img_hr, img_hr, dataset.name))
-                if data.ndim == 5:
-                    for hr in data:
-                        img_hr = [array_to_img(x, 'RGB') for x in hr]
-                        self.frames.append((img_hr, img_hr, dataset.name))
-                self.loaded = 1
-                self.file_objects = []
+                for i, hr in enumerate(data):
+                    if hr.ndim == 3:
+                        frames_hr = [array_to_img(hr, 'RGB')]
+                    else:
+                        frames_hr = [array_to_img(x, 'RGB') for x in hr]
+                    frames_lr = [imresize(img,
+                                          np.reciprocal(self.scale,
+                                                        dtype='float32'),
+                                          resample=self.resample)
+                                 for img in frames_hr]
+                    frames_hr = [img.convert(self.color_format) for img in
+                                 frames_hr]
+                    frames_lr = [img.convert(self.color_format) for img in
+                                 frames_lr]
+                    name = (dataset.name, i, len(frames_hr))
+                    self.frames.append((frames_hr, frames_lr, name))
+            self.loaded = 1
+            self.file_objects = []
         return self
 
     def _calc_select_prob(self, method=Select.EQUAL_PIXEL):

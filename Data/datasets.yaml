@@ -1,6 +1,6 @@
 # VSR Dataset Description File
 # Date: Oct 17th 2018
-# Ver: v1.1
+# Ver: v1.1.1
 ---
 # Add root dir to dataset
 # In current version, Root only affects members in "Path" and "Path_Tracked"
@@ -47,9 +47,10 @@ Dataset:
     train: []
     val: []
     test: []
+
   BSD:  # Combined BSD100 and BSD500 data
     train: [BSD100, BSD500-Train]  # collected in array
-    val: BSD500-Val               # point as a single set
+    val: BSD500-Val                # point as a single set
     test: [BSD500-Test]
 
   91-IMAGE:  # Yang's 91 images
@@ -77,7 +78,7 @@ Dataset:
     train: MCL-V
     val: /mnt/data/datasets/MCL-V/test/*.yuv     # You can still write absolute path patterns like this,
     test: [/mnt/data/datasets/MCL-V/test/*.yuv]  # or as array like this
-    param:  # As MCL-V is raw data, these param must be specified
+    param:  # For MCL-V is raw data, these param must be specified
       mode: YV12
       width: 1920
       height: 1080
@@ -103,8 +104,20 @@ Dataset:
     val: FlyingChairsVal
     test: FlyingChairsTest
 
-  CELEBA:
+  CELEBA:  # center cropped and resize to 64x64
     train: /mnt/data/datasets/celeba/resize64/*.png
     val: [SET5]  # just used as a placeholder
     test: []
     infer: []
+
+  CIFAR10:  # well-known cifar-10
+    # in alpha version, loading ndarray data(s)
+    param:
+      mode: numpy  # specify `mode` as "numpy"
+      numpy:
+        # execution python source
+        exec: '(x,_),(y,_)=tf.keras.datasets.cifar10.load_data()'
+        # specify result variables
+        train: 'x'
+        val: 'y'
+        test: 'y[:1000]'
