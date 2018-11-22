@@ -121,12 +121,13 @@ def gradient_penalty(y_true, y_pred, graph_fn, lamb=10):
         raise TypeError('graph callee is not a callable!')
 
     diff = y_pred - y_true
-    alpha = tf.random_uniform(tf.shape(diff), minval=0., maxval=1.)
+    alpha = tf.random_uniform(tf.shape(diff)[0], minval=0., maxval=1.)
+    alpha = tf.reshape(alpha, [-1, 1, 1, 1])
     interp = y_true + alpha * diff
-    gradients = tf.gradients(graph_fn(interp), [interp])
-    slopes = tf.sqrt(
-        tf.reduce_sum(tf.square(gradients[0]), reduction_indices=[1]))
-    gp = tf.reduce_mean((slopes - 1.) ** 2.)
+    gradients = tf.gradients(graph_fn(interp), [interp])[0]
+    slopes = tf.sqrt(1e-4 + tf.reduce_sum(
+        tf.square(gradients), reduction_indices=[1, 2, 3]))
+    gp = tf.reduce_mean(tf.square(slopes - 1.))
     return lamb * gp
 
 

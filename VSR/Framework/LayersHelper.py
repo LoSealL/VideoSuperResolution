@@ -14,6 +14,15 @@ from ..Util.Utility import (
 
 
 class Layers(object):
+    def batch_norm(self, x, training, decay=0.9, epsilon=1e-5, name=None):
+        # interesting.
+        return tf.layers.batch_normalization(x,
+                                             momentum=decay,
+                                             training=training,
+                                             fused=False,
+                                             epsilon=epsilon,
+                                             name=name)
+
     def conv2d(self, x, filters, kernel_size, strides=(1, 1), padding='same',
                data_format='channels_last', dilation_rate=(1, 1),
                activation=None, use_bias=True, use_batchnorm=False,
@@ -187,14 +196,15 @@ class Layers(object):
                 **kwargs):
         """Image up-scale layer
 
-        Upsample `image` width and height by scale factor `scale[0]` and `scale[1]`.
-        Perform upsample progressively: i.e. x12:= x2->x2->x3
+        Upsample `image` width and height by scale factor `scale[0]` and
+        `scale[1]`. Perform upsample progressively: i.e. x12:= x2->x2->x3
 
         Args:
             image: tensors to upsample
             method: method could be 'espcn', 'nearest' or 'deconv'
             scale: None or int or [int, int]. If None, `scale`=`self.scale`
-            direct_output: output channel is the desired RGB or Grayscale, if False, keep the same channels as `image`
+            direct_output: output channel is the desired RGB or Grayscale, if
+              False, keep the same channels as `image`
         """
         _allowed_method = ('espcn', 'nearest', 'deconv')
         assert str(method).lower() in _allowed_method
@@ -245,17 +255,22 @@ class Layers(object):
 
     def non_local(self, inputs, channel_scale=8, softmax=False, **kwargs):
         """Non-local block
-        Refer to CVPR2018 "Non-local Neural Networks": https://arxiv.org/abs/1711.07971
-        and "Self-Attention Generative Adversarial Networks": https://arxiv.org/abs/1805.08318
+        Refer to CVPR2018 "Non-local Neural Networks":
+          https://arxiv.org/abs/1711.07971
+        and "Self-Attention Generative Adversarial Networks":
+          https://arxiv.org/abs/1805.08318
 
         Args:
             inputs: A tensor representing input feature maps
-            channel_scale: An integer representing scale factor from inputs to embedded channel numbers
-            softmax: A boolean, use softmax as non-local operation (require large memories)
+            channel_scale: An integer representing scale factor from inputs to
+              embedded channel numbers
+            softmax: A boolean, use softmax as non-local operation (require
+              large memories)
             kwargs: optional arguments for `conv2d`
 
         Return:
-            Non-local residual, scaled by a trainable `gamma`, which is zero initialized.
+            Non-local residual, scaled by a trainable `gamma`, which is zero
+              initialized.
         """
         try:
             name = kwargs.pop('name')
@@ -443,7 +458,8 @@ class Layers(object):
             use_sn:
             kernel_initializer:
             kernel_regularizer:
-            placement: 'front' or 'behind', use BN layer in front of or behind after the 1st conv2d layer.
+            placement: 'front' or 'behind', use BN layer in front of or behind
+              after the 1st conv2d layer.
         """
 
         kwargs.update({

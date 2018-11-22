@@ -12,6 +12,7 @@ import tensorflow as tf
 import numpy as np
 import time
 import tqdm
+import csv
 from pathlib import Path
 
 from ..Util.Utility import to_list
@@ -51,11 +52,15 @@ class Trainer:
         self._logd = Path(work_dir) / 'log'
         self._verb = verbose
         self._restored = False
+        self._csv = verbose <= tf.logging.INFO
 
     def _startup(self):
         tf.logging.set_verbosity(self._verb)
         self._saved.mkdir(parents=True, exist_ok=True)
         self._logd.mkdir(parents=True, exist_ok=True)
+        if self._csv:
+            self._csv_file = open(Path(self._logd / 'train_metrics.csv'), 'a')
+            self._csv_writer = csv.writer(self._csv_file)
         if self._m.compiled:
             self.graph = tf.get_default_graph()
         else:
@@ -190,6 +195,8 @@ class VSR(Trainer):
         # flush all pending summaries to disk
         if self.v.summary_writer:
             self.v.summary_writer.close()
+        if self._csv:
+            self._csv_file.close()
 
     def fn_train_each_epoch(self):
         v = self.v
@@ -209,7 +216,11 @@ class VSR(Trainer):
                 r.set_postfix(v.loss)
         for _k, _v in v.avg_meas.items():
             print('| Epoch average {} = {:.6f} |'.format(_k, np.mean(_v)))
-
+        if self._csv:
+            if self._csv_file.tell() == 0:
+                self._csv_writer.writerow(v.avg_meas.keys())
+            self._csv_writer.writerow(v.avg_meas.values())
+            self._csv_file.flush()
         if v.epoch % v.validate_every_n_epoch == 0:
             self.benchmark(v.val_loader, v, epoch=v.epoch)
             v.summary_writer.add_summary(self._m.summary(), v.global_step)
