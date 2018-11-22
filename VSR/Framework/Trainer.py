@@ -219,7 +219,7 @@ class VSR(Trainer):
         if self._csv:
             if self._csv_file.tell() == 0:
                 self._csv_writer.writerow(v.avg_meas.keys())
-            self._csv_writer.writerow(v.avg_meas.values())
+            self._csv_writer.writerow([np.mean(s) for s in v.avg_meas.values()])
             self._csv_file.flush()
         if v.epoch % v.validate_every_n_epoch == 0:
             self.benchmark(v.val_loader, v, epoch=v.epoch)
