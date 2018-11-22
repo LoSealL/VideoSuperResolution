@@ -36,16 +36,17 @@ def test_vgg_classify():
         assert y2[0].tolist().index(y2.max()) == y1[0].tolist().index(y1.max())
 
 
-def test_multiple_declare():
+def test_multiple_call():
     vgg1 = Vgg(False, vgg=Vgg.VGG16)
     vgg2 = Vgg(False, vgg=Vgg.VGG16)
     x = np.expand_dims(image_boy, 0)
     y1 = vgg1(x)
     y2 = vgg2(x)
+    y3 = vgg2(x.copy())
     with tf.Session() as sess:
-        sess.run([y1, y2])
+        sess.run([y1, y2, y3])
 
 
 if __name__ == '__main__':
-    # test_multiple_declare()
+    test_multiple_call()
     pass

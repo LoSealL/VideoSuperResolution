@@ -29,7 +29,7 @@ class SRGAN(SuperResolutionDisc):
         fixed_train_hr_size:
     """
 
-    def __init__(self, glayers=16, dlayers=4, vgg_layer=(2, 2),
+    def __init__(self, glayers=16, dlayers=4, vgg_layer='block2_conv2',
                  init_epoch=100, mse_weight=1, gan_weight=1e-3,
                  use_vgg=False, vgg_weight=2e-6,
                  patch_size=None, name='srgan', **kwargs):
@@ -40,13 +40,14 @@ class SRGAN(SuperResolutionDisc):
         self.mse_weight = mse_weight
         self.gan_weight = gan_weight
         self.vgg_weight = vgg_weight
-        self.vgg_layer = to_list(vgg_layer, 2)
+        self.vgg_layer = vgg_layer
         self.use_vgg = use_vgg
         self.vgg = None
         if self.use_vgg:
-            self.vgg = Vgg(input_shape=[None, None, 3], type='vgg19')
-        self.D = self.standard_d([patch_size, patch_size, self.channel], 64, dlayers,
-                                 norm='BN', dup_layer=True, name='Critic')
+            self.vgg = Vgg(False, 'vgg19')
+        self.D = self.standard_d([patch_size, patch_size, self.channel], 64,
+                                 dlayers, norm='BN', dup_layer=True,
+                                 name='Critic')
 
     @staticmethod
     def _normalize(x):
@@ -63,7 +64,8 @@ class SRGAN(SuperResolutionDisc):
             shallow_feature = self.prelu_conv2d(inputs_norm, 64, 9)
             x = shallow_feature
             for _ in range(self.g_layers):
-                x = self.resblock(x, 64, 3, activation='prelu', use_batchnorm=True)
+                x = self.resblock(x, 64, 3, activation='prelu',
+                                  use_batchnorm=True)
             x = self.bn_conv2d(x, 64, 3)
             x += shallow_feature
             x = self.conv2d(x, 256, 3)
@@ -80,12 +82,14 @@ class SRGAN(SuperResolutionDisc):
             mse = tf.losses.mean_squared_error(label_norm, sr)
             reg = tf.losses.get_regularization_losses()
 
-            loss = tf.add_n([mse * self.mse_weight, loss_gen * self.gan_weight] + reg)
+            loss = tf.add_n(
+                [mse * self.mse_weight, loss_gen * self.gan_weight] + reg)
             if self.use_vgg:
-                vgg_real = self.vgg(self.label[-1], *self.vgg_layer)
-                vgg_fake = self.vgg(self.outputs[-1], *self.vgg_layer)
-                loss_vgg = tf.losses.mean_squared_error(vgg_real, vgg_fake)
-                loss += self.vgg_weight + loss_vgg
+                vgg_real = self.vgg(self.label[-1], self.vgg_layer)
+                vgg_fake = self.vgg(self.outputs[-1], self.vgg_layer)
+                loss_vgg = tf.losses.mean_squared_error(
+                    vgg_real, vgg_fake, self.vgg_weight)
+                loss += loss_vgg
 
             var_g = tf.trainable_variables(self.name)
             var_d = tf.trainable_variables('Critic')
@@ -103,8 +107,10 @@ class SRGAN(SuperResolutionDisc):
         self.train_metric['d_loss'] = loss_disc
         self.train_metric['loss'] = loss
         self.metrics['mse'] = mse
-        self.metrics['psnr'] = tf.reduce_mean(tf.image.psnr(self.label[-1], self.outputs[-1], 255))
-        self.metrics['ssim'] = tf.reduce_mean(tf.image.ssim(self.label[-1], self.outputs[-1], 255))
+        self.metrics['psnr'] = tf.reduce_mean(
+            tf.image.psnr(self.label[-1], self.outputs[-1], 255))
+        self.metrics['ssim'] = tf.reduce_mean(
+            tf.image.ssim(self.label[-1], self.outputs[-1], 255))
 
     def build_loss(self):
         pass
@@ -120,11 +126,11 @@ class SRGAN(SuperResolutionDisc):
     def build_saver(self):
         super(SRGAN, self).build_saver()
         var_d = tf.trainable_variables('Critic') + tf.model_variables('Critic')
-        var_g = tf.trainable_variables(self.name) + tf.model_variables(self.name)
+        var_g = tf.trainable_variables(self.name) + tf.model_variables(
+            self.name)
         self.savers.update({
             'Critic': tf.train.Saver(var_d, max_to_keep=1),
             'Gen': tf.train.Saver(var_g, max_to_keep=1),
-            'vgg': self.vgg
         })
 
     def train_batch(self, feature, label, learning_rate=1e-4, **kwargs):
@@ -133,4 +139,5 @@ class SRGAN(SuperResolutionDisc):
             loss = self.loss[0]
         else:
             loss = self.loss[1:]
-        return super(SRGAN, self).train_batch(feature, label, learning_rate, loss=loss)
+        return super(SRGAN, self).train_batch(feature, label, learning_rate,
+                                              loss=loss)
