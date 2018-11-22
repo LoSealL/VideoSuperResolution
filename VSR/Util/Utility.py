@@ -86,11 +86,13 @@ def repeat(x, n):
 
 
 def pixel_shift(image, scale, channel=1):
-    """Efficient Sub-pixel Convolution, see paper: https://arxiv.org/abs/1609.05158
+    """Efficient Sub-pixel Convolution,
+      see paper: https://arxiv.org/abs/1609.05158
 
       Args:
           image: A 4-D tensor of [N, H, W, C*scale[0]*scale[1]]
-          scale: A scalar or 1-D tensor with 2 elements, the scale factor for width and height respectively
+          scale: A scalar or 1-D tensor with 2 elements, the scale factor for
+            width and height respectively
           channel: specify the channel number
 
       Return:
@@ -268,17 +270,18 @@ def color_consistency(feature, label, lambd=5):
     See: https://arxiv.org/abs/1710.10916
     """
 
-    m1, m2 = tf.reduce_mean(feature, [1, 2], True), tf.reduce_mean(label,
-                                                                   [1, 2], True)
-    B, H, W, C = tf.shape(feature)[0], tf.shape(feature)[1], tf.shape(feature)[
-        2], tf.shape(feature)[3]
-    f_hat = tf.reshape(feature - m1, [B, -1, C])
-    l_hat = tf.reshape(label - m2, [B, -1, C])
-    c1 = tf.matmul(f_hat, f_hat, True) / tf.cast(H * W, tf.float32)
-    c2 = tf.matmul(l_hat, l_hat, True) / tf.cast(H * W, tf.float32)
-    cc = tf.losses.mean_squared_error(m1, m2) + tf.losses.mean_squared_error(c1,
-                                                                             c2,
-                                                                             lambd)
+    m1 = tf.reduce_mean(feature, [1, 2], True)
+    m2 = tf.reduce_mean(label, [1, 2], True)
+    shape = tf.shape(feature)
+    b = shape[0]
+    h, w = shape[1], shape[2]
+    c = shape[3]
+    f_hat = tf.reshape(feature - m1, [b, -1, c])
+    l_hat = tf.reshape(label - m2, [b, -1, c])
+    c1 = tf.matmul(f_hat, f_hat, True) / tf.cast(h * w, tf.float32)
+    c2 = tf.matmul(l_hat, l_hat, True) / tf.cast(h * w, tf.float32)
+    cc = tf.losses.mean_squared_error(m1, m2) + \
+         tf.losses.mean_squared_error(c1, c2, lambd)
     return cc
 
 
@@ -357,172 +360,6 @@ def correlation(f1, f2, patch, max_displacement, stride1=1, stride2=1):
     return tf.squeeze(corr, axis=-2)
 
 
-class Vgg:
-    """use pre-trained VGG network from keras.application.vgg16
-    to obtain outputs of specific layers
-    """
-
-    def __init__(self, include_top=False, input_shape=None, type='vgg19'):
-        with tf.variable_scope('VGG'):
-            from tensorflow.keras import utils as keras_utils
-            if np.size(input_shape) > 3:
-                input_shape = input_shape[-3:]
-            elif np.size(input_shape) < 3:
-                raise ValueError('input shape must be [H, W, 3]')
-            if type == 'vgg16':
-                if include_top:
-                    from keras_applications.vgg16 import WEIGHTS_PATH as w_16
-                    self.weights_path = keras_utils.get_file(
-                        'vgg16_weights_tf_dim_ordering_tf_kernels.h5',
-                        w_16,
-                        cache_subdir='models',
-                        file_hash='64373286793e3c8b2b4e3219cbf3544b')
-                else:
-                    from keras_applications.vgg16 import \
-                        WEIGHTS_PATH_NO_TOP as w_16_notop
-                    self.weights_path = keras_utils.get_file(
-                        'vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5',
-                        w_16_notop,
-                        cache_subdir='models',
-                        file_hash='6d6bbae143d832006294945121d1f1fc')
-                self._m = tf.keras.applications.vgg16.VGG16(
-                    include_top=include_top, input_shape=tuple(input_shape))
-            elif type == 'vgg19':
-                if include_top:
-                    from keras_applications.vgg19 import WEIGHTS_PATH as w_19
-                    self.weights_path = keras_utils.get_file(
-                        'vgg19_weights_tf_dim_ordering_tf_kernels.h5',
-                        w_19,
-                        cache_subdir='models',
-                        file_hash='cbe5617147190e668d6c5d5026f83318')
-                else:
-                    from keras_applications.vgg19 import \
-                        WEIGHTS_PATH_NO_TOP as w_19_notop
-                    self.weights_path = keras_utils.get_file(
-                        'vgg19_weights_tf_dim_ordering_tf_kernels_notop.h5',
-                        w_19_notop,
-                        cache_subdir='models',
-                        file_hash='253f8cb515780f3b799900260a226db6')
-                self._m = tf.keras.applications.vgg19.VGG19(
-                    include_top=include_top, input_shape=tuple(input_shape))
-            self._vgg_mean = [103.939, 116.779, 123.68]
-            self.include_top = include_top
-            self.model = None
-
-    def __call__(self, x, *args, **kwargs):
-        return self.call(x, *args, **kwargs)
-
-    def call(self, x, conv=None, block=None, yuv_to_rgb_convert=False):
-        """get the output of a pre-trained VGG16 network
-
-            Args:
-                conv: the convolution layer in block, start by 0 in each block
-                block: the block number, range from [1, 5]
-                yuv_to_rgb_convert: need to convert from yuv to rgb
-
-            Return:
-                the output of given layer
-
-            Note:
-                if `conv` and `block` are lists, return a list of outputs;
-                if `conv` and `block` are None, the output is of the last softmax layer
-            """
-        with tf.variable_scope('VGG'):
-            x = self._normalize(x, yuv_to_rgb_convert)
-            block = to_list(block)
-            conv = to_list(conv)
-            outputs = []
-            for b, c in zip(block, conv):
-                layer_name = f'block{b}_conv{c}'
-                layer = self._m.get_layer(layer_name)
-                outputs.append(layer.output)
-            if not outputs:
-                outputs = self._m.outputs
-            self.model = tf.keras.Model(self._m.input, outputs, name='VGG')
-            return self.model(x)
-
-    def restore(self, *args, **kwargs):
-        sess = tf.get_default_session()
-        if sess is None:
-            raise RuntimeError('No session initialized')
-        self.model.load_weights(self.weights_path)
-
-    def save(self, *args, **kwargs):
-        pass
-
-    def _normalize(self, x, yuv_to_rgb_convert):
-        if yuv_to_rgb_convert:
-            x = tf.image.yuv_to_rgb(x)
-        if x.shape[-1] == 1:
-            x = tf.image.grayscale_to_rgb(x)
-        if self.include_top:
-            x = tf.image.resize_bicubic(x, (224, 224))
-        # RGB->BGR
-        x = tf.cast(x, tf.float32)
-        x = x[..., ::-1] - self._vgg_mean
-        return x
-
-
-class ConvolutionDeltaOrthogonal(tf.keras.initializers.Initializer):
-    """Initializer that generates a delta orthogonal kernel for ConvNets.
-
-    The shape of the tensor must have length 3, 4 or 5. The number of input
-    filters must not exceed the number of output filters. The center pixels of the
-    tensor form an orthogonal matrix. Other pixels are set to be zero.
-
-    Args:
-      gain: multiplicative factor to apply to the orthogonal matrix. Default is 1.
-        The 2-norm of an input is multiplied by a factor of 'sqrt(gain)' after
-        applying this convolution.
-      dtype: The type of the output.
-      seed: A Python integer. Used to create random seeds. See
-        @{tf.set_random_seed}
-        for behavior.
-    """
-
-    def __init__(self, gain=1.0, seed=None, dtype=tf.float32):
-        self.gain = gain
-        self.dtype = dtype
-        self.seed = seed
-
-    def __call__(self, shape, dtype=None, partition_info=None):
-        if dtype is None:
-            dtype = self.dtype
-        # Check the shape
-        if len(shape) < 3 or len(shape) > 5:
-            raise ValueError("The tensor to initialize must be at least "
-                             "three-dimensional and at most five-dimensional")
-
-        if shape[-2] > shape[-1]:
-            raise ValueError("In_filters cannot be greater than out_filters.")
-
-        # Generate a random matrix
-        a = tf.random_normal([shape[-1], shape[-1]],
-                             dtype=dtype, seed=self.seed)
-        # Compute the qr factorization
-        q, r = tf.qr(a, full_matrices=False)
-        # Make Q uniform
-        d = tf.diag_part(r)
-        # ph = D / math_ops.abs(D)
-        q *= tf.sign(d)
-        q = q[:shape[-2], :]
-        q *= tf.sqrt(tf.cast(self.gain, dtype=dtype))
-        if len(shape) == 3:
-            weight = tf.scatter_nd([[(shape[0] - 1) // 2]],
-                                   tf.expand_dims(q, 0), shape)
-        elif len(shape) == 4:
-            weight = tf.scatter_nd([[(shape[0] - 1) // 2, (shape[1] - 1) // 2]],
-                                   tf.expand_dims(q, 0), shape)
-        else:
-            weight = tf.scatter_nd([[(shape[0] - 1) // 2, (shape[1] - 1) // 2,
-                                     (shape[2] - 1) // 2]],
-                                   tf.expand_dims(q, 0), shape)
-        return weight
-
-    def get_config(self):
-        return {"gain": self.gain, "seed": self.seed, "dtype": self.dtype.name}
-
-
 class SpectralNorm(tf.keras.constraints.Constraint):
     """Spectral normalization constraint.
       Ref: https://arxiv.org/pdf/1802.05957
@@ -571,3 +408,133 @@ class SpectralNorm(tf.keras.constraints.Constraint):
 
     def get_config(self):
         return {"iteration": self.pi}
+
+
+class Vgg:
+    VGG16 = 'vgg16'
+    VGG19 = 'vgg19'
+    WEIGHTS_SITE = ('https://github.com/fchollet/deep-learning-models/'
+                    'releases/download/v0.1/')
+    WEIGHTS_HASH = {
+        'vgg16_notop': '6d6bbae143d832006294945121d1f1fc',
+        'vgg16': '64373286793e3c8b2b4e3219cbf3544b',
+        'vgg19_notop': '253f8cb515780f3b799900260a226db6',
+        'vgg19': 'cbe5617147190e668d6c5d5026f83318'
+    }
+    """VGG forward inference, including VGG-16 and VGG-19.
+    Usage:
+        declare which model to use: either including full-connected layers or
+        not, 16 conv layers or 19 layers.
+        >>> `vgg = Vgg(False, 'vgg19')`
+        get any output by calling with specified layer name.
+        >>> `b2c2 = vgg(x, 'block2_conv2')`
+        if you are not familiar with VGG, use `dump_layer_names` to list all
+        output names.
+        >>> `vgg.dump_layer_names()`
+    """
+
+    def __init__(self, include_top=False, vgg=VGG16):
+        import h5py
+        kutil = tf.keras.utils
+        model_url = vgg + '_weights_tf_dim_ordering_tf_kernels'
+        if not include_top:
+            model_url += '_notop'
+            vgg += '_notop'
+        model_url += '.h5'
+        weights_path = kutil.get_file(
+            model_url,
+            self.WEIGHTS_SITE + model_url,
+            cache_subdir='models',
+            file_hash=self.WEIGHTS_HASH[vgg])
+        self.vgg = vgg
+        self.include_top = include_top
+        self.weights = h5py.File(weights_path, 'r')
+        self.outputs = {}
+        self.built = False
+
+    def __call__(self, inputs, output_layer=None):
+        if inputs.shape[-1] == 1:
+            inputs = tf.image.grayscale_to_rgb(inputs)
+        if self.include_top:
+            inputs = tf.image.resize_bicubic(inputs, (224, 224))
+        # normalize
+        inputs = tf.to_float(inputs)[..., ::-1] - [103.939, 116.779, 123.68]
+        self.build_graph(inputs)
+        if output_layer is None:
+            output_layer = 'final'
+        return self.outputs[output_layer]
+
+    def build_graph(self, inputs):
+        def conv2d(x, f, k, name):
+            with tf.name_scope(name):
+                w = self.weights.get(name).get(name + '_W_1:0').value
+                bias = self.weights.get(name).get(name + '_b_1:0').value
+                x = tf.nn.conv2d(x, w, [1, 1, 1, 1], 'SAME')
+                x = tf.nn.bias_add(x, bias)
+                x = tf.nn.relu(x)
+            self.outputs[name] = x
+            return x
+
+        def dense(x, unit, activation, name):
+            with tf.name_scope(name):
+                w = self.weights.get(name).get(name + '_W_1:0').value
+                bias = self.weights.get(name).get(name + '_b_1:0').value
+                x = tf.matmul(x, w)
+                tf.nn.bias_add(x, bias)
+                x = activation(x)
+            self.outputs[name] = x
+            return x
+
+        with tf.name_scope(self.vgg):
+            x = conv2d(inputs, 64, 3, name='block1_conv1')
+            x = conv2d(x, 64, 3, name='block1_conv2')
+            x = tf.layers.max_pooling2d(x, 2, 2, name='block1_pool')
+            self.outputs['block1_pool'] = x
+
+            x = conv2d(x, 128, 3, name='block2_conv1')
+            x = conv2d(x, 128, 3, name='block2_conv2')
+            x = tf.layers.max_pooling2d(x, 2, 2, name='block2_pool')
+            self.outputs['block2_pool'] = x
+
+            x = conv2d(x, 256, 3, name='block3_conv1')
+            x = conv2d(x, 256, 3, name='block3_conv2')
+            x = conv2d(x, 256, 3, name='block3_conv3')
+            if self.vgg == self.VGG19:
+                x = conv2d(x, 256, 3, name='block3_conv4')
+            x = tf.layers.max_pooling2d(x, 2, 2, name='block3_pool')
+            self.outputs['block3_pool'] = x
+
+            x = conv2d(x, 512, 3, name='block4_conv1')
+            x = conv2d(x, 512, 3, name='block4_conv2')
+            x = conv2d(x, 512, 3, name='block4_conv3')
+            if self.vgg == self.VGG19:
+                x = conv2d(x, 512, 3, name='block4_conv4')
+            x = tf.layers.max_pooling2d(x, 2, 2, name='block4_pool')
+            self.outputs['block4_pool'] = x
+
+            x = conv2d(x, 512, 3, name='block5_conv1')
+            x = conv2d(x, 512, 3, name='block5_conv2')
+            x = conv2d(x, 512, 3, name='block5_conv3')
+            if self.vgg == self.VGG19:
+                x = conv2d(x, 512, 3, name='block5_conv4')
+            x = tf.layers.max_pooling2d(x, 2, 2, name='block5_pool')
+            self.outputs['block5_pool'] = x
+
+            if self.include_top:
+                x = tf.layers.flatten(x, name='flatten')
+                x = dense(x, 4096, tf.nn.relu, name='fc1')
+                x = dense(x, 4096, tf.nn.relu, name='fc2')
+                x = dense(x, 1024, tf.nn.softmax, name='predictions')
+            else:
+                x = tf.reduce_mean(x, [1, 2, 3])
+
+        self.outputs['final'] = x
+        self.built = True
+
+    def dump_layer_names(self):
+        if not self.built:
+            tf.logging.warning((
+                "This VGG hasn't been built yet, "
+                "make inference on any tensor to build the model."))
+
+        print(self.outputs.keys())
