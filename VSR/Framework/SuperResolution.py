@@ -459,7 +459,8 @@ class SuperResolutionDisc(SuperResolution):
                 x, has_shape = self._view(inputs, input_shape)
                 kwargs = dict(use_sn=sn,
                               use_batchnorm=bn,
-                              use_bias=True)
+                              use_bias=True,
+                              kernel_initializer='truncated_normal_0.02')
                 ch = 64
                 x = self.conv2d(x, ch, 3, **kwargs)
                 x = tf.nn.leaky_relu(x, 0.1)
@@ -479,7 +480,8 @@ class SuperResolutionDisc(SuperResolution):
                     x = tf.layers.flatten(x)
                 else:
                     x = tf.reduce_sum(x, [1, 2])
-                x = self.dense(x, 1, use_sn=sn)
+                x = self.dense(x, 1, use_sn=sn,
+                               kernel_initializer='random_normal_0.02')
                 return x
 
         return critic

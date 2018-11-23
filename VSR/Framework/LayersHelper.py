@@ -174,6 +174,12 @@ class Layers(object):
                 ki = tf.keras.initializers.he_uniform()
             elif kernel_initializer == 'zeros' or kernel_initializer == 'zero':
                 ki = tf.keras.initializers.zeros()
+            elif 'truncated_normal' in kernel_initializer:
+                stddev = float(kernel_initializer.split('_')[-1])
+                ki = tf.truncated_normal_initializer(stddev=stddev)
+            elif 'random_normal' in kernel_initializer:
+                stddev = float(kernel_initializer.split('_')[-1])
+                ki = tf.random_normal_initializer(stddev=stddev)
         elif callable(kernel_initializer):
             ki = kernel_initializer
         elif kernel_initializer:
