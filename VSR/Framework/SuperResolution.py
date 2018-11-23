@@ -447,7 +447,7 @@ class SuperResolutionDisc(SuperResolution):
 
         return critic
 
-    def dcgan(self, input_shape, norm=None, name=None):
+    def dcgan_d(self, input_shape, norm=None, name=None):
         if norm:
             bn = np.any([word in norm for word in ('bn', 'batch')])
             sn = np.any([word in norm for word in ('sn', 'spectral')])
@@ -461,13 +461,20 @@ class SuperResolutionDisc(SuperResolution):
                               use_batchnorm=bn,
                               use_bias=True)
                 ch = 64
-                x = self.leaky_conv2d(x, ch, 3, **kwargs)
-                x = self.leaky_conv2d(x, ch * 2, 4, 2, **kwargs)
-                x = self.leaky_conv2d(x, ch * 2, 3, **kwargs)
-                x = self.leaky_conv2d(x, ch * 4, 4, 2, **kwargs)
-                x = self.leaky_conv2d(x, ch * 4, 3, **kwargs)
-                x = self.leaky_conv2d(x, ch * 8, 4, 2, **kwargs)
-                x = self.leaky_conv2d(x, ch * 8, 3, **kwargs)
+                x = self.conv2d(x, ch, 3, **kwargs)
+                x = tf.nn.leaky_relu(x, 0.1)
+                x = self.conv2d(x, ch * 2, 4, 2, **kwargs)
+                x = tf.nn.leaky_relu(x, 0.1)
+                x = self.conv2d(x, ch * 2, 3, **kwargs)
+                x = tf.nn.leaky_relu(x, 0.1)
+                x = self.conv2d(x, ch * 4, 4, 2, **kwargs)
+                x = tf.nn.leaky_relu(x, 0.1)
+                x = self.conv2d(x, ch * 4, 3, **kwargs)
+                x = tf.nn.leaky_relu(x, 0.1)
+                x = self.conv2d(x, ch * 8, 4, 2, **kwargs)
+                x = tf.nn.leaky_relu(x, 0.1)
+                x = self.conv2d(x, ch * 8, 3, **kwargs)
+                x = tf.nn.leaky_relu(x, 0.1)
                 if has_shape:
                     x = tf.layers.flatten(x)
                 else:

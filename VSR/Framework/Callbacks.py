@@ -23,10 +23,10 @@ def _sub_residual(**kwargs):
     return img - res
 
 
-def _save_model_predicted_images(output, index, mode='YCbCr', **kwargs):
+def _save_model_predicted_images(output, index, mode='YCbCr', cols=1, **kwargs):
     save_dir = kwargs.get('save_dir') or '.'
     sub_dir = kwargs.get('subdir') or '.'
-    name, seq, frames = kwargs.get('name')[0]
+    name, seq, frames = kwargs.get('name', [('image', 0, 0)])[0]
     seq = int(seq)
     frames = int(frames)
     if output is not None:
@@ -40,6 +40,20 @@ def _save_model_predicted_images(output, index, mode='YCbCr', **kwargs):
         path.parent.mkdir(parents=True, exist_ok=True)
         rep = 1
         path2 = path
+        if cols > 1:
+            batch = len(imgs)
+            if batch == 0:
+                return output
+            rows = int(np.ceil(batch / cols))
+            w = imgs[0].width
+            h = imgs[0].height
+            canvas = np.zeros([h * rows, w * cols, 3], np.uint8)
+            for i, img in enumerate(imgs):
+                img = img.convert('RGB')
+                x = (i % cols) * w
+                y = (i // cols) * h
+                canvas[y:y + h, x:x + w] = np.asarray(img, np.uint8)
+            imgs = [array_to_img(canvas, 'RGB')]
         for img in imgs:
             while path2.exists():
                 path2 = path.parent / f'{path.stem}_{rep}.png'
@@ -220,6 +234,11 @@ def _image_align(image, scale, **kwargs):
 def save_image(save_dir='.', output_index=-1, **kwargs):
     return partial(_save_model_predicted_images, save_dir=save_dir,
                    index=output_index, **kwargs)
+
+
+def save_batch_image(save_dir='.', output_index=-1, cols=8, **kwargs):
+    return partial(_save_model_predicted_images, save_dir=save_dir,
+                   index=output_index, cols=cols, **kwargs)
 
 
 def print_psnr(max_val=255.0):

@@ -1,5 +1,6 @@
 from VSR.Util import Utility as U
 from VSR.Util.Config import Config
+from VSR.Framework.Callbacks import save_batch_image
 
 TEST_STR = ('1.3', '2kb', '3 mb', '4GB', '9Zb', '2.3pB')
 ANS = (1.3, 2048.0, 3145728.0, 4294967296.0, 10625324586456701730816.0,
@@ -20,3 +21,14 @@ def test_config():
     d.update(Config(b=6, f=5))
     d.pop('b')
     print(d)
+
+
+def test_save_batch_image():
+    from tensorflow.keras.datasets.cifar10 import load_data
+    _, (data, _) = load_data()
+    fn = save_batch_image('.', mode='RGB')
+    fn(data[:64])
+
+
+if __name__ == '__main__':
+    test_save_batch_image()
