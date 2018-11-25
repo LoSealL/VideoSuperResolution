@@ -125,12 +125,12 @@ class SRGAN(SuperResolutionDisc):
 
     def build_saver(self):
         super(SRGAN, self).build_saver()
-        var_d = tf.trainable_variables('Critic') + tf.model_variables('Critic')
-        var_g = tf.trainable_variables(self.name) + tf.model_variables(
-            self.name)
+        var_d = tf.global_variables('Critic')
+        var_g = tf.global_variables(self.name)
+        steps = [self.global_steps]
         self.savers.update({
             'Critic': tf.train.Saver(var_d, max_to_keep=1),
-            'Gen': tf.train.Saver(var_g, max_to_keep=1),
+            'Gen': tf.train.Saver(var_g + steps, max_to_keep=1),
         })
 
     def train_batch(self, feature, label, learning_rate=1e-4, **kwargs):
