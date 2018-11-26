@@ -40,11 +40,13 @@ def evaluate():
         raise RuntimeError("dataset config file doesn't exist!")
     _, ref_data, _ = fetch_datasets(data_config_file, FLAGS)
     input_data = load_folder(FLAGS.input_dir)
-    if not ref_data.test:
-        ref_data = load_folder(FLAGS.reference_dir)
     metric_config = Config(batch=1, scale=1, modcrop=False, crop=None)
     ref_loader = QuickLoader(ref_data, 'test', metric_config)
     input_loader = QuickLoader(input_data, 'test', metric_config)
     label_images = [x for x, _, _ in ref_loader.make_one_shot_iterator()]
+    if not label_images:
+        backup_data = load_folder(FLAGS.reference_dir)
+        backup_loader = QuickLoader(backup_data, 'test', metric_config)
+        label_images = [x for x, _, _ in backup_loader.make_one_shot_iterator()]
     input_images = [x for x, _, _ in input_loader.make_one_shot_iterator()]
     Eval.evaluate(label_images, input_images)

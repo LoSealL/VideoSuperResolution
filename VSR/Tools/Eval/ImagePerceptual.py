@@ -46,10 +46,9 @@ class InceptionTask(Task):
         del label_images
         results = []
         for x1 in fake_images:
-            with tf.Graph().as_default():
-                x1 = tf.constant(x1.astype('float32'))
-                score = inception_score(x1)
-                results.append(score.eval())
+            x1 = tf.constant(x1.astype('float32'))
+            score = inception_score(x1)
+            results.append(score.eval())
         return results
 
 
@@ -57,7 +56,6 @@ class FidTask(Task):
     def __call__(self, label_images, fake_images):
         results = []
         for x0, x1 in zip(label_images, fake_images):
-            with tf.Graph().as_default():
-                fid = fid_score(x0, x1)
-                results.append(fid.eval())
+            fid = fid_score(x0, x1)
+            results.append(fid.eval())
         return results
