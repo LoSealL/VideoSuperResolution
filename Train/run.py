@@ -5,10 +5,8 @@ Email: wenyi.tang@intel.com
 Created Date: Oct 15th 2018
 
 Improved train/benchmark/infer script
+Type --helpfull to get full doc.
 """
-
-import tensorflow as tf
-from importlib import import_module
 
 # Import models in development
 try:
@@ -16,10 +14,12 @@ try:
 except ImportError as ex:
     pass
 
+import tensorflow as tf
+from importlib import import_module
 from VSR.Tools import Run
-from VSR.Tools import EvalModelCheckpoint
+from VSR.Tools import EvalModelCheckpoint, EvalDataDirectory
 
-tf.flags.DEFINE_enum("mode", 'run', ('run', 'eval'), help="tools to use")
+tf.flags.DEFINE_enum("mode", 'run', ('run', 'eval'), "tools to use.")
 FLAGS = tf.flags.FLAGS
 
 
@@ -34,8 +34,13 @@ def main(*args, **kwargs):
                 raise KeyError(f"Function [{fn_name}] couldn't be found in 'custom_api.py'")
     if FLAGS.mode == 'run':
         return Run.run(**additional_functions)
-    if FLAGS.mode == 'eval' and FLAGS.model:
-        return EvalModelCheckpoint.evaluate()
+    if FLAGS.mode == 'eval':
+        if FLAGS.checkpoint_dir:
+            return EvalModelCheckpoint.evaluate()
+        elif FLAGS.input_dir:
+            return EvalDataDirectory.evaluate()
+        print(("In mode 'eval', parse either '--checkpoint_dir' with '--model'"
+               " or '--input_dir' to evaluate models, see details --helpfull"))
 
 
 if __name__ == '__main__':

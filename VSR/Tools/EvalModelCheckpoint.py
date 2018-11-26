@@ -9,84 +9,39 @@ Specifies a model and evaluate its corresponded checkpoint.
 
 import tensorflow as tf
 import numpy as np
+import shutil
 from pathlib import Path
 from functools import partial
 
 from ..Models import get_model
 from ..DataLoader.Loader import QuickLoader
 from ..Util.Config import Config
-from ..Util.Utility import to_list
-from ..Framework.GAN import inception_score, fid_score
 from .Run import check_args, fetch_datasets, init_loader_config
+from .Eval import Eval
 
-tf.flags.DEFINE_string("d", None, help="checkpoint directory.")
-tf.flags.DEFINE_string("checkpoint_dir", None, help="the same as -d")
-tf.flags.DEFINE_bool("disable_psnr", False, help="don't evaluate psnr.")
-tf.flags.DEFINE_bool("disable_ssim", False, help="don't evaluate ssim.")
-tf.flags.DEFINE_bool("disable_fid", False, help="don't evaluate fid.")
-tf.flags.DEFINE_bool("disable_inception_score", False, help="don't evaluate inception score.")
-
+tf.flags.DEFINE_string("checkpoint_dir", None, help="checkpoint directory.")
 FLAGS = tf.flags.FLAGS
-
-
-class Task:
-    def __init__(self, taskname=None):
-        self.name = taskname
-
-    def __call__(self, label_images, fake_images):
-        pass
-
-
-class PsnrTask(Task):
-    def __call__(self, label_images, fake_images):
-        x0 = tf.to_float(label_images)
-        x1 = tf.to_float(fake_images)
-        psnr = tf.image.psnr(x0, x1, 255)
-        return psnr.eval()
-
-
-class SsimTask(Task):
-    def __call__(self, label_images, fake_images):
-        x0 = tf.to_float(label_images)
-        x1 = tf.to_float(fake_images)
-        ssim = tf.image.ssim(x0, x1, 255)
-        return ssim.eval()
-
-
-class InceptionTask(Task):
-    def __call__(self, label_images, fake_images):
-        del label_images
-        images = tf.to_float(fake_images)
-        score = inception_score(images)
-        return score.eval()
-
-
-class FidTask(Task):
-    def __call__(self, label_images, fake_images):
-        x0 = tf.to_float(label_images)
-        x1 = tf.to_float(fake_images)
-        fid = fid_score(x0, x1)
-        return fid.eval()
 
 
 def maybe_checkpoint(path):
     path = Path(path)
-    candidates = path.rglob('*.ckpt.*')
-    candidates = set([d.parent for d in candidates])
-
-    return candidates
-
-
-def maybe_stack_over(data):
-    data = to_list(data)
+    epoch = FLAGS.epochs
+    candidates = list(path.rglob(f'*{epoch:04d}.ckpt.*'))
+    if len(candidates) == 0:
+        tf.logging.warning(f"checkpoint of ep-{epoch} is not found.")
+        return next(path.rglob(f'*.ckpt.*')).parent.parent
+    for d in set([d.parent for d in candidates]):
+        if FLAGS.model in str(d):
+            candidates = list(d.rglob(f'*{epoch:04d}.ckpt.*'))
+            break
     try:
-        if np.ndim(data) <= 3:
-            data = np.stack(data)
-        else:
-            data = np.concatenate(data)
-    except ValueError:
-        return data
-    return [data]
+        shutil.rmtree(f'/tmp/{FLAGS.model}/save')
+    except FileNotFoundError:
+        pass
+    dst = Path(f'/tmp/{FLAGS.model}/save')
+    dst.mkdir(parents=True, exist_ok=False)
+    [shutil.copy(x, str(dst)) for x in candidates]
+    return dst.parent
 
 
 def get_outputs(outputs, config, **kwargs):
@@ -115,9 +70,7 @@ def evaluate():
             opt.update(Config(str(model_config_root)))
         if model_config_file.exists():
             opt.update(Config(str(model_config_file)))
-    if opt.checkpoint_dir:
-        opt.d = opt.checkpoint_dir
-    root = maybe_checkpoint(opt.d)
+    root = maybe_checkpoint(opt.checkpoint_dir)
     model_params = opt.get(opt.model, {})
     opt.update(model_params)
     model = get_model(opt.model)(**model_params)
@@ -126,7 +79,6 @@ def evaluate():
     _, test_config, infer_config = init_loader_config(opt)
     test_config.subdir = test_data.name
     infer_config.subdir = 'infer'
-
     with trainer(model, root, tf.logging.INFO) as t:
         loader = QuickLoader(test_data, 'test', test_config, n_threads=4)
         opt.data = []
@@ -134,18 +86,4 @@ def evaluate():
         t.benchmark(loader, test_config)
         # this implies 1:1 on label and fake images
         label_images = [x for x, _, _ in loader.make_one_shot_iterator()]
-        fake_images = opt.data
-        tasks_to_run = []
-        results = {}
-        if not opt.disable_psnr:
-            tasks_to_run.append(PsnrTask('PSNR'))
-        if not opt.disable_ssim:
-            tasks_to_run.append(SsimTask('SSIM'))
-        if not opt.disable_fid:
-            tasks_to_run.append(FidTask('FID'))
-        if not opt.disable_inception_score:
-            tasks_to_run.append(InceptionTask('InceptionScore'))
-        for task in tasks_to_run:
-            results[task.name] = task(label_images, fake_images)
-
-    print(results)
+    Eval.evaluate(label_images, opt.data)
