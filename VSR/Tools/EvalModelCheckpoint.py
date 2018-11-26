@@ -16,6 +16,7 @@ from ..Models import get_model
 from ..DataLoader.Loader import QuickLoader
 from ..Util.Config import Config
 from ..Util.Utility import to_list
+from ..Framework.GAN import inception_score, fid_score
 from .Run import check_args, fetch_datasets, init_loader_config
 
 tf.flags.DEFINE_string("d", None, help="checkpoint directory.")
@@ -26,6 +27,46 @@ tf.flags.DEFINE_bool("disable_fid", False, help="don't evaluate fid.")
 tf.flags.DEFINE_bool("disable_inception_score", False, help="don't evaluate inception score.")
 
 FLAGS = tf.flags.FLAGS
+
+
+class Task:
+    def __init__(self, taskname=None):
+        self.name = taskname
+
+    def __call__(self, label_images, fake_images):
+        pass
+
+
+class PsnrTask(Task):
+    def __call__(self, label_images, fake_images):
+        x0 = tf.to_float(label_images)
+        x1 = tf.to_float(fake_images)
+        psnr = tf.image.psnr(x0, x1, 255)
+        return psnr.eval()
+
+
+class SsimTask(Task):
+    def __call__(self, label_images, fake_images):
+        x0 = tf.to_float(label_images)
+        x1 = tf.to_float(fake_images)
+        ssim = tf.image.ssim(x0, x1, 255)
+        return ssim.eval()
+
+
+class InceptionTask(Task):
+    def __call__(self, label_images, fake_images):
+        del label_images
+        images = tf.to_float(fake_images)
+        score = inception_score(images)
+        return score.eval()
+
+
+class FidTask(Task):
+    def __call__(self, label_images, fake_images):
+        x0 = tf.to_float(label_images)
+        x1 = tf.to_float(fake_images)
+        fid = fid_score(x0, x1)
+        return fid.eval()
 
 
 def maybe_checkpoint(path):
@@ -94,15 +135,17 @@ def evaluate():
         # this implies 1:1 on label and fake images
         label_images = [x for x, _, _ in loader.make_one_shot_iterator()]
         fake_images = opt.data
-        sess = tf.get_default_session()
         tasks_to_run = []
+        results = {}
         if not opt.disable_psnr:
-            tasks_to_run.append()
+            tasks_to_run.append(PsnrTask('PSNR'))
         if not opt.disable_ssim:
-            tasks_to_run.append()
+            tasks_to_run.append(SsimTask('SSIM'))
         if not opt.disable_fid:
-            tasks_to_run.append()
+            tasks_to_run.append(FidTask('FID'))
         if not opt.disable_inception_score:
-            tasks_to_run.append()
+            tasks_to_run.append(InceptionTask('InceptionScore'))
         for task in tasks_to_run:
-            results = task(label_images, fake_images)
+            results[task.name] = task(label_images, fake_images)
+
+    print(results)
