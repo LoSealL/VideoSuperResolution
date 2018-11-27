@@ -9,9 +9,11 @@ for generative adversarial networks
 """
 
 import tensorflow as tf
+import numpy as np
 from functools import partial
 
 _INCEPTION_BATCH = 50
+_TFGAN = tf.contrib.gan.eval
 
 
 def _preprocess_for_inception(images):
@@ -33,26 +35,65 @@ def _preprocess_for_inception(images):
         images = tf.identity(images)
 
     preprocessed_images = tf.map_fn(
-        fn=tf.contrib.gan.eval.preprocess_image,
+        fn=_TFGAN.preprocess_image,
         elems=images,
         back_prop=False)
 
     return preprocessed_images
 
 
-def fid_score(real_image, gen_image):
+def _run_inception(images, layer_name, inception_graph):
+    preprocessed = _preprocess_for_inception(images)
+    return _TFGAN.run_inception(preprocessed,
+                                output_tensor=layer_name,
+                                graph_def=inception_graph)
+
+
+def fid_score(real_image, gen_image, num_batches=None):
     """FID function from tf.contrib
 
     Args:
         real_image: must be 4-D tensor, ranges from [0, 255]
         gen_image: must be 4-D tensor, ranges from [0, 255]
+        num_batches: Number of batches to split `generated_images` in to in
+          order to efficiently run them through the classifier network.
     """
     batches = real_image.shape[0]
-    fid = tf.contrib.gan.eval.frechet_inception_distance(
-        real_images=_preprocess_for_inception(real_image),
-        generated_images=_preprocess_for_inception(gen_image),
-        num_batches=(batches + _INCEPTION_BATCH - 1) // _INCEPTION_BATCH)
-    return fid
+    assert gen_image.shape[0] == batches
+    assert isinstance(real_image, np.ndarray)
+    assert isinstance(gen_image, np.ndarray)
+    if not num_batches:
+        num_batches = (batches + _INCEPTION_BATCH - 1) // _INCEPTION_BATCH
+    graph = _TFGAN.get_graph_def_from_url_tarball(
+        'http://download.tensorflow.org/models/frozen_inception_v1_2015_12_05.tar.gz',
+        'inceptionv1_for_inception_score.pb',
+        '/tmp/frozen_inception_v1_2015_12_05.tar.gz')
+    # make tensor batches
+    real_ph = tf.placeholder(tf.float32,
+                             [_INCEPTION_BATCH, *real_image.shape[1:]])
+    gen_ph = tf.placeholder(tf.float32,
+                            [_INCEPTION_BATCH, *gen_image.shape[1:]])
+    real_features = _run_inception(real_ph, 'pool_3:0', graph)
+    gen_features = _run_inception(gen_ph, 'pool_3:0', graph)
+    sess = tf.get_default_session()
+    real_feature_np = []
+    gen_feature_np = []
+    real_image = np.split(real_image, num_batches)
+    gen_image = np.split(gen_image, num_batches)
+    for i in range(num_batches):
+        r, g = sess.run(
+            [real_features, gen_features],
+            feed_dict={real_ph: real_image[i], gen_ph: gen_image[i]})
+        real_feature_np.append(r)
+        gen_feature_np.append(g)
+    real_feature_np = np.concatenate(real_feature_np)
+    gen_feature_np = np.concatenate(gen_feature_np)
+    fid_tensor = _TFGAN.frechet_classifier_distance(
+        classifier_fn=tf.identity,
+        real_images=real_feature_np,
+        generated_images=gen_feature_np,
+        num_batches=num_batches)
+    return fid_tensor
 
 
 def inception_score(images, num_batches=None):
@@ -66,15 +107,15 @@ def inception_score(images, num_batches=None):
     batches = images.shape[0]
     if not num_batches:
         num_batches = (batches + _INCEPTION_BATCH - 1) // _INCEPTION_BATCH
-    graph = tf.contrib.gan.eval.get_graph_def_from_url_tarball(
+    graph = _TFGAN.get_graph_def_from_url_tarball(
         'http://download.tensorflow.org/models/frozen_inception_v1_2015_12_05.tar.gz',
         'inceptionv1_for_inception_score.pb',
         '/tmp/frozen_inception_v1_2015_12_05.tar.gz')
-    run_inception = partial(tf.contrib.gan.eval.run_inception,
-                            graph_def=graph)
-    return tf.contrib.gan.eval.classifier_score(
-        images=_preprocess_for_inception(images),
-        classifier_fn=run_inception,
+    return _TFGAN.classifier_score(
+        images=images,
+        classifier_fn=partial(_run_inception,
+                              layer_name='logits:0',
+                              inception_graph=graph),
         num_batches=num_batches)
 
 
