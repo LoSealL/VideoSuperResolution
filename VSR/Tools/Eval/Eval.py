@@ -9,8 +9,15 @@ Specifies a model and evaluate its corresponded checkpoint.
 
 import tensorflow as tf
 import numpy as np
+import time
+import csv
+from pathlib import Path
 from . import ImagePerceptual, ImageSimilarity
 from ...Util.Utility import to_list
+
+
+_DATE = time.strftime('%Y-%m-%d', time.localtime())
+LOG_FILE = f'/tmp/vsr/{_DATE}/eval_results.csv'
 
 
 def maybe_stack_over(data):
@@ -25,6 +32,34 @@ def maybe_stack_over(data):
     except ValueError:
         return data
     return [data]
+
+
+def log_results(results, into_file=True):
+    tf.logging.info("\n" + str(results))
+    if not into_file:
+        return
+    fd = Path(LOG_FILE)
+    if not fd.exists():
+        fd.parent.mkdir(parents=True, exist_ok=True)
+        fd = fd.open('w')
+        writer = csv.DictWriter(fd, results.keys())
+        writer.writeheader()
+        writer.writerow(results)
+    else:
+        # check headers
+        with fd.open('r') as f:
+            checker = csv.DictReader(f)
+            if checker.fieldnames != list(results.keys()):
+                tf.logging.warning('header modification detected, '
+                                   'write new header inline.')
+                new_header = True
+            else:
+                new_header = False
+        with fd.open('a') as f:
+            writer = csv.DictWriter(f, results.keys())
+            if new_header:
+                writer.writeheader()
+            writer.writerow(results)
 
 
 def evaluate(real_images, gen_images, opt=tf.flags.FLAGS):
@@ -50,4 +85,4 @@ def evaluate(real_images, gen_images, opt=tf.flags.FLAGS):
             results[task.name] = task(real_images, gen_images)
             tf.logging.info(f"Evaluating {task.name} done\n")
 
-    tf.logging.info("\n" + str(results))
+    log_results(results, True)
