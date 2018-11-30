@@ -85,4 +85,5 @@ def evaluate(real_images, gen_images, opt=tf.flags.FLAGS):
             results[task.name] = task(real_images, gen_images)
             tf.logging.info(f"Evaluating {task.name} done\n")
 
+    results.update(model=opt.model)
     log_results(results, True)
