@@ -91,7 +91,7 @@ class VESPCN(SuperResolution):
             tf.float32, [None, self.depth, None, None, self.channel],
             name='label'))
         inputs = self.inputs[0]
-        inputs = pad_if_divide(inputs, 4 * self.scale[0])
+        inputs = pad_if_divide(inputs, 4)
         labels = self.label[0]
         labels = pad_if_divide(labels, 4 * self.scale[0])
         center = (self.depth - 1) // 2
@@ -103,7 +103,8 @@ class VESPCN(SuperResolution):
             warps = []
             flows = []
             for i in range(self.depth):
-                if i == center: continue
+                if i == center:
+                    continue
                 w, f = self._me(input_center, frames[i])
                 warps.append(w)
                 flows.append(f)
