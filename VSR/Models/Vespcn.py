@@ -17,15 +17,17 @@ import tensorflow as tf
 
 def _pad(x, value=16, mode='CONSTANT'):
     shape = tf.shape(x)
-    h = shape[1]
-    w = shape[2]
+    h = shape[2]
+    w = shape[3]
     h2 = tf.cond(tf.equal(tf.mod(h, value), 0),
                  lambda: h,
                  lambda: h + value - tf.mod(h, value))
     w2 = tf.cond(tf.equal(tf.mod(w, value), 0),
                  lambda: w,
                  lambda: w + value - tf.mod(w, value))
-    return tf.pad(x, [[0, 0], [0, h2 - h], [0, w2 - w], [0, 0]], mode=mode)
+    return tf.pad(x,
+                  [[0, 0], [0, 0], [0, h2 - h], [0, w2 - w], [0, 0]],
+                  mode=mode)
 
 
 class VESPCN(SuperResolution):
