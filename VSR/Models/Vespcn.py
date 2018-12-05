@@ -15,6 +15,19 @@ from VSR.Util.Utility import *
 import tensorflow as tf
 
 
+def _pad(x, value=16, mode='CONSTANT'):
+    shape = tf.shape(x)
+    h = shape[1]
+    w = shape[2]
+    h2 = tf.cond(tf.equal(tf.mod(h, value), 0),
+                 lambda: h,
+                 lambda: h + value - tf.mod(h, value))
+    w2 = tf.cond(tf.equal(tf.mod(w, value), 0),
+                 lambda: w,
+                 lambda: w + value - tf.mod(w, value))
+    return tf.pad(x, [[0, 0], [0, h2 - h], [0, w2 - w], [0, 0]], mode=mode)
+
+
 class VESPCN(SuperResolution):
     """Real-Time Video Super-Resolution with Spatio-Temporal Networks and Motion Compensation
 
@@ -79,15 +92,24 @@ class VESPCN(SuperResolution):
         diff_y = inputs[:, :, 1:, :] - inputs[:, :, :-1, :]
         diff_x2 = diff_x ** 2
         diff_y2 = diff_y ** 2
-        loss = tf.reduce_sum(diff_x2, axis=[1, 2, 3]) + tf.reduce_sum(diff_y2, axis=[1, 2, 3]) + epsilon
+        loss = tf.reduce_sum(diff_x2, axis=[1, 2, 3]) + \
+               tf.reduce_sum(diff_y2, axis=[1, 2, 3]) + epsilon
         return tf.reduce_mean(tf.sqrt(loss))
 
     def build_graph(self):
-        self.inputs.append(tf.placeholder(tf.float32, [None, self.depth, None, None, self.channel], name='input/lr'))
-        self.label.append(tf.placeholder(tf.float32, [None, self.depth, None, None, self.channel], name='label'))
+        self.inputs.append(tf.placeholder(
+            tf.float32, [None, self.depth, None, None, self.channel],
+            name='input/lr'))
+        self.label.append(tf.placeholder(
+            tf.float32, [None, self.depth, None, None, self.channel],
+            name='label'))
+        inputs = self.inputs[0]
+        inputs = _pad(inputs, 4 * self.scale[0])
+        labels = self.label[0]
+        labels = _pad(labels, 4)
         center = (self.depth - 1) // 2
-        input_center = self.inputs[0][:, center, ...]
-        label_center = self.label[0][:, center, ...]
+        input_center = inputs[:, center, ...]
+        label_center = labels[:, center, ...]
         with tf.variable_scope(self.name):
             frames = tf.split(self.inputs[0], self.depth, axis=1)
             frames = [tf.squeeze(f, axis=1) for f in frames]
@@ -106,21 +128,25 @@ class VESPCN(SuperResolution):
         with tf.name_scope('Loss'):
             loss_l2 = tf.losses.mean_squared_error(label_center, sr)
             loss_re = tf.losses.get_regularization_losses()
-            loss_warps = [tf.losses.mean_squared_error(input_center, w) for w in warps]
+            loss_warps = [tf.losses.mean_squared_error(input_center, w) for w in
+                          warps]
             loss_flows = [self._strange_huber_loss(f) for f in flows]
-            loss_me = tf.add_n([w * self.beta + f * self.gamma for w, f in zip(loss_warps, loss_flows)])
+            loss_me = tf.add_n([w * self.beta + f * self.gamma for w, f in
+                                zip(loss_warps, loss_flows)])
             loss = tf.add_n([loss_l2, loss_me] + loss_re)
 
             update_op = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
             with tf.control_dependencies(update_op):
-                opt = tf.train.AdamOptimizer(self.learning_rate).minimize(loss, self.global_steps)
+                opt = tf.train.AdamOptimizer(self.learning_rate)
+                opt = opt.minimize(loss, self.global_steps)
                 self.loss.append(opt)
 
         self.train_metric['l2'] = loss_l2
         self.train_metric['loss'] = loss
         self.train_metric['me'] = loss_me
         self.metrics['mse'] = loss_l2
-        self.metrics['psnr'] = tf.reduce_mean(tf.image.psnr(label_center, sr, 255))
+        self.metrics['psnr'] = tf.reduce_mean(
+            tf.image.psnr(label_center, sr, 255))
 
     def build_loss(self):
         pass
