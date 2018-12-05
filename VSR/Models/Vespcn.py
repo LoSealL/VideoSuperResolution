@@ -108,12 +108,12 @@ class VESPCN(SuperResolution):
         inputs = self.inputs[0]
         inputs = _pad(inputs, 4 * self.scale[0])
         labels = self.label[0]
-        labels = _pad(labels, 4)
+        labels = _pad(labels, 4 * self.scale[0])
         center = (self.depth - 1) // 2
         input_center = inputs[:, center, ...]
         label_center = labels[:, center, ...]
         with tf.variable_scope(self.name):
-            frames = tf.split(self.inputs[0], self.depth, axis=1)
+            frames = tf.split(inputs, self.depth, axis=1)
             frames = [tf.squeeze(f, axis=1) for f in frames]
             warps = []
             flows = []
