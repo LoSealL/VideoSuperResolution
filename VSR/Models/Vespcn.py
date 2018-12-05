@@ -15,21 +15,6 @@ from VSR.Util.Utility import *
 import tensorflow as tf
 
 
-def _pad(x, value=16, mode='CONSTANT'):
-    shape = tf.shape(x)
-    h = shape[2]
-    w = shape[3]
-    h2 = tf.cond(tf.equal(tf.mod(h, value), 0),
-                 lambda: h,
-                 lambda: h + value - tf.mod(h, value))
-    w2 = tf.cond(tf.equal(tf.mod(w, value), 0),
-                 lambda: w,
-                 lambda: w + value - tf.mod(w, value))
-    return tf.pad(x,
-                  [[0, 0], [0, 0], [0, h2 - h], [0, w2 - w], [0, 0]],
-                  mode=mode)
-
-
 class VESPCN(SuperResolution):
     """Real-Time Video Super-Resolution with Spatio-Temporal Networks and Motion Compensation
 
@@ -106,9 +91,9 @@ class VESPCN(SuperResolution):
             tf.float32, [None, self.depth, None, None, self.channel],
             name='label'))
         inputs = self.inputs[0]
-        inputs = _pad(inputs, 4 * self.scale[0])
+        inputs = pad_if_divide(inputs, 4 * self.scale[0])
         labels = self.label[0]
-        labels = _pad(labels, 4 * self.scale[0])
+        labels = pad_if_divide(labels, 4 * self.scale[0])
         center = (self.depth - 1) // 2
         input_center = inputs[:, center, ...]
         label_center = labels[:, center, ...]

@@ -360,6 +360,53 @@ def correlation(f1, f2, patch, max_displacement, stride1=1, stride2=1):
     return tf.squeeze(corr, axis=-2)
 
 
+def pad_if_divide(x, value=16, mode='CONSTANT'):
+    """pad tensor if its width and height couldn't be divided by `value`.
+
+    Args:
+        x: a tensor at least has 3 dimensions.
+        value: value to divide width and height.
+        mode: a string, representing padding mode.
+    Return:
+        padded tensor.
+    """
+
+    shape = tf.shape(x)
+    h = shape[-3]
+    w = shape[-2]
+    h2 = tf.cond(tf.equal(tf.mod(h, value), 0),
+                 lambda: h,
+                 lambda: h + value - tf.mod(h, value))
+    w2 = tf.cond(tf.equal(tf.mod(w, value), 0),
+                 lambda: w,
+                 lambda: w + value - tf.mod(w, value))
+    pad = [[0, h2 - h], [0, w2 - w], [0, 0]]
+    pad = [[0, 0]] * (x.get_shape().ndims - 3) + pad
+    return tf.pad(x, pad, mode=mode)
+
+
+def shave_if_divide(x, value=16):
+    """crop tensor if its width and height couldn't be divided by `value`.
+
+    Args:
+        x: a tensor at least has 3 dimensions.
+        value: value to divide width and height.
+    Return:
+        cropped tensor.
+    """
+
+    shape = tf.shape(x)
+    h = shape[-3]
+    w = shape[-2]
+    h2 = tf.cond(tf.equal(tf.mod(h, value), 0),
+                 lambda: h,
+                 lambda: h - tf.mod(h, value))
+    w2 = tf.cond(tf.equal(tf.mod(w, value), 0),
+                 lambda: w,
+                 lambda: w - tf.mod(w, value))
+    return x[..., :h2, :w2, :]
+
+
 class SpectralNorm(tf.keras.constraints.Constraint):
     """Spectral normalization constraint.
       Ref: https://arxiv.org/pdf/1802.05957
