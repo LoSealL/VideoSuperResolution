@@ -11,5 +11,7 @@ batch: 4
 patch_size: 96
 depth: 3  # must be same as the model depth
 lr: 1.0e-4
-lr_decay: 1
-lr_decay_step: 1
+lr_decay:
+  method: multistep
+  decay_step: []
+  decay_rate: 1
