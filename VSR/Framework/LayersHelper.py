@@ -23,10 +23,32 @@ class Layers(object):
                                              epsilon=epsilon,
                                              name=name)
 
+    def instance_norm(self, x, trainable=True, name=None, reuse=None):
+        with tf.variable_scope(name, 'InstanceNorm', reuse=reuse):
+            return tf.contrib.layers.instance_norm(
+                x,
+                trainable=trainable,
+                variables_collections=[tf.GraphKeys.GLOBAL_VARIABLES])
+
+    def layer_norm(self, x, trainable=True, name=None, reuse=None):
+        with tf.variable_scope(name, 'LayerNorm', reuse=reuse):
+            return tf.contrib.layers.layer_norm(
+                x,
+                trainable=trainable,
+                variables_collections=[tf.GraphKeys.GLOBAL_VARIABLES])
+
+    def group_norm(self, x, group, axis, trainable=True, name=None, reuse=None):
+        with tf.variable_scope(name, 'GroupNorm', reuse=reuse):
+            return tf.contrib.layers.group_norm(
+                x, group, axis,
+                trainable=trainable,
+                variables_collections=[tf.GraphKeys.GLOBAL_VARIABLES])
+
     def conv2d(self, x, filters, kernel_size, strides=(1, 1), padding='same',
                data_format='channels_last', dilation_rate=(1, 1),
                activation=None, use_bias=True, use_batchnorm=False,
-               use_sn=False, kernel_initializer='he_normal',
+               use_sn=False, use_in=False, use_ln=False, use_gn=False,
+               kernel_initializer='he_normal',
                kernel_regularizer='l2', **kwargs):
         """wrap a convolution for common use case"""
 
@@ -42,6 +64,12 @@ class Layers(object):
         x = nn(x)
         if use_batchnorm:
             x = tf.layers.batch_normalization(x, training=self.training_phase)
+        if use_in:
+            x = self.instance_norm(x)
+        if use_ln:
+            x = self.layer_norm(x)
+        if use_gn:
+            x = self.group_norm(x, 32, -1)
         activator = self._act(activation)
         if activation:
             x = activator(x)
@@ -50,6 +78,7 @@ class Layers(object):
     def conv3d(self, x, filters, kernel_size, strides=(1, 1, 1), padding='same',
                data_format='channels_last', dilation_rate=(1, 1, 1),
                activation=None, use_bias=True, use_batchnorm=False,
+               use_in=False, use_ln=False, use_gn=False,
                kernel_initializer='he_normal', kernel_regularizer='l2',
                **kwargs):
         ki, kr = self._kernel(kernel_initializer, kernel_regularizer)
@@ -62,6 +91,12 @@ class Layers(object):
         x = nn(x)
         if use_batchnorm:
             x = tf.layers.batch_normalization(x, training=self.training_phase)
+        if use_in:
+            x = self.instance_norm(x)
+        if use_ln:
+            x = self.layer_norm(x)
+        if use_gn:
+            x = self.group_norm(x, 32, -1)
         activator = self._act(activation)
         if activation:
             x = activator(x)
@@ -77,6 +112,9 @@ class Layers(object):
                  use_bias=True,
                  use_batchnorm=False,
                  use_sn=False,
+                 use_in=False,
+                 use_ln=False,
+                 use_gn=False,
                  kernel_initializer='he_normal',
                  kernel_regularizer='l2',
                  **kwargs):
@@ -95,6 +133,12 @@ class Layers(object):
         x = nn(x)
         if use_batchnorm:
             x = tf.layers.batch_normalization(x, training=self.training_phase)
+        if use_in:
+            x = self.instance_norm(x)
+        if use_ln:
+            x = self.layer_norm(x)
+        if use_gn:
+            x = self.group_norm(x, 32, -1)
         activator = self._act(activation)
         if activation:
             x = activator(x)
@@ -109,6 +153,9 @@ class Layers(object):
                  activation=None,
                  use_bias=True,
                  use_batchnorm=False,
+                 use_in=False,
+                 use_ln=False,
+                 use_gn=False,
                  kernel_initializer='he_normal',
                  kernel_regularizer='l2',
                  **kwargs):
@@ -123,6 +170,12 @@ class Layers(object):
         x = nn(x)
         if use_batchnorm:
             x = tf.layers.batch_normalization(x, training=self.training_phase)
+        if use_in:
+            x = self.instance_norm(x)
+        if use_ln:
+            x = self.layer_norm(x)
+        if use_gn:
+            x = self.group_norm(x, 32, -1)
         activator = self._act(activation)
         if activation:
             x = activator(x)

@@ -139,32 +139,32 @@ class BasicLoader:
         self.frames = []  # a list of tuple represents (HR, LR, name) of a clip
         self.prob = self._read_file(dataset)._calc_select_prob()
 
-    def _parse_config(self, config, **kwargs):
-        assert isinstance(config, Config)
-        config.update(kwargs)
+    def _parse_config(self, config: Config, **kwargs):
+        _config = Config(config)
+        _config.update(kwargs)
         _needed_args = ('batch', 'depth', 'scale',
                         'steps_per_epoch', 'convert_to', 'modcrop')
         for _arg in _needed_args:
             # Set default and check values
-            if _arg not in config:
+            if _arg not in _config:
                 if _arg in ('batch', 'scale'):
                     raise ValueError(_arg + ' is required in config.')
                 elif _arg == 'depth':
-                    config.depth = 1
+                    _config.depth = 1
                 elif _arg == 'steps_per_epoch':
-                    config.steps_per_epoch = -1
+                    _config.steps_per_epoch = -1
                 elif _arg == 'convert_to':
-                    config.convert_to = 'RGB'
+                    _config.convert_to = 'RGB'
                 elif _arg == 'modcrop':
-                    config.modcrop = True
-        self.depth = config.depth
-        self.patch_size = config.patch_size
-        self.scale = Utility.to_list(config.scale, 2)
-        self.patches_per_epoch = config.steps_per_epoch * config.batch
-        self.batch = config.batch
-        self.crop = config.crop
-        self.modcrop = config.modcrop
-        self.resample = config.resample
+                    _config.modcrop = True
+        self.depth = _config.depth
+        self.patch_size = _config.patch_size
+        self.scale = Utility.to_list(_config.scale, 2)
+        self.patches_per_epoch = _config.steps_per_epoch * _config.batch
+        self.batch = _config.batch
+        self.crop = _config.crop
+        self.modcrop = _config.modcrop
+        self.resample = _config.resample
 
     def _read_file(self, dataset):
         """Initialize all `File` objects"""
