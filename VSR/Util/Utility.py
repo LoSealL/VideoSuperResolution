@@ -292,12 +292,46 @@ def pop_dict_wo_keyerror(d, key):
     return value
 
 
-def summary_tensor_image(x, name, shape):
+def summary_tensor_image(x: tf.Tensor, name, reshape=None):
     """summary a tensor
 
-    split each channel and form a huge image
+    split each channel and reshape into a huge image
+
+    Args:
+        x: a 4-D tensor of any shape. Note the channel numbers have to be
+          divided by 2^n, or `reshape` must be set to inform how to divide it.
+        name: specify a name in summary.
+        reshape: a tuple of 2 integers, if not None, representing columns and
+          rows of feature maps.
     """
-    raise NotImplementedError
+
+    shape = tf.shape(x)
+    channel = x.get_shape().as_list()[-1]
+    # tensor has to be 4-D
+    assert len(x.get_shape()) == 4
+
+    def _placement(t):
+        if t <= 16:
+            return 4, t // 4
+        elif t <= 64:
+            return 8, t // 8
+        elif t <= 256:
+            return 16, t // 16
+        else:
+            return 32, t // 32
+
+    if reshape:
+        col, row = reshape
+    else:
+        col, row = _placement(channel)
+    x = tf.reshape(x, [shape[0], shape[1], shape[2], row, col])
+    x = tf.transpose(x, [0, 3, 1, 4, 2])
+    x = tf.reshape(x, [-1, 1, shape[1] * row, 1, shape[2] * col])
+    x = tf.squeeze(x, [1, 3])
+    x = tf.expand_dims(x, -1)
+
+    tf.summary.image(name, x)
+    return x
 
 
 def _make_vector(x, patch=3, stride=1):

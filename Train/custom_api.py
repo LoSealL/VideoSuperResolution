@@ -70,7 +70,13 @@ def chessboard(inputs, **kwargs):
 
 def noisy(inputs, **kwargs):
     shape = inputs.shape
-    return np.random.normal(0, 1, shape)
+    return np.random.normal(0, 12, shape)
+
+
+def add_noise(inputs, **kwargs):
+    noise = noisy(inputs)
+    noise += inputs.astype('float32')
+    return np.clip(np.round(noise), 0, 255).astype('uint8')
 
 
 def shave(inputs, **kwargs):
