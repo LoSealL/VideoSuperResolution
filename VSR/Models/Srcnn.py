@@ -21,22 +21,29 @@ class SRCNN(SuperResolution):
         filters: number of filters of conv2d(s)
         kernel: a tuple of integer, representing kernel size of each layer,
           can also be one integer to specify the same size
+        custom_upsample: use --add_custom_callbacks=upsample during fitting, or
+          use `bicubic_rescale`. TODO: REMOVE IN FUTURE.
     """
 
-    def __init__(self, layers=3, filters=64, kernel=(9, 5, 5), name='srcnn', **kwargs):
+    def __init__(self, layers=3, filters=64, kernel=(9, 5, 5),
+                 custom_upsample=False,
+                 name='srcnn', **kwargs):
         super(SRCNN, self).__init__(**kwargs)
         self.name = name
+        self.do_up = not custom_upsample
         self.layers = layers
         self.filters = filters
         self.kernel_size = to_list(kernel)
         if len(self.kernel_size) < self.layers:
-            self.kernel_size += to_list(kernel[-1], self.layers - len(self.kernel_size))
+            self.kernel_size += to_list(kernel[-1],
+                                        self.layers - len(self.kernel_size))
 
     def build_graph(self):
         super(SRCNN, self).build_graph()
         with tf.variable_scope(self.name):
             x = self.inputs_preproc[-1]
-            # x = bicubic_rescale(x, self.scale)
+            if self.do_up:
+                x = bicubic_rescale(x, self.scale)
             f = self.filters
             ks = self.kernel_size
             x = self.relu_conv2d(x, f, ks[0])
@@ -58,8 +65,10 @@ class SRCNN(SuperResolution):
 
             self.train_metric['loss'] = loss
             self.metrics['mse'] = mse
-            self.metrics['psnr'] = tf.reduce_mean(tf.image.psnr(self.label[-1], self.outputs[-1], max_val=255))
-            self.metrics['ssim'] = tf.reduce_mean(tf.image.ssim(self.label[-1], self.outputs[-1], max_val=255))
+            self.metrics['psnr'] = tf.reduce_mean(
+                tf.image.psnr(self.label[-1], self.outputs[-1], max_val=255))
+            self.metrics['ssim'] = tf.reduce_mean(
+                tf.image.ssim(self.label[-1], self.outputs[-1], max_val=255))
 
     def build_summary(self):
         tf.summary.scalar('loss/training', self.train_metric['loss'])

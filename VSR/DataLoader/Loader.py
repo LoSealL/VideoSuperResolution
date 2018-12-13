@@ -119,7 +119,7 @@ class BasicLoader:
     """
 
     def __init__(self, dataset, method, config, augmentation=False, **kwargs):
-        self._parse_config(config, **kwargs)
+        config = self._parse_config(config, **kwargs)
         self.file_names = dataset.__getattr__(method.lower()) or []
         self.method = method
         self.flow = dataset.flow
@@ -165,6 +165,7 @@ class BasicLoader:
         self.crop = _config.crop
         self.modcrop = _config.modcrop
         self.resample = _config.resample
+        return _config
 
     def _read_file(self, dataset):
         """Initialize all `File` objects"""
