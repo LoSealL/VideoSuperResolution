@@ -24,7 +24,8 @@ class DRRN(SuperResolution):
         grad_clip: gradient clip ratio according to the paper
     """
 
-    def __init__(self, residual_unit=3, recursive_block=3, grad_clip=0.01, name='drrn', **kwargs):
+    def __init__(self, residual_unit=3, recursive_block=3,
+                 grad_clip=0.01, name='drrn', **kwargs):
         self.ru = residual_unit
         self.rb = recursive_block
         self.grad_clip = grad_clip
@@ -57,15 +58,16 @@ class DRRN(SuperResolution):
             y_true = self.label[-1]
             y_pred = self.outputs[-1]
             mse = tf.losses.mean_squared_error(y_true, y_pred)
-            reg = tf.add_n(tf.losses.get_regularization_losses())
-            loss = mse + reg
+            loss = tf.add_n([mse] + tf.losses.get_regularization_losses())
             opt = tf.train.AdamOptimizer(self.learning_rate)
             if self.grad_clip > 0:
                 grads_and_vars = []
                 for grad, var in opt.compute_gradients(loss):
                     grads_and_vars.append((
-                        tf.clip_by_value(grad, -self.grad_clip / self.learning_rate,
-                                         self.grad_clip / self.learning_rate),
+                        tf.clip_by_value(
+                            grad,
+                            -self.grad_clip / self.learning_rate,
+                            self.grad_clip / self.learning_rate),
                         var))
                 op = opt.apply_gradients(grads_and_vars, self.global_steps)
             else:
@@ -74,12 +76,7 @@ class DRRN(SuperResolution):
 
             self.train_metric['loss'] = loss
             self.metrics['mse'] = mse
-            self.metrics['regularization'] = reg
-            self.metrics['psnr'] = tf.reduce_mean(tf.image.psnr(y_true, y_pred, 255))
-            self.metrics['ssim'] = tf.reduce_mean(tf.image.ssim(y_true, y_pred, 255))
-
-    def build_summary(self):
-        tf.summary.scalar('loss/mse', self.metrics['mse'])
-        tf.summary.scalar('loss/regularization', self.metrics['regularization'])
-        tf.summary.scalar('psnr', self.metrics['psnr'])
-        tf.summary.scalar('ssim', self.metrics['ssim'])
+            self.metrics['psnr'] = tf.reduce_mean(
+                tf.image.psnr(y_true, y_pred, 255))
+            self.metrics['ssim'] = tf.reduce_mean(
+                tf.image.ssim(y_true, y_pred, 255))
