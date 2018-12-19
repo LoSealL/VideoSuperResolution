@@ -312,57 +312,6 @@ class Layers(object):
                     image = act(image)
         return image
 
-    def non_local(self, inputs, channel_scale=8, softmax=False, **kwargs):
-        """Non-local block
-        Refer to CVPR2018 "Non-local Neural Networks":
-          https://arxiv.org/abs/1711.07971
-        and "Self-Attention Generative Adversarial Networks":
-          https://arxiv.org/abs/1805.08318
-
-        Args:
-            inputs: A tensor representing input feature maps
-            channel_scale: An integer representing scale factor from inputs to
-              embedded channel numbers
-            softmax: A boolean, use softmax as non-local operation (require
-              large memories)
-            kwargs: optional arguments for `conv2d`
-
-        Return:
-            Non-local residual, scaled by a trainable `gamma`, which is zero
-              initialized.
-        """
-        try:
-            name = kwargs.pop('name')
-        except KeyError:
-            name = None
-        with tf.variable_scope(name, 'NonLocal'):
-            c = inputs.shape[-1]
-            c_inner = c // channel_scale
-            shape = tf.shape(inputs)
-            # NOTE: here we use `he_normal` to initialize kernel,
-            # TODO other options?
-            g = self.conv2d(inputs, c_inner, 1)
-            theta = self.conv2d(inputs, c_inner, 1)
-            phi = self.conv2d(inputs, c_inner, 1)
-            theta = tf.reshape(theta, [shape[0], -1, c_inner])  # N*C'
-            phi = tf.reshape(phi, [shape[0], -1, c_inner])  # N*C'
-            if softmax:
-                beta = tf.matmul(theta, phi, transpose_b=True)  # N*N
-                beta = tf.nn.softmax(beta, axis=-1)
-                non_local = tf.matmul(beta, tf.reshape(g, [shape[0], -1,
-                                                           c_inner]))  # N*C'
-            else:
-                beta = tf.matmul(phi, tf.reshape(g, [shape[0], -1, c_inner]),
-                                 transpose_a=True)
-                beta = tf.matmul(theta, beta)
-                non_local = beta / tf.to_float(shape[1] * shape[2])
-            non_local = tf.reshape(non_local, [shape[0], shape[1], shape[2],
-                                               c_inner])  # H*W*C'
-            use_bn = kwargs.get('use_batchnorm')
-            non_local = self.conv2d(non_local, c, 1, kernel_initializer='zeros',
-                                    use_batchnorm=use_bn)
-        return non_local
-
     def __getattr__(self, item):
         from functools import partial as _p
         """Make an alignment for easy calls. You can add more patterns as below.

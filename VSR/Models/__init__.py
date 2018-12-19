@@ -1,5 +1,6 @@
 from . import (Srcnn, Espcn, Dcscn, DnCnn, Vdsr, Drcn, Drrn, LapSrn, MemNet,
-               Edsr, Idn, Rdn, Dbpn, Carn, Rcan, SrGan, Vespcn, Msrn)
+               Edsr, Idn, Rdn, Dbpn, Carn, Rcan, SrGan, Vespcn, Msrn,
+               SRDenseNet)
 
 __all__ = ['get_model', 'list_supported_models']
 
@@ -22,6 +23,7 @@ alias = {
     'rcan': Rcan.RCAN,
     'msrn': Msrn.MSRN,
     'vespcn': Vespcn.VESPCN,
+    'srdensenet': SRDenseNet.SRDenseNet,
 }
 
 

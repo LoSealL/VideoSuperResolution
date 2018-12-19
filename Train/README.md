@@ -1,11 +1,13 @@
 A one-line command to model executor
 ## New: eval mode
-Now you can run an **eval** mode in `run.py`.
+Now you can run an **eval** mode in `run.py`. **eval** mode is to calculate metrics for evaluation.
+There are two ways to execute eval mode:
 
 ```bash
 python run.py --mode=eval --model=srcnn --epochs=100 --dataset=set5 --checkpoint_dir=/tmp/srcnn/save \
   --enable_psnr --enable_ssim --l_only
 ```
+This one is called "model mode".
 The above code will run srcnn model (`--model=srcnn`) using checkpoint 
 `*ep0100.ckpt` (`--epochs=100`) to inference **SET5** images (`--dataset=set5` or `--test=set5`)
 and calculate PSNR, SSIM metrics using only luminance channel (`--l_only`).
@@ -13,17 +15,19 @@ and calculate PSNR, SSIM metrics using only luminance channel (`--l_only`).
 ```bash
 python run.py --mode=eval --input_dir=/tmp/set5_sr --dataset=set5 --enable_psnr
 ```
-The above code will calculate PSNR metric of SET5 and images in `/tmp/set5_sr`
+This one is called "dir mode".
+The above code will calculate PSNR metric of SET5 and images in `/tmp/set5_sr`.
+You can also replace `--dataset` by `--reference_dir` which points to a path containing reference images.
 
 (_Note_: you have to make sure `/tmp/set5_sr` has exactly 5 images with the same
 shape and the same loading order as Set5, but can have different file name. I.e.
 `img_001_SRF_4_HR.img` v.s. `img_001_SRF_4_SR.img`)
 
 ### Supported metrics:
-- PSNR
-- SSIM
-- Frechet Inception Distance (FID)
-- Inception Score
+- PSNR (`--enable_psnr`)
+- SSIM (`--enable_ssim`)
+- Frechet Inception Distance (FID) (`--enable_fid`)
+- Inception Score (`--enable_inception_score`)
 
 ## How to use
 `run.py` can be used to train/benchmark/infer models collected in [VSR.Models](../VSR/Models)

@@ -20,7 +20,7 @@ All these models are implemented in **ONE** framework.
 |SRGAN|[CVPR17](https://arxiv.org/abs/1609.04802)|-|Y| 1st proposed GAN |
 |VESPCN|[CVPR17](https://arxiv.org/abs/1611.05250)|-|Y| VideoSR |
 |MemNet|[ICCV17](https://arxiv.org/abs/1708.02209)|[Caffe](https://github.com/tyshiwo/MemNet)|Y|
-|SRDenseNet|[ICCV17](http://openaccess.thecvf.com/content_ICCV_2017/papers/Tong_Image_Super-Resolution_Using_ICCV_2017_paper.pdf)|-, [PyTorch](https://github.com/wxywhu/SRDenseNet-pytorch)|T| Dense |
+|SRDenseNet|[ICCV17](http://openaccess.thecvf.com/content_ICCV_2017/papers/Tong_Image_Super-Resolution_Using_ICCV_2017_paper.pdf)|-, [PyTorch](https://github.com/wxywhu/SRDenseNet-pytorch)|Y| Dense |
 |SPMC|[ICCV17](https://arxiv.org/abs/1704.02738)|[Tensorflow](https://github.com/jiangsutx/SPMC_VideoSR)|N| VideoSR |
 |DnCNN|[TIP17](http://ieeexplore.ieee.org/document/7839189/)|[Matlab](https://github.com/cszn/DnCNN)|Y| Denoise |
 |DCSCN|[arXiv](https://arxiv.org/abs/1707.05425)|[Tensorflow](https://github.com/jiny2001/dcscn-super-resolution)|Y|
@@ -65,7 +65,7 @@ All these models are implemented in **ONE** framework.
 |CelebA|Train|202599|[website](http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html)|Human faces|
 |Sintel|Train/Val|35|[website](http://sintel.is.tue.mpg.de/downloads)|Optical flow|
 |FlyingChairs|Train|22872|[website](https://lmb.informatik.uni-freiburg.de/resources/datasets/FlyingChairs.en.html#flyingchairs)|Optical flow|
-|DND|Train/Val|1000|[website](https://noise.visinf.tu-darmstadt.de/)|Real noisy photos|
+|DND|Train/Val|50|[website](https://noise.visinf.tu-darmstadt.de/)|Real noisy photos|
 
 Other open datasets:
 [Kaggle](https://www.kaggle.com/datasets)
