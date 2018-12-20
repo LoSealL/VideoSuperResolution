@@ -518,6 +518,8 @@ class Vgg:
         import h5py
         kutil = tf.keras.utils
         model_url = vgg + '_weights_tf_dim_ordering_tf_kernels'
+        self.vgg = vgg
+        self.include_top = include_top
         if not include_top:
             model_url += '_notop'
             vgg += '_notop'
@@ -527,8 +529,6 @@ class Vgg:
             self.WEIGHTS_SITE + model_url,
             cache_subdir='models',
             file_hash=self.WEIGHTS_HASH[vgg])
-        self.vgg = vgg
-        self.include_top = include_top
         self.weights = h5py.File(weights_path, 'r')
         self.outputs = {}
         self.built = False
