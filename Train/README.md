@@ -36,7 +36,7 @@ The model parameters can be configured through [parameters/root.yaml](./paramete
 *<parameters/model-name.yaml>* (i.e. [srcnn](./parameters/srcnn.yaml))
 
 ```Bash
-python run.py --model <model-name> --epochs <num> --steps_per_epoch <num> --dataset <train-dataset-name> \
+python run.py --mode <eval | run> --model <model-name> --epochs <num> --steps_per_epoch <num> --dataset <train-dataset-name> \
   --test <test-dataset-name> --infer <infer-dir | single-file | infer-dataset-name> --threads <loading-thread-num>\
   --save_dir <save>
 ```
@@ -53,24 +53,15 @@ Type `python run.py --help` for more information
 
     `python run.py --model vdsr --test set14`
 - Infer:
-    ```
+    ```Bash
     python run.py --model vdsr --infer ./lr_image
     python run.py --model vdsr --infer ./mom.png
     ```
-
-## Run Benchmark
-Calculate PSNR and SSIM for Set5 outputs and labels, exclude 4-pixel boarder:
-
-    `python metrics.py --dataset=set5 --input_dir=./Outputs/set5 --shave=4`
-
-Don't calculate SSIM:
-    
-    `python metrics.py --dataset=set5 --input_dir=./Outputs/set5 --shave=4 --no_ssim`
-
-Calculate PSNR for video set VID4:
-
-    `python metrics.py --dataset=vid4 --input_dir=./Outputs/vid4`
-
+- Evaluate:
+    ```Bash
+    python run.py --mode=eval --model=vdsr --checkpoint_dir=../Results/vdsr --epochs=100 --test=set14 --enable_psnr --enable_ssim
+    python run.py --mode=eval --input_dir=../Results/vdsr/SET14 --test=set14 --enable_psnr --enable_ssim
+    ```
 
 ## Dataset
 Dataset is described in [dataset.yaml](../Data/datasets.yaml), see [README](../Data/README.md) for more details.

@@ -276,7 +276,8 @@ class SuperResolution(Layers):
 
 
 class SuperResolutionDisc(SuperResolution):
-    """SuperResolution with Discriminator.
+    """@Deprecated, move to VSR.Arch.Discriminator.
+    SuperResolution with Discriminator.
 
     Bind some common discriminators for GAN + SR training
     """

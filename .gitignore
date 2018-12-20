@@ -1,19 +1,27 @@
+# Temp work dir
 seafile-ignore.txt
 .idea/
 .vscode/
 .pytest_cache/
 __pycache__/
 
+# Install info.
 *.egg-info/
+
+# Intermediate output files
 Results/
+Train/*.sh
+Train/parameters/**/*.yaml
+
+# NDA
 Exp/
 Exp
-Fixed/
-Train/run.sh
-Train/run.bat
 
+# Images
 .png
 .jpg
+.jpeg
+.bmp
 .yuv
 .rgb
 .nv12
