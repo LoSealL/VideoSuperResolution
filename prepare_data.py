@@ -48,6 +48,7 @@ WEIGHTS = {
     'espcn.tar.gz': 'https://github.com/LoSealL/Model/releases/download/espcn_sc4_c1/espcn.tar.gz',
     'edsr.zip': 'https://github.com/LoSealL/Model/releases/download/edsr/edsr.zip',
     'dncnn.zip': 'https://github.com/LoSealL/Model/releases/download/DnCNN/dncnn.zip',
+    'carn.zip': 'https://github.com/LoSealL/Model/releases/download/CARN/carn.zip',
 }
 
 
