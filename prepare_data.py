@@ -18,6 +18,8 @@ import sys
 from pathlib import Path
 from tensorflow.keras import utils as kutils
 
+from VSR.Tools.GoogleDriveDownloader import drive_download
+
 # For now VSR requires python>=3.5
 if sys.version_info.major == 3 and sys.version_info.minor < 5:
     print("Python version is required >=3.5!")
@@ -40,8 +42,10 @@ DATASETS = {
     'VID4.zip': 'https://people.csail.mit.edu/celiu/CVPR2011/videoSR.zip',
     'BSD300.tgz': 'https://www2.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/segbench/BSDS300-images.tgz',
     'BSD500.tgz': 'http://www.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/BSR/BSR_bsds500.tgz',
-    # '91image.rar': 'http://www.ifp.illinois.edu/~jyang29/codes/ScSR.rar',
-    # 'waterloo.rar': 'http://ivc.uwaterloo.ca/database/WaterlooExploration/exploration_database_and_code.rar'
+    '91image.rar': 'http://www.ifp.illinois.edu/~jyang29/codes/ScSR.rar',
+    'waterloo.rar': 'http://ivc.uwaterloo.ca/database/WaterlooExploration/exploration_database_and_code.rar',
+    'GOPRO_Large.zip': '1H0PIXvJH4c40pk7ou6nAwoxuR4Qh_Sa2',
+    'MCL-V.rar': '1z41hdqR-bqNLcUWllPePzkfQW-I_A9ny',
 }
 WEIGHTS = {
     'srcnn.tar.gz': 'https://github.com/LoSealL/Model/releases/download/srcnn_sc4_1/srcnn.tar.gz',
@@ -49,6 +53,9 @@ WEIGHTS = {
     'edsr.zip': 'https://github.com/LoSealL/Model/releases/download/edsr/edsr.zip',
     'dncnn.zip': 'https://github.com/LoSealL/Model/releases/download/DnCNN/dncnn.zip',
     'carn.zip': 'https://github.com/LoSealL/Model/releases/download/CARN/carn.zip',
+    'srdensenet.zip': '1aXAfRqZieY6mTfZUnErG84-9NfkQSeDw',
+    'vdsr.zip': '1hW5YDxXpmjO2IfAy8f29O7yf1M3fPIg1',
+    'msrn.zip': '1A0LoY3oB_VnArP3GzI1ILUNJbLAEjdtJ',
 }
 
 
@@ -128,7 +135,12 @@ def main():
             need_to_download[k] = v
     need_to_extract = {}
     for k, v in need_to_download.items():
-        need_to_extract[k] = (k.parent, download(k.name, v, args.download_dir))
+        if v[:4] == 'http':
+            need_to_extract[k] = (k.parent,
+                                  download(k.name, v, args.download_dir))
+        else:
+            need_to_extract[k] = (k.parent,
+                                  drive_download(k.name, v, args.download_dir))
     for k, v in need_to_extract.values():
         if v is None:
             continue
@@ -146,6 +158,8 @@ def main():
                 except (tarfile.TarError, RuntimeError, KeyboardInterrupt):
                     # TBD...
                     pass
+        else:
+            print("[WARN] {} have to be uncompressed manually.".format(v))
 
 
 if __name__ == '__main__':

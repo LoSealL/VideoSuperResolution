@@ -22,3 +22,6 @@ For RAW data (such as RGB, YUV et.al.) you should explicitly specify `mode`, `wi
 ## Note
 [dataset.json](datasets.json) has been deprecated now, but is kept for compatibility.
 Please use [dataset.yaml](datasets.yaml) instead.
+
+## Google API
+I use google drive api for downloading drive shared files. This is what `credentials.json` works for.

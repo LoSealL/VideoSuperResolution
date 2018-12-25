@@ -11,6 +11,8 @@ REQUIRED_PACKAGES = [
     'PyYAML',
     'psutil',
     'tqdm',
+    'h5py',
+    'scipy',
     'easydict >= 1.9',
 ]
 
