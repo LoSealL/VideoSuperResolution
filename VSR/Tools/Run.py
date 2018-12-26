@@ -32,7 +32,8 @@ tf.flags.DEFINE_string('data_config', '../Data/datasets.yaml', help="path to dat
 tf.flags.DEFINE_string('dataset', 'none', help="specify a dataset alias for training")
 tf.flags.DEFINE_string('memory_limit', None, help="limit the memory usage. i.e. '4GB', '1024MB'")
 tf.flags.DEFINE_string('comment', None, help="append a postfix string to save dir")
-tf.flags.DEFINE_multi_string('add_custom_callbacks', None, help="")
+tf.flags.DEFINE_multi_string('add_custom_callbacks', None, help="add callbacks to data. Callbacks are defined in custom_api.py.")
+tf.flags.DEFINE_alias('f', "add_custom_callbacks")
 tf.flags.DEFINE_bool('export', False, help="whether to export tf model")
 tf.flags.DEFINE_bool('freeze', False, help="whether to export freeze model, ignored if export is False")
 tf.flags.DEFINE_bool('v', False, help="show verbose")
@@ -100,6 +101,10 @@ def init_loader_config(opt):
         infer_config.update(benchmark_config)
     if opt.add_custom_callbacks is not None:
         for fn in opt.add_custom_callbacks:
+            if '#' in fn:
+                fn, args = fn.split('#')
+                args = [float(a) for a in args.split(',')]
+                fn = partial(fn, *args)
             train_config.feature_callbacks += [globals()[fn]]
             benchmark_config.feature_callbacks += [globals()[fn]]
             infer_config.feature_callbacks += [globals()[fn]]
@@ -130,14 +135,14 @@ def run(**kwargs):
     data_config_file = Path(opt.data_config)
     if not data_config_file.exists():
         raise RuntimeError("dataset config file doesn't exist!")
-    for _suffix in ('json', 'yaml', 'yml'):  # for compatibility
+    for _ext in ('json', 'yaml', 'yml'):  # for compatibility
         # apply a 2-stage (or master-slave) configuration, master can be
         # override by slave
-        model_config_root = Path(f'parameters/root.{_suffix}')
+        model_config_root = Path('parameters/root.{}'.format(_ext))
         if opt.p:
             model_config_file = Path(opt.p)
         else:
-            model_config_file = Path(f'parameters/{opt.model}.{_suffix}')
+            model_config_file = Path('parameters/{}.{}'.format(opt.model, _ext))
         if model_config_root.exists():
             opt.update(Config(str(model_config_root)))
         if model_config_file.exists():
