@@ -56,6 +56,7 @@ WEIGHTS = {
     'srdensenet.zip': '1aXAfRqZieY6mTfZUnErG84-9NfkQSeDw',
     'vdsr.zip': '1hW5YDxXpmjO2IfAy8f29O7yf1M3fPIg1',
     'msrn.zip': '1A0LoY3oB_VnArP3GzI1ILUNJbLAEjdtJ',
+    'vespcn.zip': '19u4YpsyThxW5dv4fhpMj7c5gZeEDKthm',
 }
 
 
