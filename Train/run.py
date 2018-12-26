@@ -29,9 +29,11 @@ def main(*args, **kwargs):
         m = import_module('custom_api')
         for fn_name in FLAGS.add_custom_callbacks:
             try:
+                if '#' in fn_name:
+                    fn_name = fn_name.split('#')[0]
                 additional_functions[fn_name] = m.__dict__[fn_name]
             except KeyError:
-                raise KeyError(f"Function [{fn_name}] couldn't be found in 'custom_api.py'")
+                raise KeyError("Function [{}] couldn't be found in 'custom_api.py'".format(fn_name))
     if FLAGS.mode == 'run':
         return Run.run(**additional_functions)
     if FLAGS.mode == 'eval':

@@ -68,30 +68,37 @@ def chessboard(inputs, **kwargs):
     return x
 
 
-def noisy(inputs, **kwargs):
+def noisy(inputs, sigma=15, **kwargs):
     shape = inputs.shape
-    return np.random.normal(0, 12, shape)
+    return np.random.normal(0, sigma, shape)
 
 
-def add_noise(inputs, **kwargs):
-    noise = noisy(inputs)
+def add_noise(inputs, sigma=15, **kwargs):
+    noise = noisy(inputs, sigma)
     noise += inputs.astype('float32')
     return np.clip(np.round(noise), 0, 255).astype('uint8')
 
 
-def shave(inputs, **kwargs):
+def add_random_noise(inputs, sigma_max=50, **kwargs):
+    sigma = np.random.randint(0, int(sigma_max))
+    noise = np.random.normal(0, sigma, inputs.shape)
+    noise += inputs.astype('float32')
+    return np.clip(np.round(noise), 0, 255).astype('uint8')
+
+
+def shave(inputs, div=64, **kwargs):
     h, w = inputs.shape[-3:-1]
-    h_mod = h - h % 64
-    w_mod = w - w % 64
+    h_mod = h - h % div
+    w_mod = w - w % div
     return inputs[..., :h_mod, :w_mod, :]
 
 
-def pad(inputs, **kwargs):
+def pad(inputs, div=64, **kwargs):
     h, w = inputs.shape[-3:-1]
-    ph = 64 - h % 64
-    pw = 64 - w % 64
-    if ph == 64: ph = 0
-    if pw == 64: pw = 0
+    ph = div - h % div
+    pw = div - w % div
+    if ph == div: ph = 0
+    if pw == div: pw = 0
     ph = [ph // 2, ph - ph // 2]
     pw = [pw // 2, pw - pw // 2]
     inputs = np.pad(inputs, [[0, 0], [0, 0], ph, pw, [0, 0]], 'edge')

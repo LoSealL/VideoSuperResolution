@@ -103,11 +103,16 @@ def init_loader_config(opt):
         for fn in opt.add_custom_callbacks:
             if '#' in fn:
                 fn, args = fn.split('#')
+                fn = globals()[fn]
                 args = [float(a) for a in args.split(',')]
-                fn = partial(fn, *args)
-            train_config.feature_callbacks += [globals()[fn]]
-            benchmark_config.feature_callbacks += [globals()[fn]]
-            infer_config.feature_callbacks += [globals()[fn]]
+
+                def new_fn(x, **kwargs):
+                    return fn(x, *args)
+            else:
+                new_fn = globals()[fn]
+            train_config.feature_callbacks += [new_fn]
+            benchmark_config.feature_callbacks += [new_fn]
+            infer_config.feature_callbacks += [new_fn]
     if opt.lr_decay:
         train_config.lr_schedule = lr_decay(lr=opt.lr, **opt.lr_decay)
     # modcrop: A boolean to specify whether to crop the edge of images to be
