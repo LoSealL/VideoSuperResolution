@@ -22,13 +22,17 @@ class DRRN(SuperResolution):
         residual_unit: number of residual blocks in one recursion
         recursive_block: number of recursions
         grad_clip: gradient clip ratio according to the paper
+        custom_upsample: use --add_custom_callbacks=upsample during fitting, or
+          use `bicubic_rescale`. TODO: REMOVE IN FUTURE.
     """
 
     def __init__(self, residual_unit=3, recursive_block=3,
+                 custom_upsample=False,
                  grad_clip=0.01, name='drrn', **kwargs):
         self.ru = residual_unit
         self.rb = recursive_block
         self.grad_clip = grad_clip
+        self.do_up = not custom_upsample
         self.name = name
         super(DRRN, self).__init__(**kwargs)
 
@@ -46,8 +50,10 @@ class DRRN(SuperResolution):
     def build_graph(self):
         super(DRRN, self).build_graph()
         with tf.variable_scope(self.name):
-            bic = bicubic_rescale(self.inputs_preproc[-1], self.scale)
-            x = bic
+            x = self.inputs_preproc[-1]
+            if self.do_up:
+                x = bicubic_rescale(self.inputs_preproc[-1], self.scale)
+            bic = x
             for _ in range(self.rb):
                 x = self._shared_resblock(x)
             x = self.conv2d(x, self.channel, 3)

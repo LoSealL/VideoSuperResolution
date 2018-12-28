@@ -21,11 +21,15 @@ class DRCN(SuperResolution):
     Args:
         recur: number of recursions
         filters: number of filters in conv2d(s)
+        custom_upsample: use --add_custom_callbacks=upsample during fitting, or
+          use `bicubic_rescale`. TODO: REMOVE IN FUTURE.
     """
 
-    def __init__(self, recur=16, filters=256, name='drcn', **kwargs):
+    def __init__(self, recur=16, filters=256, custom_upsample=False,
+                 name='drcn', **kwargs):
         self.recur = recur
         self.filters = filters
+        self.do_up = not custom_upsample
         self.name = name
         super(DRCN, self).__init__(**kwargs)
 
@@ -50,7 +54,10 @@ class DRCN(SuperResolution):
         with tf.variable_scope(self.name):
             super(DRCN, self).build_graph()
             # bicubic upscale
-            bic = bicubic_rescale(self.inputs_preproc[-1], self.scale)
+            x = self.inputs_preproc[-1]
+            if self.do_up:
+                x = bicubic_rescale(self.inputs_preproc[-1], self.scale)
+            bic = x
             x = self._embedding(bic)
             y = [bic]
             for _ in range(self.recur):

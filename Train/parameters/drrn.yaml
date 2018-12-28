@@ -2,5 +2,7 @@ drrn:
   residual_unit: 9
   recursive_block: 1
   grad_clip: 0.01
+  weight_decay: 1.0e-6
+  custom_upsample: false
   scale: 4
   channel: 3

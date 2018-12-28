@@ -20,11 +20,15 @@ class VDSR(SuperResolution):
     Args:
         layers: number of conv2d layers
         filters: number of filters in conv2d(s)
+        custom_upsample: use --add_custom_callbacks=upsample during fitting, or
+          use `bicubic_rescale`. TODO: REMOVE IN FUTURE.
     """
 
-    def __init__(self, layers=20, filters=64, name='vdsr', **kwargs):
+    def __init__(self, layers=20, filters=64, custom_upsample=False,
+                 name='vdsr', **kwargs):
         self.layers = layers
         self.filters = filters
+        self.do_up = not custom_upsample
         self.name = name
         super(VDSR, self).__init__(**kwargs)
 
@@ -32,8 +36,9 @@ class VDSR(SuperResolution):
         super(VDSR, self).build_graph()
         with tf.variable_scope(self.name):
             # bicubic upscale
-            # bic = bicubic_rescale(self.inputs_preproc[-1], self.scale)
             x = self.inputs_preproc[-1]
+            if self.do_up:
+                x = bicubic_rescale(self.inputs_preproc[-1], self.scale)
             for _ in range(self.layers - 1):
                 x = self.relu_conv2d(x, self.filters, 3)
             x = self.conv2d(x, self.channel, 3)
