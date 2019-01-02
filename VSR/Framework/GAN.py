@@ -172,11 +172,16 @@ def gradient_penalty(y_true, y_pred, graph_fn, lamb=10):
     return lamb * gp
 
 
-def loss_lsgan(y_real, y_fake):
-    """Least-Square GAN"""
+def loss_lsgan(y_real, y_fake, a=0, b=1, c=1):
+    """Least-Square GAN.
+    There are many choice of (a, b, c). For those b - c==1 and b - a==2, the
+      objective function is equal to Pearson x^2 divergence. We choose default
+      value to be (0, 1, 1)
+    """
 
-    d_loss = tf.reduce_mean((y_real - 1) ** 2) + tf.reduce_mean(y_fake ** 2)
-    g_loss = tf.reduce_mean((y_fake - 1) ** 2)
+    d_loss = tf.reduce_mean((y_real - b) ** 2) + \
+             tf.reduce_mean((y_fake - a) ** 2)
+    g_loss = tf.reduce_mean((y_fake - c) ** 2)
     return g_loss * 0.5, d_loss * 0.5
 
 

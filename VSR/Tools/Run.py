@@ -7,9 +7,9 @@ Created Date: Oct 15th 2018
 Improved train/benchmark/infer script
 """
 
-import tensorflow as tf
 from functools import partial
 from pathlib import Path
+import tensorflow as tf
 
 from ..DataLoader.Dataset import load_datasets, Dataset
 from ..DataLoader.Loader import QuickLoader
@@ -31,12 +31,12 @@ tf.flags.DEFINE_string('save_dir', '../Results', help="specify a folder to save 
 tf.flags.DEFINE_string('data_config', '../Data/datasets.yaml', help="path to data config file")
 tf.flags.DEFINE_string('dataset', 'none', help="specify a dataset alias for training")
 tf.flags.DEFINE_string('memory_limit', None, help="limit the memory usage. i.e. '4GB', '1024MB'")
-tf.flags.DEFINE_string('comment', None, help="append a postfix string to save dir")
+tf.flags.DEFINE_string('comment', None, help="append a suffix string to save dir")
 tf.flags.DEFINE_multi_string('add_custom_callbacks', None, help="add callbacks to data. Callbacks are defined in custom_api.py.")
 tf.flags.DEFINE_alias('f', "add_custom_callbacks")
 tf.flags.DEFINE_bool('export', False, help="whether to export tf model")
 tf.flags.DEFINE_bool('freeze', False, help="whether to export freeze model, ignored if export is False")
-tf.flags.DEFINE_bool('v', False, help="show verbose")
+tf.flags.DEFINE_bool('v', False, help="show verbose info")
 
 
 def check_args(opt):
@@ -122,6 +122,36 @@ def init_loader_config(opt):
     return train_config, benchmark_config, infer_config
 
 
+def suppress_opt_by_args(opt, *args):
+    """Use cmdline arguments to overwrite parameters declared in yaml file.
+      Account for safety, writing section not declared in yaml is not allowed.
+    """
+    def parse_args(argstr: str):
+        if argstr.startswith('--'):
+            if '=' in argstr:
+                k, v = argstr[2:].split('=')
+            else:
+                k, v = argstr[2:].split(' ')
+        elif argstr.startswith('-'):
+            if '=' in argstr:
+                k, v = argstr[1:].split('=')
+            else:
+                k, v = argstr[1:].split(' ')
+        else:
+            raise KeyError("Unknown parameter: {}".format(argstr))
+        return k, v
+
+    for arg in args:
+        key, value = parse_args(arg)
+        if key not in opt:
+            raise KeyError("Parameter {} doesn't exist in model!".format(key))
+        old_v = opt.get(key)
+        if isinstance(old_v, (list, tuple, dict)):
+            raise NotImplementedError("Can't convert complex type for now.")
+        new_v = type(old_v)(value)  # TODO: can't convert list in this way.
+        opt[key] = new_v
+
+
 def dump(config):
     print('=============================')
     for k, v in config.items():
@@ -130,7 +160,7 @@ def dump(config):
     print('', flush=True)
 
 
-def run(**kwargs):
+def run(*args, **kwargs):
     globals().update(kwargs)
     flags = tf.flags.FLAGS
     opt = Config()
@@ -154,6 +184,7 @@ def run(**kwargs):
             opt.update(Config(str(model_config_file)))
 
     model_params = opt.get(opt.model, {})
+    suppress_opt_by_args(model_params, *args)
     opt.update(model_params)
     model = get_model(opt.model)(**model_params)
     root = '{}/{}'.format(opt.save_dir, model.name)
@@ -169,7 +200,8 @@ def run(**kwargs):
     test_config.subdir = test_data.name
     infer_config.subdir = 'infer'
     # start fitting!
-    dump(opt)
+    if opt.v:
+        dump(opt)
     with trainer(model, root, verbosity) as t:
         # prepare loader
         loader = partial(QuickLoader, n_threads=opt.threads)

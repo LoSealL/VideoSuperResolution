@@ -35,7 +35,7 @@ def main(*args, **kwargs):
             except KeyError:
                 raise KeyError("Function [{}] couldn't be found in 'custom_api.py'".format(fn_name))
     if FLAGS.mode == 'run':
-        return Run.run(**additional_functions)
+        return Run.run(*args[0][1:], **additional_functions)
     if FLAGS.mode == 'eval':
         if FLAGS.checkpoint_dir:
             return EvalModelCheckpoint.evaluate()
