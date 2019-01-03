@@ -9,7 +9,10 @@ Ticket: [S1erHoR5t7](https://github.com/reproducibility-challenge/iclr_2019/issu
 1. Download dataset and weights
 
    1. CIFAR10 downloads automatically
-   2. CelebA is downloaded [here](http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html)
+   2. CelebA is downloaded [here](http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html), and is processed:
+      ```bash
+      python VSR/Tools/DataProcessing/CelebA.py /mnt/data/dataset/celeba/ --n_test=10000
+      ```
 
    3. weights are downloaded by `python prepare_data.py --filter="\w*gan"`, which will extract weights into `./Results/`
 
