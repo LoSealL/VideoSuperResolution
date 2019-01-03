@@ -1,0 +1,20 @@
+---
+ragangp:
+  name: ragangp
+  patch_size: 32
+  z_dim: 128
+  init_filter: 512
+  linear: true  # dense layer at the entry
+  norm_g: bn  # null, bn or sn
+  norm_d: sn
+  use_bias: true
+  optimizer:
+    name: adam
+    beta1: 0.5
+  channel: 3
+  scale: 1  # keep scale is necessary though it's unused
+  
+batch: 64
+test_batch: 100
+validate_every_n_epoch: 5
+lr: 2.0e-4

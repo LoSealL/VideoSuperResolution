@@ -105,13 +105,15 @@ Dataset:
     test: FlyingChairsTest
 
   CELEBA:  # center cropped and resize to 64x64
+    # test images are randomly selected (10,000 samples)
+    # please refer to VSR/Tools/DataProcessing/CelebA.py for more details
     train: /mnt/data/datasets/celeba/resize64/*.png
-    val: [SET5]  # just used as a placeholder
-    test: []
+    val: [/mnt/data/datasets/celeba/test64/000001.png]  # just use as a placeholder
+    test: [/mnt/data/datasets/celeba/test64/*.png]
     infer: []
 
   CIFAR10:  # well-known cifar-10
-    # in alpha version, loading ndarray data(s)
+    # alpha version, loading ndarray data(s)
     param:
       mode: numpy  # specify `mode` as "numpy"
       numpy:
@@ -120,4 +122,4 @@ Dataset:
         # specify result variables
         train: 'x'
         val: 'y'
-        test: 'y[:1000]'
+        test: 'y[:10000]'

@@ -1,7 +1,7 @@
 from setuptools import find_packages
 from setuptools import setup
 
-VERSION = '0.5.6'
+VERSION = '0.5.7'
 
 REQUIRED_PACKAGES = [
     'numpy',
