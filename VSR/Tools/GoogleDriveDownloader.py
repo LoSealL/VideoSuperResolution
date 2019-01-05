@@ -8,6 +8,7 @@ Download binary files shared on google drive
 """
 
 import io
+import sys
 from pathlib import Path
 
 try:
@@ -21,11 +22,12 @@ except ImportError as ex:
           "Please use pip install google-api-python-client oauth2client.")
     raise ex
 
-SCOPES = 'https://www.googleapis.com/auth/drive.metadata.readonly'
-CREDENTIALS = '../Data/credentials.json'
+SCOPES = 'https://www.googleapis.com/auth/drive.readonly'
+CREDENTIALS = './Data/credentials.json'
 
 
 def require_authorize(store, credentials, scope):
+    sys.argv.clear()
     flow = client.flow_from_clientsecrets(credentials, scope)
     return tools.run_flow(flow, store)
 

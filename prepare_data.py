@@ -54,6 +54,9 @@ WEIGHTS = {
     'edsr.zip': 'https://github.com/LoSealL/Model/releases/download/edsr/edsr.zip',
     'dncnn.zip': 'https://github.com/LoSealL/Model/releases/download/DnCNN/dncnn.zip',
     'carn.zip': 'https://github.com/LoSealL/Model/releases/download/CARN/carn.zip',
+    # Google Drive File ID.
+    # If you can't download from this file, visit url https://drive.google.com/open?id=<id>
+    # paste the file id into position <id>.
     'srdensenet.zip': '1aXAfRqZieY6mTfZUnErG84-9NfkQSeDw',
     'vdsr.zip': '1hW5YDxXpmjO2IfAy8f29O7yf1M3fPIg1',
     'msrn.zip': '1A0LoY3oB_VnArP3GzI1ILUNJbLAEjdtJ',

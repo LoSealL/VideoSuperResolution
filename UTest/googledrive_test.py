@@ -4,7 +4,7 @@ from httplib2 import Http
 from oauth2client import file, client, tools
 
 # If modifying these scopes, delete the file token.json.
-SCOPES = 'https://www.googleapis.com/auth/drive.metadata.readonly'
+SCOPES = 'https://www.googleapis.com/auth/drive.readonly'
 
 
 def main():
@@ -23,7 +23,7 @@ def main():
     service = build('drive', 'v3', http=creds.authorize(Http()))
 
     file_id = '1H0PIXvJH4c40pk7ou6nAwoxuR4Qh_Sa2'
-    request = service.files().get(fileId=file_id)
+    request = service.files().get_media(fileId=file_id)
     request.execute()
 
 
