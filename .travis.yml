@@ -9,5 +9,10 @@ install:
   - pip install google-api-python-client oauth2client
   - pip install -e .
 script:
-  - pytest UTest -v
+  - pytest -v UTest/correlation_test.py UTest/dataset_test.py UTest/virtualfile_test.py
+  - pytest -v UTest/image_test.py
+  - pytest -v UTest/loader_test.py
+  - pytest -v UTest/motion_test.py
+  - pytest -v UTest/noise_test.py
+  - pytest -v UTest/vgg_test.py
   - bash UTest/training_test.sh

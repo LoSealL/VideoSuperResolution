@@ -541,6 +541,8 @@ class QuickLoader(BasicLoader):
           `_TFRECORD_SUFFIX`."""
         method = method.lower()
         file_list = getattr(dataset, method, [])
+        if not file_list:
+            return False
         return np.all([str(f).endswith(_TFRECORD_SUFFIX) for f in file_list])
 
     def prefetch(self, memory_usage=None):

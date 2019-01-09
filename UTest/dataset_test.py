@@ -17,10 +17,10 @@ def test_glob_absolute_pattern():
     assert node[3].match('img_004_SRF_2_LR.png')
     assert node[4].match('img_005_SRF_2_LR.png')
 
-    URL = './data/flying_chair/*.flo'
+    URL = './data/flying_chair/**/*.flo'
     node = _glob_absolute_pattern(URL)
     assert len(node) == 1
-    assert node[0].match('0-gt.flo')
+    assert node[0].match('0000.flo')
 
     URL = './data/**/*.png'
     node = _glob_absolute_pattern(URL)
