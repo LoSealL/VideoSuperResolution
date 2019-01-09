@@ -12,6 +12,11 @@ Path_Tracked:
   BAR: set5_x2/*.png
 
 Dataset:
+  NONE:
+    train: []
+    val: []
+    test: []
+
   NORMAL:
     train: [FOO, BAR]
     val: [BAR]
