@@ -6,6 +6,7 @@ cache: pip
 
 install:
   - pip install tensorflow
+  - pip install google-api-python-client oauth2client
   - pip install -e .
 script:
   - pytest UTest -v
