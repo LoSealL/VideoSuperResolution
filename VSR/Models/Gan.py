@@ -37,6 +37,7 @@ class GAN(SuperResolution):
         arch: G/D architecture: 'dcgan' or 'resnet'.
         nd_iter: number of D updates for each G update.
     """
+
     def __init__(self, name='gan', patch_size=32, z_dim=128, init_filter=512,
                  linear=False, norm_g=None, norm_d=None, use_bias=False,
                  optimizer=None, arch=None, nd_iter=1, **kwargs):
@@ -90,7 +91,7 @@ class GAN(SuperResolution):
             x = tf.nn.relu(x)
             x = tf.reshape(x, [-1, size, size, f])
             for i in range(1, n_up):
-                x = self.deconv2d(x, f // 2**i, 4, 2, **kwargs)
+                x = self.deconv2d(x, f // 2 ** i, 4, 2, **kwargs)
                 if self.bn:
                     x = self.batch_norm(x, self.training_phase, epsilon=2e-5)
                 x = tf.nn.relu(x)
@@ -329,7 +330,8 @@ class GanTrainer(VSR):
         self.v.train_loader.aug = False
         return super(GanTrainer, self).fit_init()
 
-    def fn_train_each_step(self, label=None, feature=None, name=None):
+    def fn_train_each_step(self, label=None, feature=None, name=None,
+                           post=None):
         """override this method for:
           - sample feature from random noise (uniform distributed from [-1,1]).
           - pass step number to `train_batch` call.

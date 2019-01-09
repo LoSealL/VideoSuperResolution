@@ -1,14 +1,17 @@
 """
 unit test for VSR.Framework.Motion package
 """
+import os
 
+if not os.getcwd().endswith('UTest'):
+    os.chdir('UTest')
 from VSR.Framework import Motion as M
 
 import tensorflow as tf
 import numpy as np
 from PIL import Image
 
-TEST_FLO_FILE = './data/flying_chair/0-gt.flo'
+TEST_FLO_FILE = './data/flying_chair/flow/0000.flo'
 TEST_PNG16_FILE = './data/kitti_car/f_01.png'
 
 
@@ -54,16 +57,17 @@ def test_warp_car():
     with tf.Session() as sess:
         car_bar = sess.run(car_bar)[0]
         car_bar = car_bar.astype('uint8')
-        Image.fromarray(car_bar, 'RGB').show()
+        # Image.fromarray(car_bar, 'RGB').show()
 
 
 def test_warp_chair():
     flow = M.open_flo(TEST_FLO_FILE)
-    ch0 = np.array(Image.open('./data/flying_chair/img1.png')).astype('float32')
+    img1 = Image.open('./data/flying_chair/pair/0000/img1.png')
+    ch0 = np.array(img1).astype('float32')
     flow = flow.reshape([1, *flow.shape])
     ch0 = np.expand_dims(ch0, 0)
     ch1 = M.warp(ch0, flow[..., 0], flow[..., 1], True)
     with tf.Session() as sess:
         ch1 = sess.run(ch1)[0]
         ch1 = ch1.astype('uint8')
-        Image.fromarray(ch1, 'RGB').show()
+        # Image.fromarray(ch1, 'RGB').show()

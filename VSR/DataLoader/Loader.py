@@ -1,14 +1,19 @@
 """
-Copyright: Wenyi Tang 2017-2018
+Copyright: Wenyi Tang 2017-2019
 Author: Wenyi Tang
 Email: wenyi.tang@intel.com
 Created Date: May 8th 2018
-Updated Date: Aug 29th 2018
+Updated Date: Jan 9th 2019
 
 Load frames with specified filter in given directories,
 and provide inheritable API for specific loaders.
+
+changelog 2019-1-9
+- Add TFRecordDataset support. (Under test)
+
+changelog 2018-8-29
 - Added BasicLoader and QuickLoader (multiprocessor loader)
-- Will BatchLoader (and Loader)
+- Deprecated BatchLoader (and Loader)
 """
 
 import numpy as np
@@ -22,6 +27,8 @@ from ..Util.ImageProcess import (
     crop, imresize, shrink_to_multiple_scale, array_to_img)
 from ..Util import Utility
 from ..Util.Config import Config
+
+_TFRECORD_SUFFIX = '.tfrecords'
 
 
 def _augment(image, op):
@@ -101,7 +108,32 @@ class EpochIterator:
         if np.ndim(batch_lr) == 3:
             batch_lr = np.expand_dims(batch_lr, -1)
 
-        return batch_hr, batch_lr, batch_name
+        return batch_hr, batch_lr, batch_name, batch_lr
+
+
+class TFIterator:
+    def __init__(self, iterator, max_step):
+        self.max = max_step
+        self.nx = iterator.get_next()
+        self.count = 0
+
+    def __len__(self):
+        return self.max
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if 0 <= self.max <= self.count:
+            raise StopIteration
+        self.count += 1
+        sess = tf.get_default_session()
+        try:
+            hr, lr, name, post = sess.run(self.nx)
+        except tf.errors.OutOfRangeError:
+            raise StopIteration
+        name = np.stack([n.decode() for n in name])
+        return hr, lr, name, post
 
 
 class BasicLoader:
@@ -441,6 +473,21 @@ class BasicLoader:
         return EpochIterator(self, grids)
 
 
+def _unpack_image_bytes(image_bytes):
+    value = tf.parse_single_example(
+        image_bytes,
+        features={
+            "image/hr": tf.FixedLenFeature([], tf.string),
+            "image/lr": tf.FixedLenFeature([], tf.string),
+            "name": tf.FixedLenFeature([], tf.string),
+            "image/post": tf.FixedLenFeature([], tf.string),
+        })
+    hr = tf.image.decode_image(value["image/hr"])
+    lr = tf.image.decode_image(value["image/lr"])
+    post = tf.image.decode_image(value["image/post"])
+    return hr, lr, value["name"], post
+
+
 class QuickLoader(BasicLoader):
     """Async data loader with high efficiency.
 
@@ -465,10 +512,36 @@ class QuickLoader(BasicLoader):
 
     def __init__(self, dataset, method, config, augmentation=False, n_threads=1,
                  **kwargs):
-        self.shard = n_threads
-        self.threads = []
-        super(QuickLoader, self).__init__(dataset, method, config, augmentation,
-                                          **kwargs)
+        self.is_tfrecord = self._check_tfrecord(dataset, method)
+        if self.is_tfrecord:
+            # Read TFRecord files
+            file_names = dataset.__getattr__(method.lower()) or []
+            data = tf.data.TFRecordDataset([str(f) for f in file_names],
+                                           num_parallel_reads=n_threads)
+            data = data.map(_unpack_image_bytes, n_threads)
+            if method == 'train':
+                data = data.shuffle(config.batch * config.steps_per_epoch)
+                data = data.batch(config.batch, True).repeat(-1)
+                self.max_steps = config.steps_per_epoch
+            elif method == 'val':
+                data = data.batch(config.batch)
+                self.max_steps = 1
+            else:
+                data = data.batch(config.batch)
+                self.max_steps = -1
+            self._data = data
+        else:
+            self.shard = n_threads
+            self.threads = []
+            super(QuickLoader, self).__init__(dataset, method, config,
+                                              augmentation, **kwargs)
+
+    def _check_tfrecord(self, dataset, method) -> bool:
+        """check files in file list, returns True is all ends with
+          `_TFRECORD_SUFFIX`."""
+        method = method.lower()
+        file_list = getattr(dataset, method, [])
+        return np.all([str(f).endswith(_TFRECORD_SUFFIX) for f in file_list])
 
     def prefetch(self, memory_usage=None):
         """Prefetch data.
@@ -486,6 +559,9 @@ class QuickLoader(BasicLoader):
         Note: call `prefetch` twice w/o `make_one_shot_iterator` is
           undefined behaviour.
         """
+
+        if self.is_tfrecord:
+            return
         for i in range(self.shard):
             t = th.Thread(target=self._prefetch,
                           args=(memory_usage, self.shard, i),
@@ -498,6 +574,8 @@ class QuickLoader(BasicLoader):
         `shard` will divide loading files into `shard` shards in order to
         execute in parallel.
 
+        Will create TFIterator if use TFRecordDataset.
+
         Args:
             memory_usage: desired virtual memory to use, could be int (bytes) or
               a readable string ('3GB', '1TB'). Default to use all available
@@ -505,7 +583,7 @@ class QuickLoader(BasicLoader):
             shuffle: A boolean whether to shuffle the patch grids.
 
         Return:
-            An EpochIterator
+            An EpochIterator or TFIterator
 
         Known issues:
             If data of either shard is too large (i.e. use 1 shard and total
@@ -513,12 +591,17 @@ class QuickLoader(BasicLoader):
             `get()` never returns.
         """
 
-        if not self.threads:
-            self.prefetch(memory_usage)
-        for t in self.threads:
-            t.join()
-        self.threads.clear()
-        # reduce
-        grids = self._generate_crop_grid(self.frames, self.patches_per_epoch,
-                                         shuffle=shuffle)
-        return EpochIterator(self, grids)
+        if self.is_tfrecord:
+            it = self._data.make_one_shot_iterator()
+            return TFIterator(it, self.max_steps)
+        else:
+            if not self.threads:
+                self.prefetch(memory_usage)
+            for t in self.threads:
+                t.join()
+            self.threads.clear()
+            # reduce
+            grids = self._generate_crop_grid(self.frames,
+                                             self.patches_per_epoch,
+                                             shuffle=shuffle)
+            return EpochIterator(self, grids)

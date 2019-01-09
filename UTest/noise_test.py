@@ -1,9 +1,13 @@
+import os
+
+if not os.getcwd().endswith('UTest'):
+    os.chdir('UTest')
 from PIL import Image
 import tensorflow as tf
 from VSR.Framework.Noise import *
 
 
-CRF = np.load('../Data/crf.npz')
+CRF = np.load('./data/crf_s.npz')
 URL = "data/set5_x2/img_001_SRF_2_LR.png"
 
 
@@ -15,7 +19,7 @@ def add_noise_crf(image, index=0):
     noise = gaussian_poisson_noise(irr)
     noisy = camera_response_function(irr + noise, crf) * 255
     noisy = Image.fromarray(noisy.clip(0, 255).astype('uint8'), 'RGB')
-    noisy.show()
+    # noisy.show()
 
 
 def tf_add_noise_crf(image, index=0):
@@ -34,10 +38,14 @@ def tf_add_noise_crf(image, index=0):
         with tf.Session():
             noisy = noisy.eval()
     noisy = Image.fromarray(noisy[0].clip(0, 255).astype('uint8'), 'RGB')
-    noisy.show()
+    # noisy.show()
 
 
-if __name__ == '__main__':
+def test_add_noise():
     img = Image.open(URL)
     add_noise_crf(np.array(img), 15)
+
+
+def test_add_noise_tf():
+    img = Image.open(URL)
     tf_add_noise_crf(np.array(img), 16)

@@ -7,14 +7,14 @@ ANS = (1.3, 2048.0, 3145728.0, 4294967296.0, 10625324586456701730816.0,
        2589569785738035.2)
 
 
-def test_str_to_bytes():
+def dummy_test_str_to_bytes():
     for t, a in zip(TEST_STR, ANS):
         ans = U.str_to_bytes(t)
         print(t, ans)
         assert ans == a
 
 
-def test_config():
+def dummy_test_config():
     d = Config(a=1, b=2)
     d.update(a=2, b=3)
     d.a = 9
@@ -23,7 +23,7 @@ def test_config():
     print(d)
 
 
-def test_save_batch_image():
+def dummy_test_save_batch_image():
     from tensorflow.keras.datasets.cifar10 import load_data
     _, (data, _) = load_data()
     fn = save_batch_image('.', mode='RGB')
@@ -31,4 +31,4 @@ def test_save_batch_image():
 
 
 if __name__ == '__main__':
-    test_save_batch_image()
+    dummy_test_save_batch_image()

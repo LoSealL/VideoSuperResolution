@@ -1,6 +1,9 @@
 # VSR Dataset Description File
 # Date: Oct 17th 2018
-# Ver: v1.1.1
+# Ver: v1.2.0
+
+# changelog 2019-1-9:
+# - `Root` will affect absolute url in `Dataset` as well
 ---
 # Add root dir to dataset
 # In current version, Root only affects members in "Path" and "Path_Tracked"
@@ -68,16 +71,17 @@ Dataset:
     val: [DIV2K-Val]
     test: [SET5, SET14]
 
-  PIRM:  # PIRM-2018 Challenge (no training data)
-    train: DIV2K-Train
-    val: PIRM-SelfVal
-    test: PIRM-SelfTest
-    infer: PIRM-Test
+  DW2K:
+    train: [DIV2K-Train, WATERLOO]
+    val: [DIV2K-Val]
+    test: []
 
   MCL-V:  # http://mcl.usc.edu/mcl-v-database/, small set videos
     train: MCL-V
-    val: /mnt/data/datasets/MCL-V/test/*.yuv     # You can still write absolute path patterns like this,
-    test: [/mnt/data/datasets/MCL-V/test/*.yuv]  # or as array like this
+    # TODO: Remove this comment after version 0.6.0
+    # Note: Root applies to absolute path now!!!
+    val: MCL-V/test/*.yuv     # You can still write absolute path patterns like this,
+    test: [MCL-V/test/*.yuv]  # or as array like this
     param:  # For MCL-V is raw data, these param must be specified
       mode: YV12
       width: 1920
@@ -90,7 +94,7 @@ Dataset:
 
   VID4:  # popular video benchmark baseline
     test: VID4-HR
-    infer: /mnt/data/datasets/vid4/input/
+    infer: vid4/input/
 
   CHAIRS:  # flying chairs, a popular optical flow train-set
     train: FlyingChairs
@@ -107,9 +111,9 @@ Dataset:
   CELEBA:  # center cropped and resize to 64x64
     # test images are randomly selected (10,000 samples)
     # please refer to VSR/Tools/DataProcessing/CelebA.py for more details
-    train: /mnt/data/datasets/celeba/resize64/*.png
-    val: [/mnt/data/datasets/celeba/test64/000001.png]  # just use as a placeholder
-    test: [/mnt/data/datasets/celeba/test64/*.png]
+    train: celeba/resize64/*.png
+    val: [celeba/test64/000001.png]  # just use as a placeholder
+    test: [celeba/test64/*.png]
     infer: []
 
   CIFAR10:  # well-known cifar-10

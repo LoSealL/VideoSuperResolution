@@ -1,0 +1,12 @@
+language: python
+python:
+#  - "2.7"
+  - "3.6"
+cache: pip
+
+install:
+  pip install tensorflow
+  pip install -e .
+script:
+  - pytest UTest -v --rootdir=UTest
+  - bash UTest/training_test.sh

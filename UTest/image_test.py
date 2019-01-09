@@ -1,3 +1,7 @@
+import os
+
+if not os.getcwd().endswith('UTest'):
+    os.chdir('UTest')
 from VSR.Util.ImageProcess import imread, rgb_to_yuv, array_to_img
 from VSR.Util import Utility as U
 import tensorflow as tf
@@ -14,7 +18,8 @@ def test_rgb2yuv():
     img = img.astype('float32')
 
     yuv = rgb_to_yuv(img, 255, 'matlab')
-    array_to_img(yuv).show()
+    # should have the same shape
+    assert yuv.shape == img.shape
 
 
 def test_resize_2x2():
@@ -29,6 +34,7 @@ def test_resize_2x2():
     yf = tf.image.resize_bicubic(img, [2 * scale, 2 * scale])
     yf = yf.numpy()[0, ..., 0].astype('uint8')
     diff = yp - y
+    assert diff.mean() < 10
 
 
 def test_resize_img():
@@ -44,9 +50,4 @@ def test_resize_img():
     yf = tf.image.resize_bicubic(img, [h * scale, w * scale])
     yf = yf.numpy()[0].astype('uint8')
     diff = yp - y
-
-
-if __name__ == '__main__':
-    test_resize_2x2()
-    test_resize_img()
-    pass
+    assert diff.mean() < 10

@@ -1,22 +1,21 @@
 """
 Unit test for DataLoader.VirtualFile
 """
+import os
 
+if not os.getcwd().endswith('UTest'):
+    os.chdir('UTest')
 from VSR.DataLoader.VirtualFile import *
 from VSR.DataLoader.Dataset import *
 from VSR.Util.ImageProcess import img_to_array
 
-try:
-    DATASETS = load_datasets('./Data/datasets.json')
-except FileNotFoundError:
-    DATASETS = load_datasets('../Data/datasets.json')
-
-RAW = DATASETS['MCL-V'].test[0]
+DATASETS = load_datasets('./data/fake_datasets.yml')
+RAW = 'data/raw.yv12'
 IMG = 'data/set5_x2/img_001_SRF_2_LR.png'
 
 
 def test_raw_seek():
-    vf = RawFile(RAW, 'YV12', [1920, 1080])
+    vf = RawFile(RAW, 'YV12', [32, 32])
     f1 = vf.read_frame(1)[0]
     vf.seek(0, SEEK_SET)
     f2 = vf.read_frame(1)[0]
@@ -65,11 +64,3 @@ def test_vf_copy():
     except EOFError:
         pass
     vf1.read_frame(1)
-
-
-def main():
-    pass
-
-
-if __name__ == '__main__':
-    main()

@@ -1,3 +1,7 @@
+import os
+
+if not os.getcwd().endswith('UTest'):
+    os.chdir('UTest')
 import tensorflow as tf
 from VSR.Util.Utility import _make_vector, _make_displacement, correlation
 

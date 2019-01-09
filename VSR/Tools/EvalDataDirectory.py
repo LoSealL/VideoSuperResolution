@@ -43,10 +43,10 @@ def evaluate():
     metric_config = Config(batch=1, scale=1, modcrop=False, crop=None)
     ref_loader = QuickLoader(ref_data, 'test', metric_config)
     input_loader = QuickLoader(input_data, 'test', metric_config)
-    label_images = [x for x, _, _ in ref_loader.make_one_shot_iterator()]
+    label_images = [x[0] for x in ref_loader.make_one_shot_iterator()]
     if not label_images:
         backup_data = load_folder(FLAGS.reference_dir)
         backup_loader = QuickLoader(backup_data, 'test', metric_config)
-        label_images = [x for x, _, _ in backup_loader.make_one_shot_iterator()]
-    input_images = [x for x, _, _ in input_loader.make_one_shot_iterator()]
+        label_images = [x[0] for x in backup_loader.make_one_shot_iterator()]
+    input_images = [x[0] for x in input_loader.make_one_shot_iterator()]
     Eval.evaluate(label_images, input_images)

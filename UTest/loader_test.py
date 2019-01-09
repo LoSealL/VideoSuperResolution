@@ -1,20 +1,20 @@
 """
 Unit test for DataLoader.Loader
 """
+import os
 
+if not os.getcwd().endswith('UTest'):
+    os.chdir('UTest')
 import numpy as np
-from VSR.DataLoader.Loader import BasicLoader, QuickLoader, Select
+from VSR.DataLoader.Loader import *
 from VSR.Util import ImageProcess
 from VSR.DataLoader.Dataset import *
 
-try:
-    DATASETS = load_datasets('./Data/datasets.yaml')
-except FileNotFoundError:
-    DATASETS = load_datasets('../Data/datasets.yaml')
+DATASETS = load_datasets('./data/fake_datasets.yml')
 
 
 def test_loader_prob():
-    dut = DATASETS['SET5']
+    dut = DATASETS['BAR']
     prob = [0.46196357, 0.14616816, 0.11549089, 0.13816049, 0.13821688]
     config = Config(batch=1, scale=1, depth=1, steps_per_epoch=-1,
                     convert_to='RGB')
@@ -35,37 +35,37 @@ def test_loader_prob():
 
 
 def test_basicloader_iter():
-    dut = DATASETS['91-IMAGE']
+    dut = DATASETS['NORMAL']
     config = Config(batch=16, scale=4, depth=1, steps_per_epoch=200,
                     convert_to='RGB', crop='random')
     config.patch_size = 48
     r = BasicLoader(dut, 'train', config, True)
     it = r.make_one_shot_iterator('8GB')
-    for hr, lr, name in it:
+    for hr, lr, name, _ in it:
         print(name, flush=True)
     it = r.make_one_shot_iterator('8GB')
-    for hr, lr, name in it:
+    for hr, lr, name, _ in it:
         print(name, flush=True)
 
 
 def test_quickloader_iter():
-    dut = DATASETS['DIV2K']
+    dut = DATASETS['NORMAL']
     config = Config(batch=16, scale=4, depth=1, steps_per_epoch=200,
                     convert_to='RGB', crop='random')
     config.patch_size = 48
     r = QuickLoader(dut, 'train', config, True, n_threads=8)
     it = r.make_one_shot_iterator('8GB')
-    for hr, lr, name in it:
+    for hr, lr, name, _ in it:
         print(name, flush=True)
     it = r.make_one_shot_iterator('8GB')
-    for hr, lr, name in it:
+    for hr, lr, name, _ in it:
         print(name, flush=True)
 
 
 def test_benchmark_basic():
-    dut = DATASETS['DIV2K']
+    dut = DATASETS['NORMAL']
     epochs = 4
-    config = Config(batch=8, scale=4, depth=1, patch_size=196,
+    config = Config(batch=8, scale=4, depth=1, patch_size=32,
                     steps_per_epoch=100, convert_to='RGB', crop='random')
     loader = BasicLoader(dut, 'train', config, True)
     for _ in range(epochs):
@@ -74,9 +74,9 @@ def test_benchmark_basic():
 
 
 def test_benchmark_mp():
-    dut = DATASETS['DIV2K']
+    dut = DATASETS['NORMAL']
     epochs = 4
-    config = Config(batch=8, scale=4, depth=1, patch_size=196,
+    config = Config(batch=8, scale=4, depth=1, patch_size=32,
                     steps_per_epoch=100, convert_to='RGB', crop='random')
     loader = QuickLoader(dut, 'train', config, True, n_threads=8)
     for _ in range(epochs):
@@ -86,28 +86,28 @@ def test_benchmark_mp():
 
 def test_read_flow():
     from VSR.Framework.Callbacks import _viz_flow
-    dut = DATASETS['MINICHAIRS']
-    config = Config(batch=8, scale=1, depth=2, patch_size=96,
+    dut = DATASETS['FLOW']
+    config = Config(batch=8, scale=1, depth=2, patch_size=256,
                     steps_per_epoch=100, convert_to='RGB', crop='random')
     loader = QuickLoader(dut, 'train', config, True, n_threads=8)
     r = loader.make_one_shot_iterator('1GB', shuffle=True)
     loader.prefetch('1GB')
     list(r)
     r = loader.make_one_shot_iterator('8GB', shuffle=True)
-    img, flow, name = list(r)[0]
+    img, flow, name, _ = list(r)[0]
 
     ref0 = img[0, 0, ...]
     ref1 = img[0, 1, ...]
     u = flow[0, 0, ..., 0]
     v = flow[0, 0, ..., 1]
-    ImageProcess.array_to_img(ref0, 'RGB').show()
-    ImageProcess.array_to_img(ref1, 'RGB').show()
-    ImageProcess.array_to_img(_viz_flow(u, v), 'RGB').show()
+    # ImageProcess.array_to_img(ref0, 'RGB').show()
+    # ImageProcess.array_to_img(ref1, 'RGB').show()
+    # ImageProcess.array_to_img(_viz_flow(u, v), 'RGB').show()
 
 
 def test_cifar_loader():
     from tqdm import tqdm
-    dut = DATASETS['CIFAR10']
+    dut = DATASETS['NUMPY']
     config = Config(batch=8, scale=4, depth=1, patch_size=32,
                     steps_per_epoch=100, convert_to='RGB')
     loader = BasicLoader(dut, 'train', config, False)
@@ -115,25 +115,15 @@ def test_cifar_loader():
     list(tqdm(r))
 
 
-def test_memory_usage():
-    dut = DATASETS['GOPRO']
-    epochs = 4
-    config = Config(batch=16, scale=4, depth=1, patch_size=196,
-                    steps_per_epoch=100, convert_to='RGB', crop='random')
-    loader = QuickLoader(dut, 'train', config, True, n_threads=8)
-    for i in range(epochs):
-        it = loader.make_one_shot_iterator('1GB', True)
-        loader.prefetch('1GB')
-        list(it)
-
-
-def main():
-    import tensorflow as tf
-    tf.logging.set_verbosity(tf.logging.DEBUG)
-    test_cifar_loader()
-    # test_memory_usage()
-    pass
-
-
-if __name__ == '__main__':
-    main()
+def test_tfrecord():
+    dut = DATASETS['TFRECORD']
+    loader = QuickLoader(dut, 'train', Config(batch=16, steps_per_epoch=200))
+    with tf.Session() as sess:
+        it = loader.make_one_shot_iterator()
+        for a, b, c, d in it:
+            print(c)
+    loader = QuickLoader(dut, 'test', Config(batch=16, steps_per_epoch=200))
+    with tf.Session() as sess:
+        it = loader.make_one_shot_iterator()
+        for a, b, c, d in it:
+            print(c)

@@ -211,7 +211,8 @@ class VSR(Trainer):
         print('| {} | Epoch: {}/{} | LR: {:.2g} |'.format(
             date, v.epoch, v.epochs, v.lr))
         with tqdm.tqdm(train_iter, unit='batch', ascii=True) as r:
-            for label, feature, name in r:
+            for items in r:
+                label, feature, name, post = items[:4]
                 self.fn_train_each_step(label, feature, name)
                 r.set_postfix(v.loss)
         for _k, _v in v.avg_meas.items():
@@ -226,7 +227,8 @@ class VSR(Trainer):
             v.summary_writer.add_summary(self._m.summary(), v.global_step)
             self._save_model(v.sess, v.epoch)
 
-    def fn_train_each_step(self, label=None, feature=None, name=None):
+    def fn_train_each_step(self, label=None, feature=None, name=None,
+                           post=None):
         v = self.v
         for fn in v.feature_callbacks:
             feature = fn(feature, name=name)
@@ -241,7 +243,8 @@ class VSR(Trainer):
             loss[_k] = '{:08.5f}'.format(_v)
         v.loss = loss
 
-    def fn_infer_each_step(self, label=None, feature=None, name=None):
+    def fn_infer_each_step(self, label=None, feature=None, name=None,
+                           post=None):
         v = self.v
         origin_feat = feature
         for fn in v.feature_callbacks:
@@ -251,7 +254,8 @@ class VSR(Trainer):
             outputs = fn(outputs, input=origin_feat, name=name,
                          subdir=v.subdir, mode=v.color_format)
 
-    def fn_benchmark_each_step(self, label=None, feature=None, name=None):
+    def fn_benchmark_each_step(self, label=None, feature=None, name=None,
+                               post=None):
         v = self.v
         origin_feat = feature
         for fn in v.feature_callbacks:
@@ -270,7 +274,8 @@ class VSR(Trainer):
     def fn_benchmark_body(self):
         v = self.v
         it = v.loader.make_one_shot_iterator(v.memory_limit, shuffle=False)
-        for label, feature, name in tqdm.tqdm(it, 'Test', ascii=True):
+        for items in tqdm.tqdm(it, 'Test', ascii=True):
+            label, feature, name, post = items[:4]
             self.fn_benchmark_each_step(label, feature, name)
 
     """=======================================
@@ -315,7 +320,9 @@ class VSR(Trainer):
         else:
             return
         # use original images in inferring
-        for feature, _, name in tqdm.tqdm(it, 'Infer', ascii=True):
+        for items in tqdm.tqdm(it, 'Infer', ascii=True):
+            feature = items[0]
+            name = items[2]
             self.fn_infer_each_step(None, feature, name)
 
     def benchmark(self, loader, config, **kwargs):

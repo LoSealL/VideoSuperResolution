@@ -85,5 +85,5 @@ def evaluate():
         test_config.output_callbacks = [partial(get_outputs, config=opt)]
         t.benchmark(loader, test_config)
         # this implies 1:1 on label and fake images
-        label_images = [x for x, _, _ in loader.make_one_shot_iterator()]
+        label_images = [x[0] for x in loader.make_one_shot_iterator()]
     Eval.evaluate(label_images, opt.data)

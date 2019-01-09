@@ -1,3 +1,7 @@
+import os
+
+if not os.getcwd().endswith('UTest'):
+    os.chdir('UTest')
 from VSR.Util.Utility import Vgg
 from PIL import Image
 import tensorflow as tf
@@ -45,8 +49,3 @@ def test_multiple_call():
     y3 = vgg2(x.copy())
     with tf.Session() as sess:
         sess.run([y1, y2, y3])
-
-
-if __name__ == '__main__':
-    test_multiple_call()
-    pass

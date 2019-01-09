@@ -1,0 +1,55 @@
+# Fake VSR Dataset Description File
+# Unit Test Only!!
+# Ver: v1.1.1
+---
+Root:
+  ./
+
+Path:
+  FOO: flying_chair/**/*.png
+
+Path_Tracked:
+  BAR: set5_x2/*.png
+
+Dataset:
+  NORMAL:
+    train: [FOO, BAR]
+    val: []
+    test: [BAR]
+
+  NUMPY:
+    # alpha version, loading ndarray data(s)
+    param:
+      mode: numpy  # specify `mode` as "numpy"
+      numpy:
+        # execution python source
+        exec: '(x,_),(y,_)=tf.keras.datasets.cifar10.load_data()'
+        # specify result variables
+        train: 'x'
+        val: 'y'
+        test: 'y[:10000]'
+
+  TFRECORD:
+    train: ["./91-image.tfrecords"]
+    val: [BAR]
+    test: ["./91-image.tfrecords"]
+
+  RAW:
+    train: [raw.yv12]
+    val: [raw.yv12]
+    test: [raw.yv12]
+    param:
+      mode: yv12
+      width: 32
+      hight: 32
+
+  FLOW:
+    train: [flying_chair/pair]
+    val: []
+    test: []
+    flow: [flying_chair/flow/*.flo]
+
+  GHOST:
+    train: ["/what-the-fuck"]
+    val: []
+    test: []
