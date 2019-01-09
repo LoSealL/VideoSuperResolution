@@ -14,8 +14,8 @@ Path_Tracked:
 Dataset:
   NORMAL:
     train: [FOO, BAR]
-    val: []
-    test: [BAR]
+    val: [BAR]
+    test: [set5_x2/img_001_SRF_2_LR.png]
 
   NUMPY:
     # alpha version, loading ndarray data(s)
@@ -27,7 +27,7 @@ Dataset:
         # specify result variables
         train: 'x'
         val: 'y'
-        test: 'y[:10000]'
+        test: 'y[:10]'
 
   TFRECORD:
     train: ["./91-image.tfrecords"]

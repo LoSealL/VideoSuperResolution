@@ -360,7 +360,7 @@ class GanTrainer(VSR):
         it = v.loader.make_one_shot_iterator(v.memory_limit, shuffle=True)
         if v.loader.method == 'val':
             v.output_callbacks += [save_batch_image(self._logd)]
-        for label, _, name in tqdm.tqdm(it, 'Test', ascii=True):
+        for label, _, name, _ in tqdm.tqdm(it, 'Test', ascii=True):
             feature = np.random.uniform(-1, 1, [v.batch, self._m.z_dim])
             self.fn_benchmark_each_step(label, feature, name)
         if v.loader.method == 'val':

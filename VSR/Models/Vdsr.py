@@ -36,13 +36,13 @@ class VDSR(SuperResolution):
         super(VDSR, self).build_graph()
         with tf.variable_scope(self.name):
             # bicubic upscale
-            x = self.inputs_preproc[-1]
+            x = bic = self.inputs_preproc[-1]
             if self.do_up:
-                x = bicubic_rescale(self.inputs_preproc[-1], self.scale)
+                x = bic = bicubic_rescale(self.inputs_preproc[-1], self.scale)
             for _ in range(self.layers - 1):
                 x = self.relu_conv2d(x, self.filters, 3)
             x = self.conv2d(x, self.channel, 3)
-            self.outputs.append(x + self.inputs_preproc[-1])
+            self.outputs.append(x + bic)
 
     def build_loss(self):
         with tf.name_scope('loss'):

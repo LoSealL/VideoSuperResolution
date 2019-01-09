@@ -44,7 +44,6 @@ def test_image_seek():
     vf.seek(-1, SEEK_END)
     f4 = vf.read_frame(1)[0]
     vf.seek(-2, SEEK_END)
-    vf.seek(1, SEEK_CUR)
     f5 = vf.read_frame(1)[0]
 
     F = [f1, f2, f3, f4, f5]

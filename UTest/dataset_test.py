@@ -52,7 +52,3 @@ def test_existence():
             if not _V:
                 print('[Warning] Test set of', k, 'doesn\'t exist.')
         print('=========================', flush=True)
-
-
-def test_dataset_class():
-    pass
