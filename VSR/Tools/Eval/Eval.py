@@ -17,7 +17,7 @@ from ...Util.Utility import to_list
 
 
 _DATE = time.strftime('%Y-%m-%d', time.localtime())
-LOG_FILE = f'/tmp/vsr/{_DATE}/eval_results.csv'
+LOG_FILE = "/tmp/vsr/{}/eval_results.csv".format(_DATE)
 
 
 def maybe_stack_over(data):
@@ -81,9 +81,9 @@ def evaluate(real_images, gen_images, opt=tf.flags.FLAGS):
         if opt.enable_inception_score:
             tasks_to_run.append(ImagePerceptual.InceptionTask('InceptionScore'))
         for task in tasks_to_run:
-            tf.logging.info(f"Evaluating {task.name}...")
+            tf.logging.info("Evaluating {}...".format(task.name))
             results[task.name] = task(real_images, gen_images)
-            tf.logging.info(f"Evaluating {task.name} done\n")
+            tf.logging.info("Evaluating {} done\n".format(task.name))
 
     results.update(model=opt.model)
     log_results(results, True)

@@ -163,8 +163,8 @@ class BasicLoader:
         elif config.convert_to.lower() in ('rgb',):
             self.color_format = 'RGB'
         else:
-            tf.logging.warning(
-                f'Unknown format {config.convert_to}, use grayscale by default')
+            tf.logging.warning('Use grayscale by default. '
+                               'Unknown format {}'.format(config.convert_to))
             self.color_format = 'L'
         self.loaded = 0
         self.free_memory_on_start = virtual_memory().free
@@ -529,6 +529,16 @@ class QuickLoader(BasicLoader):
             else:
                 data = data.batch(config.batch)
                 self.max_steps = -1
+            if config.convert_to.lower() in ('gray', 'l'):
+                self.color_format = 'L'
+            elif config.convert_to.lower() in ('yuv', 'ycbcr'):
+                self.color_format = 'YCbCr'
+            elif config.convert_to.lower() in ('rgb',):
+                self.color_format = 'RGB'
+            else:
+                tf.logging.warning('Use grayscale by default. '
+                                   'Unknown format {}'.format(config.convert_to))
+                self.color_format = 'L'
             self._data = data
         else:
             self.shard = n_threads

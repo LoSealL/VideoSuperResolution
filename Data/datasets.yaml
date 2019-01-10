@@ -76,6 +76,11 @@ Dataset:
     val: [DIV2K-Val]
     test: []
 
+  DW2KTF:
+    train: ["dw2k-train.tfrecords"]
+    val: ["dw2k-val.tfrecords"]
+    test: []
+
   MCL-V:  # http://mcl.usc.edu/mcl-v-database/, small set videos
     train: MCL-V
     # TODO: Remove this comment after version 0.6.0
