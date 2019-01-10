@@ -126,30 +126,42 @@ def suppress_opt_by_args(opt, *args):
     """Use cmdline arguments to overwrite parameters declared in yaml file.
       Account for safety, writing section not declared in yaml is not allowed.
     """
-    def parse_args(argstr: str):
-        if argstr.startswith('--'):
+    def parse_args(argstr: str, prev_argstr: str):
+        if prev_argstr:
+            k, v = prev_argstr, argstr
+        elif argstr.startswith('--'):
             if '=' in argstr:
                 k, v = argstr[2:].split('=')
             else:
-                k, v = argstr[2:].split(' ')
+                k = argstr[2:]
+                v = None
         elif argstr.startswith('-'):
             if '=' in argstr:
                 k, v = argstr[1:].split('=')
             else:
-                k, v = argstr[1:].split(' ')
+                k = argstr[1:]
+                v = None
         else:
             raise KeyError("Unknown parameter: {}".format(argstr))
         return k, v
 
+    prev_arg = None
     for arg in args:
-        key, value = parse_args(arg)
-        if key not in opt:
-            raise KeyError("Parameter {} doesn't exist in model!".format(key))
-        old_v = opt.get(key)
-        if isinstance(old_v, (list, tuple, dict)):
-            raise NotImplementedError("Can't convert complex type for now.")
-        new_v = type(old_v)(value)  # TODO: can't convert list in this way.
-        opt[key] = new_v
+        key, value = parse_args(arg, prev_arg)
+        prev_arg = None  # clear after use
+        if key and value:
+            if key not in opt:
+                raise KeyError("Parameter {} doesn't exist in model!".format(key))
+            old_v = opt.get(key)
+            if isinstance(old_v, (list, tuple, dict)):
+                raise NotImplementedError("Can't convert complex type for now.")
+            new_v = type(old_v)(value)  # TODO: can't convert list in this way.
+            opt[key] = new_v
+        elif key:
+            prev_arg = key
+
+    if prev_arg:
+        raise KeyError("Parameter missing value: {}".format(prev_arg))
 
 
 def dump(config):
