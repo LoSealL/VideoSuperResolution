@@ -169,13 +169,36 @@ def suppress_opt_by_args(opt, *args):
     key, value = parse_args(arg, prev_arg)
     prev_arg = None  # clear after use
     if key and value:
-      if key not in opt:
+      # dict support
+      keys = key.split('.')
+      if keys[0] not in opt:
         raise KeyError("Parameter {} doesn't exist in model!".format(key))
-      old_v = opt.get(key)
-      if isinstance(old_v, (list, tuple, dict)):
-        raise NotImplementedError("Can't convert complex type for now.")
-      new_v = type(old_v)(value)  # TODO: can't convert list in this way.
-      opt[key] = new_v
+      old_v = opt.get(keys[0])
+      if isinstance(old_v, (list, tuple)):
+        # list, tuple support
+        if not value.startswith('[') and not value.startswith('('):
+          raise TypeError("Invalid list syntax: {}".format(value))
+        if not value.endswith(']') and not value.endswith(')'):
+          raise TypeError("Invalid list syntax: {}".format(value))
+        values = value[1:-1].split(',')
+        new_v = [type(ov)(nv) for ov, nv in zip(old_v, values)]
+        opt[keys[0]] = new_v
+      elif isinstance(old_v, dict):
+        # dict support
+        try:
+          for k in keys[1:-1]:
+            old_v = old_v[k]
+          ref_v = old_v
+          old_v = old_v[keys[-1]]
+        except KeyError:
+          raise KeyError("Parameter {} doesn't exist in model!".format(key))
+        if isinstance(old_v, (list, tuple)):
+          raise NotImplementedError("Don't support nested list type.")
+        new_v = type(old_v)(value)
+        ref_v[keys[-1]] = new_v
+      else:
+        new_v = type(old_v)(value)  # TODO: can't convert list in this way.
+        opt[keys[0]] = new_v
     elif key:
       prev_arg = key
 
