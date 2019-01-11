@@ -112,9 +112,9 @@ class EpochIterator:
 
 
 class TFIterator:
-    def __init__(self, iterator, max_step):
+    def __init__(self, next_element, max_step):
         self.max = max_step
-        self.nx = iterator.get_next()
+        self.nx = next_element
         self.count = 0
 
     def __len__(self):
@@ -540,6 +540,8 @@ class QuickLoader(BasicLoader):
                                    'Unknown format {}'.format(config.convert_to))
                 self.color_format = 'L'
             self._data = data
+            self._iter = None
+            self._next = None
         else:
             self.shard = n_threads
             self.threads = []
@@ -604,8 +606,10 @@ class QuickLoader(BasicLoader):
         """
 
         if self.is_tfrecord:
-            it = self._data.make_one_shot_iterator()
-            return TFIterator(it, self.max_steps)
+            if not self._iter and not self._next:
+                self._iter = self._data.make_one_shot_iterator()
+                self._next = self._iter.get_next()
+            return TFIterator(self._next, self.max_steps)
         else:
             if not self.threads:
                 self.prefetch(memory_usage)

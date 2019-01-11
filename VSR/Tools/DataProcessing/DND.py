@@ -23,6 +23,7 @@ from pathlib import Path
 import h5py
 import numpy as np
 import scipy.io as sio
+import tqdm
 from PIL import Image
 
 
@@ -243,9 +244,11 @@ if __name__ == '__main__':
   if args.data_dir:
     denoise_srgb(denoiser, args.data_dir, args.save_dir)
   if args.submission_dir:
-    for img_file in Path(args.submission_dir).glob('*.png'):
+    bundled = Path(args.bundle_dir)
+    bundled.mkdir(exist_ok=True, parents=True)
+    for img_file in tqdm.tqdm(Path(args.submission_dir).glob('*.png')):
       img_u = Image.open(img_file)
       img = np.asarray(img_u, np.float32) / 255
-      path = Path(args.bundle_dir) / (img_file.stem[:7] + '.mat')
+      path = bundled / (img_file.stem[:7] + '.mat')
       sio.savemat(str(path), {'Idenoised_crop': img})
-    bundle_submissions_srgb(args.bundle_dir)
+    bundle_submissions_srgb(str(bundled))
