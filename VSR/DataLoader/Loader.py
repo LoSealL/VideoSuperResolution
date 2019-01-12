@@ -156,6 +156,7 @@ class BasicLoader:
     self.file_names = dataset.__getattr__(method.lower()) or []
     self.method = method
     self.flow = dataset.flow
+    self.pair = dataset.pair
     self.aug = augmentation
     if config.convert_to.lower() in ('gray', 'l'):
       self.color_format = 'L'
@@ -205,8 +206,13 @@ class BasicLoader:
     if dataset.mode.lower() == 'pil-image1':
       if self.flow:
         # map flow
+        tf.logging.warning("Deprecated. Use pair instead.")
         flow = {f.stem: f for f in self.flow}
         self.file_objects = [ImageFile(fp).attach_flow(flow[fp.stem])
+                             for fp in self.file_names]
+      elif self.pair:
+        pair = {f.stem: f for f in self.pair}
+        self.file_objects = [ImageFile(fp).attach_pair(pair[fp.stem])
                              for fp in self.file_names]
       else:
         self.file_objects = [ImageFile(fp) for fp in self.file_names]
@@ -309,6 +315,14 @@ class BasicLoader:
     img = [i.convert(self.color_format) for i in img]
     return img, [vf.flow], (vf.name, index, vf.frames)
 
+  def _vf_gen_custom_pair(self, vf, depth, index):
+    vf.seek(index)
+    frames_hr = [img for img in vf.read_frame(depth)]
+    frames_lr = [img for img in vf.pair.read_frame(depth)]
+    frames_hr = [img.convert(self.color_format) for img in frames_hr]
+    frames_lr = [img.convert(self.color_format) for img in frames_lr]
+    return frames_hr, frames_lr, (vf.name, index, vf.frames)
+
   def _process_at_file(self, vf, clips=1):
     """load frames of `File` into memory, crop and generate corresponded
      LR frames.
@@ -333,6 +347,8 @@ class BasicLoader:
     for i in index[:clips]:
       if self.flow:
         frames.append(self._vf_gen_flow_img_pair(vf, depth, i))
+      elif self.pair:
+        frames.append(self._vf_gen_custom_pair(vf, depth, i))
       else:
         frames.append(self._vf_gen_lr_hr_pair(vf, depth, i))
     vf.reopen()  # necessary, rewind the read pointer

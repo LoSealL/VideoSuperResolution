@@ -102,6 +102,19 @@ def test_read_flow():
   # ImageProcess.array_to_img(_viz_flow(u, v), 'RGB').show()
 
 
+def test_read_pair():
+  dut = DATASETS['PAIR']
+  config = Config(batch=4, scale=1, depth=1, patch_size=64,
+                  steps_per_epoch=10, convert_to='RGB', crop='random')
+  loader = QuickLoader(dut, 'train', config, True, n_threads=8)
+  r = loader.make_one_shot_iterator('1GB', shuffle=True)
+  loader.prefetch('1GB')
+  list(r)
+  r = loader.make_one_shot_iterator('8GB', shuffle=True)
+  for hr, pair, name, _ in r:
+    assert np.all(hr == pair)
+
+
 def test_cifar_loader():
   from tqdm import tqdm
   dut = DATASETS['NUMPY']
@@ -126,3 +139,6 @@ def test_tfrecord():
     it = loader.make_one_shot_iterator()
     for a, b, c, d in it:
       print(c)
+
+
+test_read_pair()

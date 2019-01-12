@@ -19,6 +19,7 @@ from ..Util.Utility import to_list
 # You have to keep this
 from . import YVDecoder, NVDecoder
 
+
 class File:
   """An abstract file object
 
@@ -214,6 +215,7 @@ class RawFile(File):
     self.size = to_list(size)
     self.pitch, self.channel_pitch = self._get_frame_pitch()
     super(RawFile, self).__init__(path, rewind)
+    self._pair = None
 
   def _get_frame_pitch(self):
     """Get bytes length of one frame.
@@ -304,6 +306,14 @@ class RawFile(File):
     if where == SEEK_END:
       super(RawFile, self).seek(offset * self.pitch, where)
 
+  def attach_pair(self, pair_file):
+    self._pair = RawFile(pair_file, self.rewind)
+    return self
+
+  @property
+  def pair(self):
+    return self._pair
+
   @property
   def shape(self):
     return self.size
@@ -325,6 +335,7 @@ class ImageFile(File):
   def __init__(self, path, rewind=False):
     super(ImageFile, self).__init__(path, rewind)
     self._flow = None
+    self._pair = None
 
   def read_frame(self, frames=1, *args):
     """read number `frames` of the file.
@@ -369,6 +380,14 @@ class ImageFile(File):
     else:
       raise TypeError('unsupported flow format', fd.suffix)
     return flow
+
+  def attach_pair(self, pair_file):
+    self._pair = ImageFile(pair_file, self.rewind)
+    return self
+
+  @property
+  def pair(self):
+    return self._pair
 
   @property
   def shape(self):

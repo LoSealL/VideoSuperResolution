@@ -54,6 +54,12 @@ Dataset:
     test: []
     flow: [flying_chair/flow/*.flo]
 
+  PAIR:
+    train: [FOO]
+    pair: [FOO]
+    val: []
+    test: []
+
   GHOST:
     train: ["/what-the-fuck"]
     val: []

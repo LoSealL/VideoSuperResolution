@@ -97,7 +97,7 @@ def load_datasets(describe_file):
       assert isinstance(value, dict)
       datasets[name] = Dataset(name=name)
       for i in value:
-        if i not in ('train', 'val', 'test', 'infer', 'flow'):
+        if i not in ('train', 'val', 'test', 'infer', 'flow', 'pair'):
           continue
         sets = []
         for j in to_list(value[i]):
