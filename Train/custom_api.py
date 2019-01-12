@@ -17,14 +17,14 @@ import numpy as np
 from PIL import Image
 
 
-def color_inverse(inputs, name, **kwargs):
+def color_inverse(inputs, **kwargs):
   """Invert color"""
   type_old = inputs.dtype
   inputs = inputs.astype('float')
   return np.clip(255 - inputs, 0, 255).astype(type_old)
 
 
-def color_shift(inputs, name, value=0, **kwargs):
+def color_shift(inputs, value=0, **kwargs):
   """Shift color by `value`"""
   type_old = inputs.dtype
   inputs = inputs.astype('float')
@@ -97,6 +97,7 @@ def add_random_noise(inputs, sigma_max=50, **kwargs):
 
 def shave(inputs, div=64, **kwargs):
   """Crop borders"""
+  div = int(div)
   h, w = inputs.shape[-3:-1]
   h_mod = h - h % div
   w_mod = w - w % div
@@ -105,6 +106,7 @@ def shave(inputs, div=64, **kwargs):
 
 def pad(inputs, div=64, **kwargs):
   """Pad borders"""
+  div = int(div)
   h, w = inputs.shape[-3:-1]
   ph = div - h % div
   pw = div - w % div
@@ -118,6 +120,7 @@ def pad(inputs, div=64, **kwargs):
 
 def upsample(inputs, scale=4, **kwargs):
   """Use PIL.Image.resize(resample=CUBIC) to upsample inputs"""
+  scale = int(scale)
   res = []
   for img in inputs:
     h, w, c = img.shape
