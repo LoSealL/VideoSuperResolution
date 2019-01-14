@@ -139,6 +139,3 @@ def test_tfrecord():
     it = loader.make_one_shot_iterator()
     for a, b, c, d in it:
       print(c)
-
-
-test_read_pair()

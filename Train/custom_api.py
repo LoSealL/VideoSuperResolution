@@ -118,9 +118,9 @@ def pad(inputs, div=64, **kwargs):
   return inputs
 
 
-def upsample(inputs, scale=4, **kwargs):
+def upsample(inputs, r=4, **kwargs):
   """Use PIL.Image.resize(resample=CUBIC) to upsample inputs"""
-  scale = int(scale)
+  r = float(r)
   res = []
   for img in inputs:
     h, w, c = img.shape
@@ -130,9 +130,12 @@ def upsample(inputs, scale=4, **kwargs):
       img = Image.fromarray(img[..., 0], 'L')
     else:
       raise ValueError
-    img = img.resize([w * scale, h * scale], resample=Image.BICUBIC)
+    img = img.resize([int(w * r), int(h * r)], resample=Image.BICUBIC)
     res.append(np.array(img))
   res = np.stack(res)
   if np.ndim(res) < 4:
     res = np.expand_dims(res, axis=-1)
   return res
+
+
+scale=upsample

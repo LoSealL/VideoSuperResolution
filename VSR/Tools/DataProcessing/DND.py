@@ -231,7 +231,7 @@ if __name__ == '__main__':
 
   def denoiser(image, nlf, index):
     i, k = index
-    name = '%04d_%02d.png' % (i + 1, k + 1)
+    name = '%04d_%02d_hr.png' % (i + 1, k + 1)
     image_u = np.round(image * 255).astype(np.uint8)
     image_u = Image.fromarray(image_u, 'RGB')
     image_u.save(os.path.join(args.save_dir, name))
