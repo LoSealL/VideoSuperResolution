@@ -40,51 +40,53 @@ def _augment(image, op):
 def denoise():
   save_dir = Path(FLAGS.save_dir)
   save_dir.mkdir(exist_ok=True, parents=True)
-  train_dir = Path(FLAGS.train_dir)
-  train_gt = sorted(train_dir.rglob('*GT_SRGB_010.PNG'))
-  train_noisy = sorted(train_dir.rglob('*NOISY_SRGB_010.PNG'))
-  assert len(train_gt) == len(train_noisy)
-  writer = tf.io.TFRecordWriter(
-    FLAGS.save_dir + "/ntire_denoise-train.tfrecords")
-  num_each = FLAGS.num // len(train_gt)
-  for gt, noisy in zip(train_gt, train_noisy):
-    print(gt.stem, noisy.stem)
-    name = gt.stem[:4]
-    image_gt = Image.open(gt)
-    image_noisy = Image.open(noisy)
-    _w, _h = image_gt.width, image_gt.height
-    _pw = _ph = FLAGS.patch_size
-    x = np.random.randint(0, _w - _pw + 1, size=num_each)
-    y = np.random.randint(0, _h - _ph + 1, size=num_each)
-    box = [(_x, _y, _x + _pw, _y + _ph) for _x, _y in zip(x, y)]
-    patches_gt = [np.asarray(image_gt.crop(b)) for b in box]
-    patches_noisy = [np.asarray(image_noisy.crop(b)) for b in box]
-    if FLAGS.augment:
-      ops = np.random.randint(0, 2, size=[num_each, 3])
-      patches_gt = [_augment(p, op) for p, op in zip(patches_gt, ops)]
-      patches_noisy = [_augment(p, op) for p, op in zip(patches_noisy, ops)]
-    for i, patches in tqdm.tqdm(enumerate(zip(patches_gt, patches_noisy)),
-                                total=num_each, ascii=True):
-      hr, noise = patches
-      label = "{}_{}".format(name, i).encode()
-      with io.BytesIO() as fp:
-        hr = array_to_img(hr, 'RGB')
-        hr.save(fp, format='png')
-        fp.seek(0)
-        hr_png = fp.read()
-      with io.BytesIO() as fp:
-        lr = hr.resize([hr.width // FLAGS.scale, hr.height // FLAGS.scale],
-                       Image.BICUBIC)
-        lr.save(fp, format='png')
-        fp.seek(0)
-        lr_png = fp.read()
-      with io.BytesIO() as fp:
-        array_to_img(noise, 'RGB').save(fp, format='png')
-        fp.seek(0)
-        noisy_png = fp.read()
-      make_tensor_label_records([hr_png, lr_png, label, noisy_png],
-                                ["image/hr", "image/lr", "name", "image/post"],
-                                writer)
+  if FLAGS.train_dir:
+    train_dir = Path(FLAGS.train_dir)
+    train_gt = sorted(train_dir.rglob('*GT_SRGB_010.PNG'))
+    train_noisy = sorted(train_dir.rglob('*NOISY_SRGB_010.PNG'))
+    assert len(train_gt) == len(train_noisy)
+    writer = tf.io.TFRecordWriter(
+      FLAGS.save_dir + "/ntire_denoise-train.tfrecords")
+    num_each = FLAGS.num // len(train_gt)
+    for gt, noisy in zip(train_gt, train_noisy):
+      print(gt.stem, noisy.stem)
+      name = gt.stem[:4]
+      image_gt = Image.open(gt)
+      image_noisy = Image.open(noisy)
+      _w, _h = image_gt.width, image_gt.height
+      _pw = _ph = FLAGS.patch_size
+      x = np.random.randint(0, _w - _pw + 1, size=num_each)
+      y = np.random.randint(0, _h - _ph + 1, size=num_each)
+      box = [(_x, _y, _x + _pw, _y + _ph) for _x, _y in zip(x, y)]
+      patches_gt = [np.asarray(image_gt.crop(b)) for b in box]
+      patches_noisy = [np.asarray(image_noisy.crop(b)) for b in box]
+      if FLAGS.augment:
+        ops = np.random.randint(0, 2, size=[num_each, 3])
+        patches_gt = [_augment(p, op) for p, op in zip(patches_gt, ops)]
+        patches_noisy = [_augment(p, op) for p, op in zip(patches_noisy, ops)]
+      for i, patches in tqdm.tqdm(enumerate(zip(patches_gt, patches_noisy)),
+                                  total=num_each, ascii=True):
+        hr, noise = patches
+        label = "{}_{}".format(name, i).encode()
+        with io.BytesIO() as fp:
+          hr = array_to_img(hr, 'RGB')
+          hr.save(fp, format='png')
+          fp.seek(0)
+          hr_png = fp.read()
+        with io.BytesIO() as fp:
+          lr = hr.resize([hr.width // FLAGS.scale, hr.height // FLAGS.scale],
+                         Image.BICUBIC)
+          lr.save(fp, format='png')
+          fp.seek(0)
+          lr_png = fp.read()
+        with io.BytesIO() as fp:
+          array_to_img(noise, 'RGB').save(fp, format='png')
+          fp.seek(0)
+          noisy_png = fp.read()
+        make_tensor_label_records(
+          [hr_png, lr_png, label, noisy_png],
+          ["image/hr", "image/lr", "name", "image/post"],
+          writer)
 
   val_mat = FLAGS.validation
   if val_mat:
