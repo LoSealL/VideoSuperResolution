@@ -14,7 +14,7 @@ from scipy.io import loadmat, savemat
 from VSR.Util.ImageProcess import img_to_array, array_to_img
 from VSR.Tools.DataProcessing.Util import make_tensor_label_records
 
-tf.flags.DEFINE_string("train", None, "Path to train Data.")
+tf.flags.DEFINE_string("train_dir", None, "Path to train Data.")
 tf.flags.DEFINE_string("validation", None,
                        "Path to validation mat, save in individual png.")
 tf.flags.DEFINE_string("results", None, "Path to results' png, save in mat.")
@@ -41,13 +41,14 @@ def denoise():
   save_dir = Path(FLAGS.save_dir)
   save_dir.mkdir(exist_ok=True, parents=True)
   train_dir = Path(FLAGS.train_dir)
-  train_gt = sorted(train_dir.rglob('*GT_SRGB_010.png'))
-  train_noisy = sorted(train_dir.rglob('*NOISY_SRGB_010.png'))
+  train_gt = sorted(train_dir.rglob('*GT_SRGB_010.PNG'))
+  train_noisy = sorted(train_dir.rglob('*NOISY_SRGB_010.PNG'))
   assert len(train_gt) == len(train_noisy)
   writer = tf.io.TFRecordWriter(
     FLAGS.save_dir + "/ntire_denoise-train.tfrecords")
   num_each = FLAGS.num // len(train_gt)
   for gt, noisy in zip(train_gt, train_noisy):
+    print(gt.stem, noisy.stem)
     name = gt.stem[:4]
     image_gt = Image.open(gt)
     image_noisy = Image.open(noisy)
