@@ -1,18 +1,18 @@
 language: python
 python:
-#  - "2.7"
   - "3.6"
 cache: pip
 
 install:
   - pip install tensorflow
   - pip install google-api-python-client oauth2client
-  - pip install -e .
+  - pip install -U -e .
 script:
-  - pytest -v UTest/correlation_test.py UTest/dataset_test.py UTest/virtualfile_test.py
-  - pytest -v UTest/image_test.py
-  - pytest -v UTest/loader_test.py
-  - pytest -v UTest/motion_test.py
-  - pytest -v UTest/noise_test.py
-  - pytest -v UTest/vgg_test.py
+  - pytest -v UTest/correlation_test.py UTest/dataset_test.py UTest/virtualfile_test.py --disable-warnings
+  - pytest -v UTest/image_test.py --disable-warnings
+  - pytest -v UTest/loader_test.py --disable-warnings
+  - pytest -v UTest/convertdataset_test.py --disable-warnings
+  - pytest -v UTest/motion_test.py --disable-warnings
+  - pytest -v UTest/noise_test.py --disable-warnings
+  - pytest -v UTest/vgg_test.py --disable-warnings
   - bash UTest/training_test.sh

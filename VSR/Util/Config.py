@@ -15,14 +15,14 @@ import yaml
 
 
 class Config(easydict.EasyDict):
-    def __init__(self, obj=None, **kwargs):
-        super(Config, self).__init__(**kwargs)
-        if obj is not None:
-            assert isinstance(obj, (dict, str))
-            if isinstance(obj, str):
-                with open(obj, 'r') as fd:
-                    obj = yaml.load(fd)
-            self.update(**obj)
+  def __init__(self, obj=None, **kwargs):
+    super(Config, self).__init__(**kwargs)
+    if obj is not None:
+      assert isinstance(obj, (dict, str))
+      if isinstance(obj, str):
+        with open(obj, 'r') as fd:
+          obj = yaml.load(fd)
+      self.update(**obj)
 
-    def __getattr__(self, item):
-        return self.get(item)
+  def __getattr__(self, item):
+    return self.get(item)

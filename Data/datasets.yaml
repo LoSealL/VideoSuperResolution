@@ -24,8 +24,11 @@ Path:
   DIV2K-Train: DIV2K/DIV2K_train_HR/
   DIV2K-Val: DIV2K/DIV2K_valid_HR/
   DIV2K-Pred: DIV2K/DIV2K_valid_LR_bicubic/X4/
-  PIRM-SelfVal: PIRM/PIRM_Self-Val_set/HR
-  PIRM-Val: PIRM/PIRM_Val_set/LR
+  NTIRE-Dehaze-GT: NTIRE19/Dehaze/TrainGT
+  NTIRE-Dehaze-Hazy: NTIRE19/Dehaze/TrainHazy
+  NTIRE-Dehaze-ValHazy: NTIRE19/Dehaze/ValidationHazy
+  SIDD-GT-SRGB: NTIRE19/Denoise/SIDD_Medium_Srgb/Data/**/*GT_SRGB_010.png
+  SIDD-NOISY-SRGB: NTIRE19/Denoise/SIDD_Medium_Srgb/Data/**/*NOISY_SRGB_010.png
   # FlyingChairs datasets are split with below file >>
   # https://lmb.informatik.uni-freiburg.de/resources/datasets/FlyingChairs/FlyingChairs_train_val.txt
   # but for convenience, all .flo files are put into a separate folder 'flow'
@@ -40,8 +43,6 @@ Path_Tracked:
   SUNHAY80: SunHays80_SR/image_SRF_8/*HR.*
   SET5: Set5_SR/Set5/image_SRF_4/*HR.*
   SET14: Set14_SR/Set14/image_SRF_4/*HR.*
-  PIRM-SelfTest: PIRM/PIRM_Self-Val_set/LR
-  PIRM-Test: PIRM/PIRM_Test/LR
   VID4-HR: vid4/original/
 
 # bind datasets to a name, called in scripts
@@ -76,9 +77,14 @@ Dataset:
     val: [DIV2K-Val]
     test: []
 
+  DW2KTF:
+    train: ["dw2k-train.tfrecords"]
+    val: ["dw2k-val.tfrecords"]
+    test: []
+
   MCL-V:  # http://mcl.usc.edu/mcl-v-database/, small set videos
     train: MCL-V
-    # TODO: Remove this comment after version 0.6.0
+    # TODO: Remove this comment after version 1.0.0
     # Note: Root applies to absolute path now!!!
     val: MCL-V/test/*.yuv     # You can still write absolute path patterns like this,
     test: [MCL-V/test/*.yuv]  # or as array like this
@@ -107,6 +113,28 @@ Dataset:
     flow: FlyingChairsFlow
     val: FlyingChairsVal
     test: FlyingChairsTest
+
+  NTIRE19:
+    train: [NTIRE-Dehaze-GT]
+    pair: [NTIRE-Dehaze-Hazy]
+    val: []
+    test: []
+
+  NTIRE19TF:
+    train: "ntire_dehaze-train.tfrecords"
+    val: []
+    test: "ntire_dehaze-test.tfrecords"
+
+  SIDD:
+    train: SIDD-GT-SRGB
+    pair: SIDD-NOISY-SRGB
+    val: "NTIRE19/Denoise/validation"
+    test: ["NTIRE19/Denoise/validation"]
+
+  SIDDTF:
+    train: "ntire_denoise-train.tfrecords"
+    val: "NTIRE19/Denoise/validation"
+    test: ["NTIRE19/Denoise/validation"]
 
   CELEBA:  # center cropped and resize to 64x64
     # test images are randomly selected (10,000 samples)

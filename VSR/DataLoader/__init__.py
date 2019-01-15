@@ -1,5 +1,5 @@
-__all__= [
-    'Dataset',
-    'Loader',
-    'VirtualFile'
+__all__ = [
+  'Dataset',
+  'Loader',
+  'VirtualFile'
 ]
