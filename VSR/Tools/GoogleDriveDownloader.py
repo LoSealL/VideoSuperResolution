@@ -17,19 +17,24 @@ try:
   from httplib2 import Http
   from oauth2client import file, client, tools
 except ImportError as ex:
-  print("To download shared google drive file via python,"
-        "google-api-python-client, oauth2client is required."
-        "Please use pip install google-api-python-client oauth2client.")
-  raise ex
+  raise ImportError(
+    "To download shared google drive file via python,"
+    "google-api-python-client, oauth2client is required."
+    "Please use pip install google-api-python-client oauth2client.")
 
 SCOPES = 'https://www.googleapis.com/auth/drive.readonly'
 CREDENTIALS = './Data/credentials.json'
 
 
 def require_authorize(store, credentials, scope):
+  _argv = sys.argv.copy()
   sys.argv.clear()
+  if '--noauth_local_webserver' in _argv:
+    sys.argv.append('--noauth_local_webserver')
   flow = client.flow_from_clientsecrets(credentials, scope)
-  return tools.run_flow(flow, store)
+  creds = tools.run_flow(flow, store)
+  sys.argv = _argv
+  return creds
 
 
 def drive_download(name, fileid, path):
@@ -53,7 +58,7 @@ def drive_download(name, fileid, path):
   done = False
   while not done:
     status, done = downloader.next_chunk()
-    print("\rDownload {}%%.".format(int(status.progress() * 100)))
+    print("\rDownload {}%.".format(int(status.progress() * 100)))
   print('\n', flush=True)
   if done:
     return store_path

@@ -24,42 +24,47 @@ def _sub_residual(**kwargs):
   return img - res
 
 
-def _save_model_predicted_images(output, index, mode='YCbCr', cols=1, **kwargs):
+def _save_model_predicted_images(output, index, mode, cols=1, **kwargs):
+  if output is None:
+    return
+
   save_dir = kwargs.get('save_dir') or '.'
   sub_dir = kwargs.get('subdir') or '.'
-  name, seq, frames = kwargs.get('name', [('image', 0, 0)])[0]
-  seq = int(seq)
-  frames = int(frames)
-  if output is not None:
-    imgs = output[index] if isinstance(output, list) else output
-    imgs = _to_normalized_image(imgs, mode)
-    path = Path(save_dir) / sub_dir
+  names = kwargs.get('name', [('image', 0, 0)])
+  img = output[index] if isinstance(output, list) else output
+  img = _to_normalized_image(img, mode)
+  if len(img) != len(names):
+    names = [names[0]] * len(img)
+  path = Path(save_dir) / sub_dir
+  if cols > 1:
+    canvas = np.stack([img_to_array(x) for x in img])
+    batch = canvas.shape[0]
+    rows = int(np.ceil(batch / cols))
+    if batch % cols != 0:
+      pad = [np.zeros_like(canvas[0])] * (rows * cols - batch)
+      canvas = np.concatenate([canvas] + pad, axis=0)
+    shape = canvas.shape
+    x = canvas.reshape([rows, cols, shape[1], shape[2], shape[3]])
+    x = x.transpose([0, 2, 1, 3, 4])
+    x = x.reshape([shape[1] * rows, shape[2] * cols, shape[3]])
+    img = [array_to_img(x, mode)]
+  for i, j in zip(img, names):
+    name, seq, frames = j
+    seq = int(seq)
+    frames = int(frames)
+    rep = 0
     if frames > 1:
-      path /= '{}/{:04d}_PR.png'.format(name, seq)
+      path_1 = path / '{}/{:04d}_PR_{:04d}.png'.format(name, seq, rep)
     else:
-      path /= '{}_PR.png'.format(name)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    rep = 1
-    path2 = path
-    if cols > 1:
-      batch = len(imgs)
-      if batch == 0:
-        return output
-      rows = int(np.ceil(batch / cols))
-      w = imgs[0].width
-      h = imgs[0].height
-      canvas = np.zeros([h * rows, w * cols, 3], np.uint8)
-      for i, img in enumerate(imgs):
-        img = img.convert('RGB')
-        x = (i % cols) * w
-        y = (i // cols) * h
-        canvas[y:y + h, x:x + w] = np.asarray(img, np.uint8)
-      imgs = [array_to_img(canvas, 'RGB')]
-    for img in imgs:
-      while path2.exists():
-        path2 = path.parent / '{}_{}.png'.format(path.stem, rep)
-        rep += 1
-      img.convert('RGB').save(str(path2))
+      path_1 = path / '{}_PR_{:04d}.png'.format(name, rep)
+    path_1.parent.mkdir(parents=True, exist_ok=True)
+    while path_1.exists():
+      rep += 1
+      if frames > 1:
+        path_1 = path / '{}/{:04d}_PR_{:04d}.png'.format(name, seq, rep)
+      else:
+        path_1 = path / '{}_PR_{:04d}.png'.format(name, rep)
+    i.convert('RGB').save(str(path_1))
   return output
 
 

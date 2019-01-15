@@ -13,11 +13,10 @@ from PIL import Image
 
 from VSR.Tools.DataProcessing.Util import make_tensor_label_records
 
-tf.flags.DEFINE_string("task", None, "Task name.")
 tf.flags.DEFINE_string("train_gt", None, "Path to TrainGT.")
 tf.flags.DEFINE_string("train_hazy", None, "Path to TrainHazy.")
 tf.flags.DEFINE_string("validation", None,
-                       "Path to ValidationHazy. For cropping into pieces.")
+                       "Path to Validations. For cropping into pieces.")
 tf.flags.DEFINE_string("save_dir", None, "Output directory.")
 tf.flags.DEFINE_integer("patch_size", 128, "Cropped patch size.")
 tf.flags.DEFINE_bool("augment", False, "Augment data.")
@@ -36,7 +35,7 @@ def _augment(image, op):
   return image
 
 
-def DeHaze():
+def dehaze():
   train_gt = Path(FLAGS.train_gt).glob('*.png')
   train_hazy = Path(FLAGS.train_hazy).glob('*.png')
   train_gt = sorted(train_gt)
@@ -100,8 +99,7 @@ def DeHaze():
 
 
 def main(*args, **kwargs):
-  if FLAGS.task.lower() == 'dehaze':
-    return DeHaze()
+  dehaze()
 
 
 if __name__ == '__main__':

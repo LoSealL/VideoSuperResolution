@@ -43,13 +43,14 @@ DATASETS = {
   'SET14.zip': 'https://uofi.box.com/shared/static/igsnfieh4lz68l926l8xbklwsnnk8we9.zip',
   'SunHay80.zip': 'https://uofi.box.com/shared/static/rirohj4773jl7ef752r330rtqw23djt8.zip',
   'Urban100.zip': 'https://uofi.box.com/shared/static/65upg43jjd0a4cwsiqgl6o6ixube6klm.zip',
-  'VID4.zip': 'https://people.csail.mit.edu/celiu/CVPR2011/videoSR.zip',
+  # 'VID4.zip': 'https://people.csail.mit.edu/celiu/CVPR2011/videoSR.zip',
   'BSD300.tgz': 'https://www2.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/segbench/BSDS300-images.tgz',
   'BSD500.tgz': 'http://www.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/BSR/BSR_bsds500.tgz',
   '91image.rar': 'http://www.ifp.illinois.edu/~jyang29/codes/ScSR.rar',
   'waterloo.rar': 'http://ivc.uwaterloo.ca/database/WaterlooExploration/exploration_database_and_code.rar',
   'GOPRO_Large.zip': '1H0PIXvJH4c40pk7ou6nAwoxuR4Qh_Sa2',
   'MCL-V.rar': '1z41hdqR-bqNLcUWllPePzkfQW-I_A9ny',
+  'vid4.zip': '1ogEdifL_krqJnFAHfGNqOSMuUg_Ud6fb',
 }
 WEIGHTS = {
   'srcnn.tar.gz': 'https://github.com/LoSealL/Model/releases/download/srcnn_sc4_1/srcnn.tar.gz',
@@ -64,6 +65,7 @@ WEIGHTS = {
   'vdsr.zip': '1hW5YDxXpmjO2IfAy8f29O7yf1M3fPIg1',
   'msrn.zip': '1A0LoY3oB_VnArP3GzI1ILUNJbLAEjdtJ',
   'vespcn.zip': '19u4YpsyThxW5dv4fhpMj7c5gZeEDKthm',
+  'dbpn.zip': '1ymtlOjhkGmad-od0zw7yTf17nWD4KMVi',
   # GAN weights
   'gangp.zip': '1UHiSLjaU5Yeiltl9cQsR3-EKta3yt0dI',
   'lsgan.zip': '15dsubMpvTeCoSCIfPCcKjhnk7UMyuljt',

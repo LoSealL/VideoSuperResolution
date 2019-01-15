@@ -7,6 +7,8 @@ if not os.getcwd().endswith('UTest'):
   os.chdir('UTest')
 from VSR.DataLoader.Loader import *
 from VSR.DataLoader.Dataset import *
+from VSR.Util.ImageProcess import *
+from VSR.Framework.Callbacks import _viz_flow
 
 DATASETS = load_datasets('./data/fake_datasets.yml')
 
@@ -97,9 +99,9 @@ def test_read_flow():
   ref1 = img[0, 1, ...]
   u = flow[0, 0, ..., 0]
   v = flow[0, 0, ..., 1]
-  # ImageProcess.array_to_img(ref0, 'RGB').show()
-  # ImageProcess.array_to_img(ref1, 'RGB').show()
-  # ImageProcess.array_to_img(_viz_flow(u, v), 'RGB').show()
+  # array_to_img(ref0, 'RGB').show()
+  # array_to_img(ref1, 'RGB').show()
+  # array_to_img(_viz_flow(u, v), 'RGB').show()
 
 
 def test_read_pair():

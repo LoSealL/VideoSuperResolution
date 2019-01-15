@@ -206,14 +206,15 @@ class BasicLoader:
     if dataset.mode.lower() == 'pil-image1':
       if self.flow:
         # map flow
-        tf.logging.warning("Deprecated. Use pair instead.")
-        flow = {f.stem: f for f in self.flow}
-        self.file_objects = [ImageFile(fp).attach_flow(flow[fp.stem])
-                             for fp in self.file_names]
+        flow = sorted(self.flow)
+        files = sorted(self.file_names)
+        self.file_objects = [ImageFile(fp).attach_flow(f) for fp, f in
+                             zip(files, flow)]
       elif self.pair:
-        pair = {f.stem: f for f in self.pair}
-        self.file_objects = [ImageFile(fp).attach_pair(pair[fp.stem])
-                             for fp in self.file_names]
+        pair = sorted(self.pair)
+        files = sorted(self.file_names)
+        self.file_objects = [ImageFile(fp).attach_flow(p) for fp, p in
+                             zip(files, pair)]
       else:
         self.file_objects = [ImageFile(fp) for fp in self.file_names]
     elif dataset.mode.upper() in _ALLOWED_RAW_FORMAT:
