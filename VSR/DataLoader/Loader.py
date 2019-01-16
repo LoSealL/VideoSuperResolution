@@ -213,7 +213,7 @@ class BasicLoader:
       elif self.pair:
         pair = sorted(self.pair)
         files = sorted(self.file_names)
-        self.file_objects = [ImageFile(fp).attach_flow(p) for fp, p in
+        self.file_objects = [ImageFile(fp).attach_pair(p) for fp, p in
                              zip(files, pair)]
       else:
         self.file_objects = [ImageFile(fp) for fp in self.file_names]
@@ -343,7 +343,8 @@ class BasicLoader:
     if depth == -1:
       depth = vf.frames
     index = np.arange(0, vf.frames - depth + 1)
-    np.random.shuffle(index)
+    if self.method == 'train':
+      np.random.shuffle(index)
     frames = []
     for i in index[:clips]:
       if self.flow:

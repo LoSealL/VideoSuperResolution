@@ -82,6 +82,11 @@ class PsnrTask(Task):
     label_ph = tf.placeholder('float32', [None, None, None, None])
     fake_ph = tf.placeholder('float32', [None, None, None, None])
     psnr_tensor = tf.image.psnr(label_ph, fake_ph, 255)
+    if len(label_images) != len(fake_images):
+      offset_label = max(FLAGS.offset, 0)
+      offset_fake = max(-FLAGS.offset, 0)
+      label_images = label_images[offset_label:]
+      fake_images = fake_images[offset_fake:]
     for x0, x1 in zip(label_images, fake_images):
       x0 = normalize(x0)
       x1 = normalize(x1)
@@ -99,6 +104,11 @@ class SsimTask(Task):
     label_ph = tf.placeholder('float32', [None, None, None, None])
     fake_ph = tf.placeholder('float32', [None, None, None, None])
     ssim_tensor = tf.image.ssim(label_ph, fake_ph, 255)
+    if len(label_images) != len(fake_images):
+      offset_label = max(FLAGS.offset, 0)
+      offset_fake = max(-FLAGS.offset, 0)
+      label_images = label_images[offset_label:]
+      fake_images = fake_images[offset_fake:]
     for x0, x1 in zip(label_images, fake_images):
       x0 = normalize(x0)
       x1 = normalize(x1)

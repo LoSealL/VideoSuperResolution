@@ -12,7 +12,8 @@ from pathlib import Path
 import tensorflow as tf
 
 from .Eval import Eval
-from .Run import Config, QuickLoader, fetch_datasets
+from .Run import Config, fetch_datasets
+from ..DataLoader.Loader import BasicLoader
 from ..DataLoader.Dataset import Dataset
 
 tf.flags.DEFINE_string("input_dir", None, "images to test")
@@ -21,16 +22,20 @@ tf.flags.DEFINE_string("reference_dir", None,
 FLAGS = tf.flags.FLAGS
 
 
-def load_folder(path):
+def load_folder(path1, path2=None):
   """loading `path` into a Dataset"""
-  if not Path(path).exists():
+  if not Path(path1).exists():
     raise FileNotFoundError("path can't be found.")
 
-  images = list(Path(path).glob('*'))
-  images.sort()
+  images = sorted(Path(path1).glob('*'))
   if not images:
-    images = list(Path(path).iterdir())
-  return Dataset(test=images)
+    images = sorted(Path(path1).iterdir())
+  images2 = None
+  if path2 is not None:
+    images2 = sorted(Path(path2).glob('*'))
+    if not images2:
+      images2 = sorted(Path(path2).iterdir())
+  return Dataset(test=images, pair=images2)
 
 
 def evaluate(*args):
@@ -40,14 +45,12 @@ def evaluate(*args):
   if not data_config_file.exists():
     raise RuntimeError("dataset config file doesn't exist!")
   _, ref_data, _ = fetch_datasets(data_config_file, FLAGS)
-  input_data = load_folder(FLAGS.input_dir)
+  if FLAGS.reference_dir:
+    input_data = load_folder(FLAGS.input_dir, FLAGS.reference_dir)
+  else:
+    input_data = load_folder(FLAGS.input_dir, ref_data.test)
   metric_config = Config(batch=1, scale=1, modcrop=False, crop=None)
-  ref_loader = QuickLoader(ref_data, 'test', metric_config)
-  input_loader = QuickLoader(input_data, 'test', metric_config)
-  label_images = [x[0] for x in ref_loader.make_one_shot_iterator()]
-  if not label_images:
-    backup_data = load_folder(FLAGS.reference_dir)
-    backup_loader = QuickLoader(backup_data, 'test', metric_config)
-    label_images = [x[0] for x in backup_loader.make_one_shot_iterator()]
+  input_loader = BasicLoader(input_data, 'test', metric_config)
   input_images = [x[0] for x in input_loader.make_one_shot_iterator()]
+  label_images = [x[1] for x in input_loader.make_one_shot_iterator()]
   Eval.evaluate(label_images, input_images)
