@@ -22,6 +22,10 @@ tf.flags.DEFINE_string("l_standard", "matlab",
                        "yuv convertion standard, "
                        "either 'bt601', 'bt709' or 'matlab'")
 tf.flags.DEFINE_integer("shave", 0, "shave border pixels")
+tf.flags.DEFINE_integer("offset", 0,
+                        "using data[offset:] in calculation. "
+                        "Positive value to offset label data; "
+                        "Negative value to offset generated data.")
 FLAGS = tf.flags.FLAGS
 
 
@@ -52,6 +56,23 @@ def normalize(img):
   return np.concatenate(img)
 
 
+def check_shape_compatibility(a: np.ndarray, b: np.ndarray):
+  if a.shape == b.shape:
+    return a, b, True
+  if a.shape[1:] != b.shape[1:]:
+    tf.logging.fatal("Compared image shape error: {} vs {}".format(
+      a.shape[1:], b.shape[1:]))
+    return a, b, False
+  if a.shape[0] != b.shape[0]:
+    tf.logging.warning("Number of images doesn't match, try adapting...")
+    tf.logging.info("# {} vs {}".format(a.shape[0], b.shape[0]))
+    tf.logging.info("Offset: {}".format(FLAGS.offset))
+    offset_a = max(FLAGS.offset, 0)
+    offset_b = max(-FLAGS.offset, 0)
+    batch = min(a.shape[0] - offset_a, b.shape[0] - offset_b)
+    return a[offset_a:offset_a + batch], b[offset_b:offset_b + batch]
+
+
 class PsnrTask(Task):
   def __call__(self, label_images, fake_images):
     assert isinstance(label_images, list)
@@ -64,7 +85,9 @@ class PsnrTask(Task):
     for x0, x1 in zip(label_images, fake_images):
       x0 = normalize(x0)
       x1 = normalize(x1)
-      results.append(psnr_tensor.eval({label_ph: x0, fake_ph: x1}))
+      x0, x1, valid = check_shape_compatibility(x0, x1)
+      if valid:
+        results.append(psnr_tensor.eval({label_ph: x0, fake_ph: x1}))
     return np.mean(results)
 
 
@@ -79,5 +102,7 @@ class SsimTask(Task):
     for x0, x1 in zip(label_images, fake_images):
       x0 = normalize(x0)
       x1 = normalize(x1)
-      results.append(ssim_tensor.eval({label_ph: x0, fake_ph: x1}))
+      x0, x1, valid = check_shape_compatibility(x0, x1)
+      if valid:
+        results.append(ssim_tensor.eval({label_ph: x0, fake_ph: x1}))
     return np.mean(results)
