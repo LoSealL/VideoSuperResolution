@@ -70,7 +70,7 @@ def check_shape_compatibility(a: np.ndarray, b: np.ndarray):
     offset_a = max(FLAGS.offset, 0)
     offset_b = max(-FLAGS.offset, 0)
     batch = min(a.shape[0] - offset_a, b.shape[0] - offset_b)
-    return a[offset_a:offset_a + batch], b[offset_b:offset_b + batch]
+    return a[offset_a:offset_a + batch], b[offset_b:offset_b + batch], True
 
 
 class PsnrTask(Task):
