@@ -104,14 +104,12 @@ def denoise():
     val_mat = loadmat(val_mat)['ValidationNoisyBlocksSrgb']
     assert val_mat.shape == (40, 32, 256, 256, 3)
     assert val_mat.dtype == 'uint8'
-    root = Path(FLAGS.validation).parent / 'validation'
-    root.mkdir(exist_ok=True, parents=True)
     g = enumerate(val_mat.reshape([-1, 256, 256, 3]))
     for i, img in tqdm.tqdm(g, total=40 * 32, ascii=True):
       img = Image.fromarray(img, 'RGB')
       if metadata is not None:
         suffix = "{}_{}_{}_{}_{}_{}".format(*metadata[i // 32][1:])
-        img.save("{}/{:04d}_{}.png".format(root, i, suffix))
+        img.save("{}/{:04d}_{}.png".format(save_dir, i, suffix))
   if FLAGS.results:
     results = []
     g = sorted(Path(FLAGS.results).glob('*.png'))

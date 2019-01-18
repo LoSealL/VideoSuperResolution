@@ -336,14 +336,14 @@ class GanTrainer(VSR):
       - pass step number to `train_batch` call.
     """
     v = self.v
-    feature = np.random.uniform(-1, 1, [v.batch, self._m.z_dim])
+    feature = np.random.uniform(-1, 1, [v.batch, self.model.z_dim])
     for fn in v.label_callbacks:
       label = fn(label, name=name)
-    loss = self._m.train_batch(feature, label, learning_rate=v.lr,
-                               epochs=v.epoch, steps=v.global_step)
-    v.global_step = self._m.global_steps.eval()
+    loss = self.model.train_batch(feature, label, learning_rate=v.lr,
+                                  epochs=v.epoch, steps=v.global_step)
+    v.global_step = self.model.global_steps.eval()
     # uncomment this if you want to record everything into tensorboard.
-    # v.summary_writer.add_summary(self._m.summary(), v.global_step)
+    # v.summary_writer.add_summary(self.model.summary(), v.global_step)
     for _k, _v in loss.items():
       v.avg_meas[_k] = \
         v.avg_meas[_k] + [_v] if v.avg_meas.get(_k) else [_v]
@@ -360,7 +360,7 @@ class GanTrainer(VSR):
     if v.loader.method == 'val':
       v.output_callbacks += [save_batch_image(self._logd)]
     for label, _, name, _ in tqdm.tqdm(it, 'Test', ascii=True):
-      feature = np.random.uniform(-1, 1, [v.batch, self._m.z_dim])
+      feature = np.random.uniform(-1, 1, [v.batch, self.model.z_dim])
       self.fn_benchmark_each_step(label, feature, name)
     if v.loader.method == 'val':
       v.output_callbacks.pop(-1)

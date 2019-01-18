@@ -12,7 +12,7 @@ from pathlib import Path
 
 import tensorflow as tf
 
-from ..DataLoader.Dataset import Dataset, load_datasets
+from ..DataLoader.Dataset import Dataset, _glob_absolute_pattern, load_datasets
 from ..DataLoader.Loader import QuickLoader
 from ..Framework.Callbacks import lr_decay, save_image, to_gray, to_rgb
 from ..Models import get_model, list_supported_models
@@ -25,6 +25,8 @@ tf.flags.DEFINE_enum('output_color', 'RGB', ('RGB', 'L', 'GRAY', 'Y'),
 tf.flags.DEFINE_integer('epochs', 50, lower_bound=1, help="training epochs")
 tf.flags.DEFINE_integer('steps_per_epoch', 200, lower_bound=1,
                         help="specify steps in every epoch training")
+tf.flags.DEFINE_integer('val_num', 1, lower_bound=1,
+                        help="Number of validations in training.")
 tf.flags.DEFINE_integer('threads', 1, lower_bound=1,
                         help="number of threads to use while reading data")
 tf.flags.DEFINE_integer('output_index', -1,
@@ -74,18 +76,8 @@ def fetch_datasets(data_config_file, opt):
   else:
     test_data = dataset
   if opt.infer:
-    infer_dir = Path(opt.infer)
-    if infer_dir.exists():
-      # infer files in this directory
-      if infer_dir.is_file():
-        images = [str(infer_dir)]
-      else:
-        images = list(infer_dir.glob('*'))
-        if not images:
-          images = infer_dir.iterdir()
-      infer_data = Dataset(infer=images, mode='pil-image1', modcrop=False)
-    else:
-      infer_data = all_datasets[opt.infer.upper()]
+    images = _glob_absolute_pattern(opt.infer)
+    infer_data = Dataset(infer=images, mode='pil-image1', modcrop=False)
   else:
     infer_data = test_data
   return dataset, test_data, infer_data
@@ -262,7 +254,7 @@ def run(*args, **kwargs):
     train_loader = loader(train_data, 'train', train_config,
                           augmentation=True)
     val_loader = loader(train_data, 'val', train_config, crop='center',
-                        steps_per_epoch=1)
+                        steps_per_epoch=opt.val_num)
     test_loader = loader(test_data, 'test', test_config)
     infer_loader = loader(infer_data, 'infer', infer_config)
     # fit
