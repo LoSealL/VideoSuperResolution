@@ -34,26 +34,32 @@ def shave(img, border):
   return img[..., border:-border, border:-border, :]
 
 
-def normalize(img):
-  assert isinstance(img, np.ndarray)
-  if img.dtype in ('uint8', 'int32'):
-    img = img.astype('float32')
-  if img.dtype not in ('float32', 'float64'):
-    raise TypeError('img with type {} is not allowed.'.format(img.dtype))
-  if img.ndim == 3:
-    img = [np.expand_dims(img, 0)]
-  elif img.ndim == 4:
-    img = np.split(img, img.shape[0])
-  elif img.ndim == 5:
-    img = img.reshape([-1, *img.shape[-3:]])
-    img = np.split(img, img.shape[0])
-  else:
-    raise ValueError('ndim of img is not supported.')
-  if FLAGS.l_only:
-    img = [rgb_to_yuv(i, 255, FLAGS.l_standard)[..., 0:1] for i in img]
-  if FLAGS.shave:
-    img = [shave(i, FLAGS.shave) for i in img]
-  return np.concatenate(img)
+def normalize(x, y):
+  def _normalize(img):
+    assert isinstance(img, np.ndarray)
+    if img.dtype in ('uint8', 'int32'):
+      img = img.astype('float32')
+    if img.dtype not in ('float32', 'float64'):
+      raise TypeError('img with type {} is not allowed.'.format(img.dtype))
+    if img.ndim == 3:
+      img = [np.expand_dims(img, 0)]
+    elif img.ndim == 4:
+      img = np.split(img, img.shape[0])
+    elif img.ndim == 5:
+      img = img.reshape([-1, *img.shape[-3:]])
+      img = np.split(img, img.shape[0])
+    else:
+      raise ValueError('ndim of img is not supported.')
+    if FLAGS.l_only:
+      img = [rgb_to_yuv(i, 255, FLAGS.l_standard)[..., 0:1] for i in img]
+    if FLAGS.shave:
+      img = [shave(i, FLAGS.shave) for i in img]
+    return np.concatenate(img)
+
+  min_channel = min(x.shape[-1], y.shape[-1])
+  x_norm = _normalize(x[..., :min_channel])
+  y_norm = _normalize(y[..., :min_channel])
+  return x_norm, y_norm
 
 
 def check_shape_compatibility(a: np.ndarray, b: np.ndarray):
@@ -88,8 +94,7 @@ class PsnrTask(Task):
       label_images = label_images[offset_label:]
       fake_images = fake_images[offset_fake:]
     for x0, x1 in zip(label_images, fake_images):
-      x0 = normalize(x0)
-      x1 = normalize(x1)
+      x0, x1 = normalize(x0, x1)
       x0, x1, valid = check_shape_compatibility(x0, x1)
       if valid:
         results.append(psnr_tensor.eval({label_ph: x0, fake_ph: x1}))

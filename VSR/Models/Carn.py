@@ -106,5 +106,5 @@ class CARN(SuperResolution):
     tf.summary.image('SR', self.outputs[0], 1)
 
   def build_saver(self):
-    self.savers[self.name] = tf.train.Saver(tf.global_variables(self.name),
+    self.savers[self.name] = tf.train.Saver(tf.trainable_variables(self.name),
                                             max_to_keep=1)
