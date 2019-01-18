@@ -17,6 +17,7 @@ from VSR.Tools.DataProcessing.Util import make_tensor_label_records
 tf.flags.DEFINE_string("train_dir", None, "Path to train Data.")
 tf.flags.DEFINE_string("validation", None,
                        "Path to validation mat, save in individual png.")
+tf.flags.DEFINE_string("metadata", None, "metadata")
 tf.flags.DEFINE_string("results", None, "Path to results' png, save in mat.")
 tf.flags.DEFINE_string("save_dir", None, "Output directory.")
 tf.flags.DEFINE_integer("patch_size", 128, "Cropped patch size.")
@@ -46,7 +47,8 @@ def denoise():
     train_noisy = sorted(train_dir.rglob('*NOISY_SRGB_010.PNG'))
     assert len(train_gt) == len(train_noisy)
     writer = tf.io.TFRecordWriter(
-      FLAGS.save_dir + "/ntire_denoise-train.tfrecords")
+      "{}/ntire_denoise_x{}-train.tfrecords".format(FLAGS.save_dir,
+                                                    FLAGS.scale))
     num_each = FLAGS.num // len(train_gt)
     for gt, noisy in zip(train_gt, train_noisy):
       print(gt.stem, noisy.stem)
@@ -89,6 +91,15 @@ def denoise():
           writer)
 
   val_mat = FLAGS.validation
+  metadata = FLAGS.metadata
+  if metadata:
+    metadata = sorted(Path(FLAGS.metadata).rglob('*.MAT'))
+    metadata = [loadmat(str(m))['metadata'] for m in metadata]
+    metadata = [m[0, 0][0][0] for m in metadata]
+    metadata = [Path(m).parent.parent.stem for m in metadata]
+    metadata[33] = "0158_007_GP_03200_03200_5500_N"
+    metadata = np.asarray([m.split('_') for m in metadata])
+    assert metadata.shape[1] == 7
   if val_mat:
     val_mat = loadmat(val_mat)['ValidationNoisyBlocksSrgb']
     assert val_mat.shape == (40, 32, 256, 256, 3)
@@ -98,11 +109,9 @@ def denoise():
     g = enumerate(val_mat.reshape([-1, 256, 256, 3]))
     for i, img in tqdm.tqdm(g, total=40 * 32, ascii=True):
       img = Image.fromarray(img, 'RGB')
-      img_x2 = img.resize([128, 128], Image.BICUBIC)
-      img_x4 = img.resize([64, 64], Image.BICUBIC)
-      img.save("{}/{:04d}_hr.png".format(root, i))
-      img_x2.save("{}/{:04d}_x2.png".format(root, i))
-      img_x4.save("{}/{:04d}_x4.png".format(root, i))
+      if metadata is not None:
+        suffix = "{}_{}_{}_{}_{}_{}".format(*metadata[i // 32][1:])
+        img.save("{}/{:04d}_{}.png".format(root, i, suffix))
   if FLAGS.results:
     results = []
     g = sorted(Path(FLAGS.results).glob('*.png'))

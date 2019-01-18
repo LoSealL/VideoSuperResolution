@@ -1,35 +1,51 @@
+# Manual **run.py**:
 A one-line command to model executor
-## New: eval mode
-Now you can run an **eval** mode in `run.py`. **eval** mode is to calculate metrics for evaluation.
-There are two ways to execute eval mode:
+
+## 1. Train your 1st model:
 
 ```bash
-python run.py --mode=eval --model=srcnn --epochs=100 --dataset=set5 --checkpoint_dir=/tmp/srcnn/save \
-  --enable_psnr --enable_ssim --l_only
+python run.py --model=srcnn --dataset=91-image --test=set14
 ```
-This one is called "model mode".
-The above code will run srcnn model (`--model=srcnn`) using checkpoint 
-`*ep0100.ckpt` (`--epochs=100`) to inference **SET5** images (`--dataset=set5` or `--test=set5`)
-and calculate PSNR, SSIM metrics using only luminance channel (`--l_only`).
+That's all! It will read training data from `91-image` and train `srcnn` network 50 epochs with 50*200 steps.
+And test it on `Set14` dataset afterward.
 
-```bash
-python run.py --mode=eval --input_dir=/tmp/set5_sr --dataset=set5 --enable_psnr
-```
-This one is called "dir mode".
-The above code will calculate PSNR metric of SET5 and images in `/tmp/set5_sr`.
-You can also replace `--dataset` by `--reference_dir` which points to a path containing reference images.
+## 2. Eval mode:
+You can use **eval** mode in `run.py` to benchmark models using built-in metrics.
+There are two ways to execute in eval mode:
+1. Run on existing generated images v.s. test images: 
+    ```bash
+    python run.py --mode=eval --input_dir=../Results/srcnn/SET14 --test=set14 --enable_psnr
+    ```
+    It will benchmark your just trained `srcnn`, print PSNR metric on `Set14` dataset.
+    You can also use a reference dir to replace the dataset `--test=Set14`:
+    ```bash
+    python run.py --mode=eval --input_dir=../Results/srcnn/SET14 --reference_dir=/datasets/set14/hr/ --enable_ssim
+    ```
+    Remember that the file order in reference dir must **exactly match** the order in input dir.
 
-(_Note_: you have to make sure `/tmp/set5_sr` has exactly 5 images with the same
-shape and the same loading order as Set5, but can have different file name. I.e.
-`img_001_SRF_4_HR.img` v.s. `img_001_SRF_4_SR.img`)
+2. Run on model checkpoint:
+    ```bash
+    python run.py --mode=eval --model=srcnn --epochs=50 --checkpoint_dir=../Results/srcnn/save --test=set5 --enable_psnr
+    ```
+    It will first load `srcnn` checkpoint and evaluate `Set14` data, then benchmark PSNR metric.
+    Different from 1, this one saves disc space, and can run on an given epoch (as long as the checkpoint is saved, otherwise the latest checkpoint is loaded). 
 
-### Supported metrics:
+#### Supported metrics in eval mode:
 - PSNR (`--enable_psnr`)
 - SSIM (`--enable_ssim`)
 - Frechet Inception Distance (FID) (`--enable_fid`)
 - Inception Score (`--enable_inception_score`)
 
-## How to use
+#### Advanced options
+- `--shave <uint>`: shave `<uint>` pixels from border before benchmark metrics.
+- `--offset <int>`: if number of generated images is different from ground truth images,
+                    offset `<int>` images during benchmarking. If `<int>` > 0, offset ground truth images,
+                    if `<int>` < 0, offset generated images.
+- `--l_only`: A flag, benchmark metrics only on luminance channel (A.K.A Y channel of YUV color space)
+- `l_standard`: Use together with `--l_only` flag. This specify how to transform RGB image to YUV image.
+                Please note different method will lead to different results. (The default value gives your best results :).)
+
+## 3. Train model more customized:
 `run.py` can be used to train/benchmark/infer models collected in [VSR.Models](../VSR/Models)
 
 The model parameters can be configured through [parameters/root.yaml](./parameters/root.yaml) and
@@ -40,12 +56,17 @@ python run.py --mode <eval | run> --model <model-name> --epochs <num> --steps_pe
   --test <test-dataset-name> --infer <infer-dir | single-file | infer-dataset-name> --threads <loading-thread-num>\
   --save_dir <save>
 ```
+Type `python run.py --helpfull` for more information.
 
-Type `python run.py --help` for more information
-
-## Examples
+#### Examples
 1. VDSR
 - Config: [vdsr.yaml](parameters/vdsr.yaml)
+    - overwrite model parameters:
+        ```bash
+        python run.py --model=vdsr --channel=3
+        ```
+        
+        It will replace `vdsr: channel: 1` to `3` in runtime. Note that you can't overwrite parameter which is not declared in the config file.
 - Train:
     
     `python run.py --model vdsr --epochs 100 --dataset 91-image --test none --infer ./test.png`
@@ -63,5 +84,5 @@ Type `python run.py --help` for more information
     python run.py --mode=eval --input_dir=../Results/vdsr/SET14 --test=set14 --enable_psnr --enable_ssim
     ```
 
-## Dataset
+## 5. Dataset
 Dataset is described in [dataset.yaml](../Data/datasets.yaml), see [README](../Data/README.md) for more details.

@@ -38,7 +38,7 @@ tf.flags.DEFINE_integer('jpeg_min_quality', None,
 tf.flags.DEFINE_integer('seed', None, help="random seed.")
 tf.flags.DEFINE_string('crf', None, help="path to CRF npz file.")
 tf.flags.DEFINE_multi_float('sigma', 0,
-                            help="must pass float values: (poison, gaussian)")
+                            help="must pass 2 float values: (poison, gaussian)")
 
 
 def check_args(opt):
@@ -74,7 +74,9 @@ def main(*args, **kwargs):
   output_dir = Path(flags.save_dir)
   output_dir.mkdir(exist_ok=True, parents=True)
   writer = tf.io.TFRecordWriter(
-    str(output_dir / "{}-{}.tfrecords".format(opt.dataset, opt.method)))
+    str(output_dir / "{}-sc{}-{}.tfrecords".format(opt.dataset,
+                                                   opt.scale,
+                                                   opt.method)))
   data_config_file = Path(opt.data_config)
   if not data_config_file.exists():
     raise RuntimeError("dataset config file doesn't exist!")

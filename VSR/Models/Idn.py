@@ -107,8 +107,8 @@ class InformationDistillationNetwork(SuperResolution):
       optimizer = tf.train.AdamOptimizer(self.learning_rate)
       self.loss.append(optimizer.minimize(loss, self.global_steps))
       self.train_metric['loss'] = loss
-      self.metrics['mse'] = mse
-      self.metrics['mae'] = mae
+      self.train_metric['mse'] = mse
+      self.train_metric['mae'] = mae
       self.metrics['psnr'] = tf.reduce_mean(
         tf.image.psnr(y_true, y_pred, max_val=255))
       self.metrics['ssim'] = tf.reduce_mean(
