@@ -20,15 +20,15 @@ def test_loader_prob():
                   convert_to='RGB')
   r = BasicLoader(dut, 'test', config)
   mc = 10000
-  p = r._random_select(mc).values()
+  p = r._random_select(mc, seed=1).values()
   epsilon = 1e-2
   for p, p_hat in zip(p, prob):
     assert np.abs(p / 1e4 - p_hat) <= epsilon
 
   r.change_select_method(Select.EQUAL_FILE)
   mc = 10000
-  p = r._random_select(mc).values()
-  epsilon = 0.1
+  p = r._random_select(mc, seed=1).values()
+  epsilon = 1e-2
   prob = [.2, .2, .2, .2, .2]
   for p, p_hat in zip(p, prob):
     assert np.abs(p / 1e4 - p_hat) <= epsilon

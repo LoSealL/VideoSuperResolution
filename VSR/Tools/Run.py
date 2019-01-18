@@ -49,9 +49,11 @@ tf.flags.DEFINE_string('memory_limit', None,
 tf.flags.DEFINE_string('comment', None,
                        help="append a suffix string to save dir")
 tf.flags.DEFINE_multi_string('add_custom_callbacks', None,
-                             help="add callbacks to data. "
+                             help="add callbacks to feature data. "
                                   "Callbacks are defined in custom_api.py.")
 tf.flags.DEFINE_alias('f', "add_custom_callbacks")
+tf.flags.DEFINE_multi_string('f2', None, "add callbacks to label data.")
+tf.flags.DEFINE_multi_string('f3', None, "add callbacks to output data.")
 tf.flags.DEFINE_bool('export', False, help="whether to export tf model")
 tf.flags.DEFINE_bool('freeze', False,
                      help="whether to export freeze model, "
@@ -100,29 +102,46 @@ def init_loader_config(opt):
       benchmark_config.feature_callbacks = [to_gray()]
       benchmark_config.label_callbacks = [to_gray()]
       benchmark_config.output_callbacks = [to_rgb()]
-    benchmark_config.output_callbacks += [
-      save_image(opt.root, opt.output_index)]
     infer_config.update(benchmark_config)
   else:
     train_config.convert_to = 'rgb'
     benchmark_config.convert_to = 'rgb'
-    benchmark_config.output_callbacks += [
-      save_image(opt.root, opt.output_index)]
     infer_config.update(benchmark_config)
-  if opt.add_custom_callbacks is not None:
-    for fn in opt.add_custom_callbacks:
-      if '#' in fn:
-        fn, args = fn.split('#')
-        fn = globals()[fn]
-        args = [float(a) for a in args.split(',')]
 
-        def new_fn(x, **kwargs):
-          return fn(x, *args)
-      else:
-        new_fn = globals()[fn]
-      train_config.feature_callbacks += [new_fn]
-      benchmark_config.feature_callbacks += [new_fn]
-      infer_config.feature_callbacks += [new_fn]
+  def parse_callbacks(fn):
+    if '#' in fn:
+      fn, args = fn.split('#')
+      fn = globals()[fn]
+      args = [float(a) for a in args.split(',')]
+
+      def new_fn(x, **kwargs):
+        return fn(x, *args)
+    else:
+      new_fn = globals()[fn]
+
+    return new_fn
+
+  if opt.add_custom_callbacks is not None:
+    for func_name in opt.add_custom_callbacks:
+      functor = parse_callbacks(func_name)
+      train_config.feature_callbacks += [functor]
+      benchmark_config.feature_callbacks += [functor]
+      infer_config.feature_callbacks += [functor]
+  if opt.f2 is not None:
+    for func_name in opt.f2:
+      functor = parse_callbacks(func_name)
+      train_config.label_callbacks += [functor]
+      benchmark_config.label_callbacks += [functor]
+      infer_config.label_callbacks += [functor]
+  if opt.f3 is not None:
+    for func_name in opt.f3:
+      functor = parse_callbacks(func_name)
+      train_config.output_callbacks += [functor]
+      benchmark_config.output_callbacks += [functor]
+      infer_config.output_callbacks += [functor]
+  # Add image saver at last.
+  benchmark_config.output_callbacks += [save_image(opt.root, opt.output_index)]
+  infer_config.output_callbacks += [save_image(opt.root, opt.output_index)]
   if opt.lr_decay:
     train_config.lr_schedule = lr_decay(lr=opt.lr, **opt.lr_decay)
   # modcrop: A boolean to specify whether to crop the edge of images to be
