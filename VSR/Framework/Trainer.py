@@ -62,11 +62,11 @@ class Trainer:
     if self._csv:
       self._csv_file = open(Path(self._logd / 'train_metrics.csv'), 'a')
       self._csv_writer = csv.writer(self._csv_file)
-    if self._m.compiled:
+    if self.model.compiled:
       self.graph = tf.get_default_graph()
     else:
       with tf.Graph().as_default() as g:
-        self._m.compile()
+        self.model.compile()
         self.graph = g
 
   def __enter__(self):
@@ -78,7 +78,7 @@ class Trainer:
       gpu_options=tf.GPUOptions(allow_growth=True))
     sess = tf.Session(graph=self.graph, config=conf)
     sess.__enter__()
-    self.savers = self._m.savers
+    self.savers = self.model.savers
     sess.run(tf.global_variables_initializer())
     return self
 
@@ -112,14 +112,14 @@ class Trainer:
         except tf.errors.NotFoundError:
           tf.logging.warning(
             '{} of model {} could not be restored'.format(
-              name, self._m.name))
+              name, self.model.name))
         last_checkpoint_step = _parse_ckpt_name(ckpt)
     return last_checkpoint_step
 
   def _save_model(self, sess, step):
     for name in self.savers:
       saver = self.savers.get(name)
-      file = self._saved / _make_ckpt_name(name, self._m.scale[0], step)
+      file = self._saved / _make_ckpt_name(name, self.model.scale[0], step)
       saver.save(sess, str(file))
 
   def _restore(self):
@@ -143,9 +143,9 @@ class Trainer:
 
     self._restore()
     if freeze_model:
-      self._m.export_freeze_model(export_dir)
+      self.model.export_freeze_model(export_dir)
     else:
-      self._m.export_saved_model(export_dir)
+      self.model.export_saved_model(export_dir)
 
   def fit(self, *args, **kwargs):
     raise NotImplementedError
@@ -155,6 +155,10 @@ class Trainer:
 
   def benchmark(self, *args, **kwargs):
     raise NotImplementedError
+
+  @property
+  def model(self):
+    return self._m
 
 
 class VSR(Trainer):
@@ -185,11 +189,11 @@ class VSR(Trainer):
     v.sess = self._restore()
     if self.last_epoch >= v.epochs:
       return False
-    tf.logging.info('Fitting: {}'.format(self._m.name.upper()))
-    self._m.display()
+    tf.logging.info('Fitting: {}'.format(self.model.name.upper()))
+    self.model.display()
     v.summary_writer = tf.summary.FileWriter(
       str(self._logd), graph=tf.get_default_graph())
-    v.global_step = self._m.global_steps.eval()
+    v.global_step = self.model.global_steps.eval()
     return True
 
   def fit_close(self):
@@ -225,7 +229,7 @@ class VSR(Trainer):
       self._csv_file.flush()
     if v.epoch % v.validate_every_n_epoch == 0:
       self.benchmark(v.val_loader, v, epoch=v.epoch)
-      v.summary_writer.add_summary(self._m.summary(), v.global_step)
+      v.summary_writer.add_summary(self.model.summary(), v.global_step)
       self._save_model(v.sess, v.epoch)
 
   def fn_train_each_step(self, label=None, feature=None, name=None,
@@ -235,9 +239,9 @@ class VSR(Trainer):
       feature = fn(feature, name=name)
     for fn in v.label_callbacks:
       label = fn(label, name=name)
-    loss = self._m.train_batch(feature, label, learning_rate=v.lr,
-                               epochs=v.epoch)
-    v.global_step = self._m.global_steps.eval()
+    loss = self.model.train_batch(feature, label, learning_rate=v.lr,
+                                  epochs=v.epoch)
+    v.global_step = self.model.global_steps.eval()
     for _k, _v in loss.items():
       v.avg_meas[_k] = \
         v.avg_meas[_k] + [_v] if v.avg_meas.get(_k) else [_v]
@@ -250,7 +254,7 @@ class VSR(Trainer):
     origin_feat = feature
     for fn in v.feature_callbacks:
       feature = fn(feature, name=name)
-    outputs, _ = self._m.test_batch(feature, None)
+    outputs, _ = self.model.test_batch(feature, None)
     for fn in v.output_callbacks:
       outputs = fn(outputs, input=origin_feat, name=name,
                    subdir=v.subdir, mode=v.color_format)
@@ -263,7 +267,7 @@ class VSR(Trainer):
       feature = fn(feature, name=name)
     for fn in v.label_callbacks:
       label = fn(label, name=name)
-    outputs, metrics = self._m.test_batch(feature, label, epochs=v.epoch)
+    outputs, metrics = self.model.test_batch(feature, label, epochs=v.epoch)
     for _k, _v in metrics.items():
       if _k not in v.mean_metrics:
         v.mean_metrics[_k] = []
@@ -317,7 +321,7 @@ class VSR(Trainer):
     it = loader.make_one_shot_iterator()
     if len(it):
       tf.logging.info('Inferring {} at epoch {}'.format(
-        self._m.name, self.last_epoch))
+        self.model.name, self.last_epoch))
     else:
       return
     # use original images in inferring

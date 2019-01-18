@@ -14,7 +14,7 @@ import tensorflow as tf
 from .Eval import Eval
 from .Run import Config, fetch_datasets
 from ..DataLoader.Loader import BasicLoader
-from ..DataLoader.Dataset import Dataset
+from ..DataLoader.Dataset import Dataset, _glob_absolute_pattern
 
 tf.flags.DEFINE_string("input_dir", None, "images to test")
 tf.flags.DEFINE_string("reference_dir", None,
@@ -30,11 +30,10 @@ def load_folder(path1, path2=None):
   images = sorted(Path(path1).glob('*'))
   if not images:
     images = sorted(Path(path1).iterdir())
-  images2 = None
-  if path2 is not None:
-    images2 = sorted(Path(path2).glob('*'))
-    if not images2:
-      images2 = sorted(Path(path2).iterdir())
+  if isinstance(path2, (str, Path)):
+    images2 = _glob_absolute_pattern(path2)
+  else:
+    images2 = path2
   return Dataset(test=images, pair=images2)
 
 

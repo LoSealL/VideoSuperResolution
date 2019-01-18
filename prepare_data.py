@@ -86,6 +86,8 @@ def get_input(question):
     ans = input(question)
   except KeyboardInterrupt:
     ans = None
+    print('\n', flush=True)  # user exit
+    exit(0)
   return ans
 
 
@@ -149,7 +151,7 @@ def main():
                       help="download every file by default.")
   parser.add_argument("--filter", type=str, default=None,
                       help="an re pattern to filter candidates.")
-  args = parser.parse_args()
+  args, _ = parser.parse_known_args()
   # make work dir
   Path(args.download_dir).mkdir(exist_ok=True, parents=True)
   Path(args.data_dir).mkdir(exist_ok=True, parents=True)

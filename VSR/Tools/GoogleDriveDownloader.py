@@ -28,7 +28,7 @@ CREDENTIALS = './Data/credentials.json'
 
 def require_authorize(store, credentials, scope):
   _argv = sys.argv.copy()
-  sys.argv.clear()
+  sys.argv = _argv[:1]
   if '--noauth_local_webserver' in _argv:
     sys.argv.append('--noauth_local_webserver')
   flow = client.flow_from_clientsecrets(credentials, scope)
