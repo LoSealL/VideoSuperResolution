@@ -382,8 +382,7 @@ class BasicLoader:
       else:
         index = np.arange(size).tolist()
     grids = []
-    for i in range(len(frames)):
-      hr, lr, name = frames[i]
+    for i, (hr, lr, name) in enumerate(frames):
       _w, _h = hr[0].width, hr[0].height
       if self.crop == 'not' or self.crop is None:
         _pw, _ph = _w, _h
@@ -396,6 +395,12 @@ class BasicLoader:
       elif self.crop == 'center':
         x = np.array([(_w - _pw) // 2] * amount)
         y = np.array([(_h - _ph) // 2] * amount)
+      elif self.crop == 'stride':
+        _x = np.arange(0, _w - _pw + 1, _pw)
+        _y = np.arange(0, _h - _ph + 1, _ph)
+        x, y = np.meshgrid(_x, _y)
+        x = x.flatten()
+        y = y.flatten()
       else:
         x = np.zeros([amount])
         y = np.zeros([amount])

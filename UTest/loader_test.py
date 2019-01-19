@@ -141,3 +141,37 @@ def test_tfrecord():
     it = loader.make_one_shot_iterator()
     for a, b, c, d in it:
       print(c)
+
+
+def test_crop_center():
+  dut = DATASETS['NORMAL']
+  config = Config(batch=1, scale=1, depth=1, patch_size=32, crop='center')
+  np.random.seed(1)
+  loader = QuickLoader(dut, 'test', config, False, n_threads=8)
+  ref = QuickLoader(dut, 'test', config, False, n_threads=8, crop='not')
+  for t, r in zip(loader.make_one_shot_iterator(),
+                  ref.make_one_shot_iterator()):
+    h, w = r[0].shape[1:3]
+    ph, pw = t[0].shape[1:3]
+    center = r[0][:, (h - ph) // 2:(h - ph) // 2 + ph,
+             (w - pw) // 2:(w - pw) // 2 + pw, :]
+    assert np.all(t[0] == center)
+
+
+def test_crop_stride():
+  dut = DATASETS['NORMAL']
+  config = Config(batch=1, scale=1, depth=1, patch_size=32, crop='stride')
+  np.random.seed(1)
+  loader = QuickLoader(dut, 'test', config, False, n_threads=8)
+  ref = QuickLoader(dut, 'test', config, False, n_threads=8, crop='not')
+  ref = list(ref.make_one_shot_iterator())[0][0]
+  patches = [t[0] for t in loader.make_one_shot_iterator()]
+  patches = np.concatenate(patches)
+  shape = patches.shape
+  rows = ref.shape[1] // 32
+  cols = ref.shape[2] // 32
+  assert rows * cols == shape[0]
+  re = patches.reshape([rows, cols, *shape[1:]])
+  re = re.transpose([0, 2, 1, 3, 4])
+  re = re.reshape([shape[1] * rows, shape[2] * cols, shape[3]])
+  assert np.all(ref[0, :re.shape[0], :re.shape[1], :] == re)
