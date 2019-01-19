@@ -88,8 +88,7 @@ def fetch_datasets(data_config_file, opt):
 
 
 def init_loader_config(opt):
-  crop = opt.pop('train_data_crop')
-  train_config = Config(crop=crop, feature_callbacks=[],
+  train_config = Config(crop=opt.train_data_crop, feature_callbacks=[],
                         label_callbacks=[], **opt)
   benchmark_config = Config(crop=None, feature_callbacks=[],
                             label_callbacks=[], output_callbacks=[], **opt)
