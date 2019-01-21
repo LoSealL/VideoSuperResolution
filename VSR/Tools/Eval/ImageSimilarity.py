@@ -115,8 +115,7 @@ class SsimTask(Task):
       label_images = label_images[offset_label:]
       fake_images = fake_images[offset_fake:]
     for x0, x1 in zip(label_images, fake_images):
-      x0 = normalize(x0)
-      x1 = normalize(x1)
+      x0, x1 = normalize(x0, x1)
       x0, x1, valid = check_shape_compatibility(x0, x1)
       if valid:
         results.append(ssim_tensor.eval({label_ph: x0, fake_ph: x1}))

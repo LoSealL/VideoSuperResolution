@@ -114,7 +114,10 @@ def pad(inputs, div=64, **kwargs):
   if pw == div: pw = 0
   ph = [ph // 2, ph - ph // 2]
   pw = [pw // 2, pw - pw // 2]
-  inputs = np.pad(inputs, [[0, 0], [0, 0], ph, pw, [0, 0]], 'edge')
+  if np.ndim(inputs) == 5:
+    inputs = np.pad(inputs, [[0, 0], [0, 0], ph, pw, [0, 0]], 'edge')
+  else:
+    inputs = np.pad(inputs, [[0, 0], ph, pw, [0, 0]], 'edge')
   return inputs
 
 
