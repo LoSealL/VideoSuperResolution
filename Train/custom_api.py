@@ -128,8 +128,8 @@ def blur(inputs, width=2, **kwargs):
   inputs = list(inputs.reshape([-1, *shape[-3:]]))
   for i, img in enumerate(inputs):
     assert img.dtype == 'uint8'
-    inputs[i] = Image.fromarray(img, 'RGB').filter(k)
-  inputs = np.stack(np.asarray(inputs, 'uint8'))
+    inputs[i] = np.asarray(Image.fromarray(img, 'RGB').filter(k), 'uint8')
+  inputs = np.stack(inputs)
   return inputs.reshape(shape)
 
 
