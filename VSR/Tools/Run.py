@@ -138,7 +138,6 @@ def init_loader_config(opt):
   if opt.f3 is not None:
     for func_name in opt.f3:
       functor = parse_callbacks(func_name)
-      train_config.output_callbacks += [functor]
       benchmark_config.output_callbacks += [functor]
       infer_config.output_callbacks += [functor]
   # Add image saver at last.
