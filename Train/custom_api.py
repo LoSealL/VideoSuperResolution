@@ -125,7 +125,7 @@ def blur(inputs, width=2, **kwargs):
   """Apply blur kernel to images"""
   k = ImageFilter.GaussianBlur(float(width))
   shape = inputs.shape
-  inputs = inputs.reshape([-1, *shape[-3:]]).tolist()
+  inputs = list(inputs.reshape([-1, *shape[-3:]]))
   for i, img in enumerate(inputs):
     assert img.dtype == 'uint8'
     inputs[i] = Image.fromarray(img, 'RGB').filter(k)
