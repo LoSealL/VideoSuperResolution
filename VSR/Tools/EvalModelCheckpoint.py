@@ -84,7 +84,7 @@ def evaluate(*args):
   with trainer(model, root, tf.logging.INFO) as t:
     loader = QuickLoader(test_data, 'test', test_config, n_threads=4)
     opt.data = []
-    test_config.output_callbacks[-1] = partial(get_outputs, config=opt)
+    test_config.output_callbacks = [partial(get_outputs, config=opt)]
     t.benchmark(loader, test_config)
     # this implies 1:1 on label and fake images
     label_images = [x[0] for x in loader.make_one_shot_iterator()]

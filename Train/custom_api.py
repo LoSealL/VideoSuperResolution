@@ -14,7 +14,7 @@ Note:
 """
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
 
 
 def color_inverse(inputs, **kwargs):
@@ -114,8 +114,23 @@ def pad(inputs, div=64, **kwargs):
   if pw == div: pw = 0
   ph = [ph // 2, ph - ph // 2]
   pw = [pw // 2, pw - pw // 2]
-  inputs = np.pad(inputs, [[0, 0], [0, 0], ph, pw, [0, 0]], 'edge')
+  if np.ndim(inputs) == 5:
+    inputs = np.pad(inputs, [[0, 0], [0, 0], ph, pw, [0, 0]], 'edge')
+  else:
+    inputs = np.pad(inputs, [[0, 0], ph, pw, [0, 0]], 'edge')
   return inputs
+
+
+def blur(inputs, width=2, **kwargs):
+  """Apply blur kernel to images"""
+  k = ImageFilter.GaussianBlur(float(width))
+  shape = inputs.shape
+  inputs = list(inputs.reshape([-1, *shape[-3:]]))
+  for i, img in enumerate(inputs):
+    assert img.dtype == 'uint8'
+    inputs[i] = np.asarray(Image.fromarray(img, 'RGB').filter(k), 'uint8')
+  inputs = np.stack(inputs)
+  return inputs.reshape(shape)
 
 
 def upsample(inputs, r=4, **kwargs):

@@ -254,6 +254,8 @@ def rgb_to_yuv(img, max_val=1.0, standard='bt601'):
   _standard = standard.lower()
   if _standard not in ('bt601', 'bt709', 'matlab'):
     raise ValueError('Not known standard:', standard)
+  if img.shape[-1] != 3:
+    return img
   """ matrix used in matlab
     yuv = _trans * rgb + _bias
   """

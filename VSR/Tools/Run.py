@@ -22,6 +22,8 @@ tf.flags.DEFINE_enum('model', None, list_supported_models(),
                      help="specify a model to use")
 tf.flags.DEFINE_enum('output_color', 'RGB', ('RGB', 'L', 'GRAY', 'Y'),
                      help="specify output color format")
+tf.flags.DEFINE_enum('train_data_crop', 'random', ('random', 'stride'),
+                      help="how to crop training data")
 tf.flags.DEFINE_integer('epochs', 50, lower_bound=1, help="training epochs")
 tf.flags.DEFINE_integer('steps_per_epoch', 200, lower_bound=1,
                         help="specify steps in every epoch training")
@@ -86,7 +88,7 @@ def fetch_datasets(data_config_file, opt):
 
 
 def init_loader_config(opt):
-  train_config = Config(crop='random', feature_callbacks=[],
+  train_config = Config(crop=opt.train_data_crop, feature_callbacks=[],
                         label_callbacks=[], **opt)
   benchmark_config = Config(crop=None, feature_callbacks=[],
                             label_callbacks=[], output_callbacks=[], **opt)
@@ -136,7 +138,6 @@ def init_loader_config(opt):
   if opt.f3 is not None:
     for func_name in opt.f3:
       functor = parse_callbacks(func_name)
-      train_config.output_callbacks += [functor]
       benchmark_config.output_callbacks += [functor]
       infer_config.output_callbacks += [functor]
   # Add image saver at last.

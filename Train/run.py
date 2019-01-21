@@ -27,9 +27,12 @@ FLAGS = tf.flags.FLAGS
 
 def main(*args, **kwargs):
   additional_functions = {}
-  if FLAGS.add_custom_callbacks:
+  callbacks = FLAGS.f or []
+  callbacks += FLAGS.f2 or []
+  callbacks += FLAGS.f3 or []
+  if callbacks:
     m = import_module('custom_api')
-    for fn_name in FLAGS.add_custom_callbacks:
+    for fn_name in callbacks:
       try:
         if '#' in fn_name:
           fn_name = fn_name.split('#')[0]
