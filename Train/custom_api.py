@@ -153,4 +153,4 @@ def upsample(inputs, r=4, **kwargs):
   return res
 
 
-scale=upsample
+scale = upsample

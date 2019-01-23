@@ -23,7 +23,7 @@ tf.flags.DEFINE_enum('model', None, list_supported_models(),
 tf.flags.DEFINE_enum('output_color', 'RGB', ('RGB', 'L', 'GRAY', 'Y'),
                      help="specify output color format")
 tf.flags.DEFINE_enum('train_data_crop', 'random', ('random', 'stride'),
-                      help="how to crop training data")
+                     help="how to crop training data")
 tf.flags.DEFINE_integer('epochs', 50, lower_bound=1, help="training epochs")
 tf.flags.DEFINE_integer('steps_per_epoch', 200, lower_bound=1,
                         help="specify steps in every epoch training")
@@ -41,7 +41,7 @@ tf.flags.DEFINE_string('test', None, help="specify another dataset for testing")
 tf.flags.DEFINE_string('infer', None,
                        help="specify a file, a path or a dataset for inferring")
 tf.flags.DEFINE_string('save_dir', '../Results',
-                       help="specify a folder to save checkpoint and output images")
+                       "specify a folder to save checkpoint and output images")
 tf.flags.DEFINE_string('data_config', '../Data/datasets.yaml',
                        help="path to data config file")
 tf.flags.DEFINE_string('dataset', 'none',
@@ -60,6 +60,8 @@ tf.flags.DEFINE_bool('export', False, help="whether to export tf model")
 tf.flags.DEFINE_bool('freeze', False,
                      help="whether to export freeze model, "
                           "ignored if export is False")
+tf.flags.DEFINE_bool('auto_rename', True,
+                     "Add a suffix and auto rename the conflict output file.")
 tf.flags.DEFINE_bool('v', False, help="show verbose info")
 
 
@@ -141,8 +143,10 @@ def init_loader_config(opt):
       benchmark_config.output_callbacks += [functor]
       infer_config.output_callbacks += [functor]
   # Add image saver at last.
-  benchmark_config.output_callbacks += [save_image(opt.root, opt.output_index)]
-  infer_config.output_callbacks += [save_image(opt.root, opt.output_index)]
+  benchmark_config.output_callbacks += [
+    save_image(opt.root, opt.output_index, opt.auto_rename)]
+  infer_config.output_callbacks += [
+    save_image(opt.root, opt.output_index, opt.auto_rename)]
   if opt.lr_decay:
     train_config.lr_schedule = lr_decay(lr=opt.lr, **opt.lr_decay)
   # modcrop: A boolean to specify whether to crop the edge of images to be
