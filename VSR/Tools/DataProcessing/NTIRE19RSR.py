@@ -2,7 +2,21 @@
 #  Author: Wenyi Tang
 #  Email: wenyi.tang@intel.com
 #  Update Date: 2019 - 1 - 22
-
+"""
+This script can use to divide large images into small patches, and combine
+patches back to original image.
+  Divide:
+  ```
+  python NTIRE19RSR.py --ref_dir=<a> --save_dir=<b> \
+    --patch_size=128 --stride=120
+  ```
+  Combine:
+  ```
+  python NTIRE19RSR.py --ref_dir=<a> --results=<b> --save_dir=<c> \
+    --patch_size=128 --stride=120
+  ```
+  Note the `patch_size` and `stride` must be unchanged.
+"""
 
 from pathlib import Path
 import tqdm
@@ -12,11 +26,9 @@ from PIL import Image
 
 from VSR.Util.ImageProcess import array_to_img, img_to_array
 
-tf.flags.DEFINE_string("trainlr", None, "Path to train LR Data.")
-tf.flags.DEFINE_string("trainhr", None, "Path to train HR Data.")
-tf.flags.DEFINE_string("validation", None, "Path to validation LR.")
-tf.flags.DEFINE_string("results", None, "Path to results' png.")
+tf.flags.DEFINE_string("ref_dir", None, "Path to Ref Data to be divided.")
 tf.flags.DEFINE_string("save_dir", None, "Output directory.")
+tf.flags.DEFINE_string("results", None, "Path to results' png.")
 tf.flags.DEFINE_integer("patch_size", 128, "Cropped patch size.")
 tf.flags.DEFINE_integer("stride", 128, "Cropped patch stride.")
 tf.flags.DEFINE_integer("scale", 1, "Resize lr images.")
@@ -61,29 +73,11 @@ def combine(ref: Image, sub: list, stride) -> Image:
 def rsr():
   save_dir = Path(FLAGS.save_dir)
   save_dir.mkdir(exist_ok=True, parents=True)
-  if FLAGS.trainlr:
-    files = sorted(Path(FLAGS.trainlr).glob("*.png"))
+  if FLAGS.ref_dir:
+    files = sorted(Path(FLAGS.ref_dir).glob("*.png"))
     if FLAGS.results:
       print(" [!] Combining...\n")
       results = Path(FLAGS.results)
-      for f in tqdm.tqdm(files, ascii=True):
-        sub = list(results.glob("{}_????.png".format(f.stem)))
-        sub.sort(key=lambda x: int(x.stem[-4:]))
-        sub = [Image.open(s) for s in sub]
-        img = combine(Image.open(f), sub, FLAGS.stride)
-        img.save("{}/{}_sr.png".format(save_dir, f.stem))
-    else:
-      print(" [!] Dividing...\n")
-      for f in tqdm.tqdm(files, ascii=True):
-        pf = divide(Image.open(f), FLAGS.stride, FLAGS.patch_size)
-        for i, p in enumerate(pf):
-          array_to_img(p, 'RGB').save(
-            "{}/{}_{:04d}.png".format(save_dir, f.stem, i))
-  if FLAGS.validation:
-    files = sorted(Path(FLAGS.validation).glob("*.png"))
-    if FLAGS.results:
-      results = Path(FLAGS.results)
-      print(" [!] Combining...\n")
       for f in tqdm.tqdm(files, ascii=True):
         sub = list(results.glob("{}_????.png".format(f.stem)))
         sub.sort(key=lambda x: int(x.stem[-4:]))
