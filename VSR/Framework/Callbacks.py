@@ -31,6 +31,7 @@ def _save_model_predicted_images(output, index, mode, cols=1, **kwargs):
   save_dir = kwargs.get('save_dir') or '.'
   sub_dir = kwargs.get('subdir') or '.'
   names = kwargs.get('name', [('image', 0, 0)])
+  suffix = kwargs.get('suffix')
   img = output[index] if isinstance(output, list) else output
   img = _to_normalized_image(img, mode)
   if len(img) != len(names):
@@ -54,11 +55,19 @@ def _save_model_predicted_images(output, index, mode, cols=1, **kwargs):
     frames = int(frames)
     rep = 0
     if frames > 1:
-      path_1 = path / '{}/{:04d}_PR_{:04d}.png'.format(name, seq, rep)
+      if suffix:
+        path_1 = path / '{}/{:04d}_PR_{:04d}.png'.format(name, seq, rep)
+      else:
+        path_1 = path / '{}/{:04d}.png'.format(name, seq)
     else:
-      path_1 = path / '{}_PR_{:04d}.png'.format(name, rep)
+      if suffix:
+        path_1 = path / '{}_PR_{:04d}.png'.format(name, rep)
+      else:
+        path_1 = path / '{}.png'.format(name)
     path_1.parent.mkdir(parents=True, exist_ok=True)
     while path_1.exists():
+      if not suffix:
+        break
       rep += 1
       if frames > 1:
         path_1 = path / '{}/{:04d}_PR_{:04d}.png'.format(name, seq, rep)
@@ -235,9 +244,9 @@ def _image_align(image, scale, **kwargs):
   return image[..., :h, :w, :]
 
 
-def save_image(save_dir='.', output_index=-1, **kwargs):
+def save_image(save_dir='.', output_index=-1, suffix=True, **kwargs):
   return partial(_save_model_predicted_images, save_dir=save_dir,
-                 index=output_index, **kwargs)
+                 index=output_index, suffix=suffix, **kwargs)
 
 
 def save_batch_image(save_dir='.', output_index=-1, cols=8, **kwargs):
