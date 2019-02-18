@@ -133,12 +133,21 @@ def blur(inputs, width=2, **kwargs):
   return inputs.reshape(shape)
 
 
-def upsample(inputs, r=4, **kwargs):
+def scale(inputs, r=4, index=-1, **kwargs):
   """Use PIL.Image.resize(resample=CUBIC) to upsample inputs"""
   r = float(r)
   res = []
-  for img in inputs:
+  if isinstance(inputs, np.ndarray):
+    # fn for inputs and labels
+    imgs = inputs
+  else:
+    # fn for outputs
+    assert isinstance(inputs, list)
+    imgs = inputs[index]
+  for img in imgs:
     h, w, c = img.shape
+    if img.dtype != 'uint8':
+      img = np.round(img).clip(0, 255).astype('uint8')
     if c == 3:
       img = Image.fromarray(img, 'RGB')
     elif c == 1:
@@ -150,7 +159,11 @@ def upsample(inputs, r=4, **kwargs):
   res = np.stack(res)
   if np.ndim(res) < 4:
     res = np.expand_dims(res, axis=-1)
-  return res
+  if isinstance(inputs, np.ndarray):
+    return res
+  else:
+    inputs[index] = res
+    return inputs
 
 
-scale = upsample
+upsample = scale
