@@ -62,6 +62,10 @@ tf.flags.DEFINE_bool('freeze', False,
                           "ignored if export is False")
 tf.flags.DEFINE_bool('auto_rename', True,
                      "Add a suffix and auto rename the conflict output file.")
+tf.flags.DEFINE_bool('random_val', True,
+                     "Randomly select validation patches. "
+                     "Set to false if you want to trace the same patch"
+                     " (i.e. GAN).")
 tf.flags.DEFINE_bool('v', False, help="show verbose info")
 
 
@@ -153,6 +157,7 @@ def init_loader_config(opt):
   #   divisible by `scale`. It's useful when to provide batches with original
   #   shapes.
   infer_config.modcrop = False
+  train_config.random_val = opt.random_val
   return train_config, benchmark_config, infer_config
 
 
@@ -277,7 +282,8 @@ def run(*args, **kwargs):
     loader = partial(QuickLoader, n_threads=opt.threads)
     train_loader = loader(train_data, 'train', train_config,
                           augmentation=True)
-    val_loader = loader(train_data, 'val', train_config, crop='center',
+    val_loader = loader(train_data, 'val', train_config,
+                        crop='random' if opt.random_val else 'center',
                         steps_per_epoch=opt.val_num)
     test_loader = loader(test_data, 'test', test_config)
     infer_loader = loader(infer_data, 'infer', infer_config)

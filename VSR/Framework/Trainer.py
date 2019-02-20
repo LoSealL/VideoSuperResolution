@@ -182,6 +182,7 @@ class VSR(Trainer):
     self.v.output_callbacks = config.output_callbacks or []
     self.v.validate_every_n_epoch = config.validate_every_n_epoch or 1
     self.v.subdir = config.subdir
+    self.v.random_val = config.random_val
     return self.v
 
   def fit_init(self) -> bool:
@@ -278,7 +279,7 @@ class VSR(Trainer):
 
   def fn_benchmark_body(self):
     v = self.v
-    it = v.loader.make_one_shot_iterator(v.memory_limit, shuffle=False)
+    it = v.loader.make_one_shot_iterator(v.memory_limit, shuffle=v.random_val)
     for items in tqdm.tqdm(it, 'Test', ascii=True):
       label, feature, name, post = items[:4]
       self.fn_benchmark_each_step(label, feature, name, post)
