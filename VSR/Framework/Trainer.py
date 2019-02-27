@@ -32,6 +32,35 @@ def _parse_ckpt_name(name):
   return int(epochs[2:])
 
 
+def _ensemble_expand(feature):
+  r0 = feature
+  r1 = np.rot90(feature, 1, axes=[1, 2])
+  r2 = np.rot90(feature, 2, axes=[1, 2])
+  r3 = np.rot90(feature, 3, axes=[1, 2])
+  r4 = np.flip(feature, axis=2)
+  r5 = np.rot90(r4, 1, axes=[1, 2])
+  r6 = np.rot90(r4, 2, axes=[1, 2])
+  r7 = np.rot90(r4, 3, axes=[1, 2])
+  return r0, r1, r2, r3, r4, r5, r6, r7
+
+
+def _ensemble_reduce_mean(outputs):
+  results = []
+  for i in outputs:
+    outputs_ensemble = [
+      i[0],
+      np.rot90(i[1], 3, axes=[1, 2]),
+      np.rot90(i[2], 2, axes=[1, 2]),
+      np.rot90(i[3], 1, axes=[1, 2]),
+      np.flip(i[4], axis=2),
+      np.flip(np.rot90(i[5], 3, axes=[1, 2]), axis=2),
+      np.flip(np.rot90(i[6], 2, axes=[1, 2]), axis=2),
+      np.flip(np.rot90(i[7], 1, axes=[1, 2]), axis=2),
+    ]
+    results.append(np.concatenate(outputs_ensemble).mean(axis=0, keepdims=True))
+  return results
+
+
 class Trainer:
   """A pure interface trainer.
 
@@ -183,6 +212,7 @@ class VSR(Trainer):
     self.v.validate_every_n_epoch = config.validate_every_n_epoch or 1
     self.v.subdir = config.subdir
     self.v.random_val = config.random_val
+    self.v.ensemble = config.ensemble
     return self.v
 
   def fit_init(self) -> bool:
@@ -233,8 +263,7 @@ class VSR(Trainer):
       v.summary_writer.add_summary(self.model.summary(), v.global_step)
       self._save_model(v.sess, v.epoch)
 
-  def fn_train_each_step(self, label=None, feature=None, name=None,
-                         post=None):
+  def fn_train_each_step(self, label=None, feature=None, name=None, post=None):
     v = self.v
     for fn in v.feature_callbacks:
       feature = fn(feature, name=name)
@@ -249,13 +278,24 @@ class VSR(Trainer):
       loss[_k] = '{:08.5f}'.format(_v)
     v.loss = loss
 
-  def fn_infer_each_step(self, label=None, feature=None, name=None,
-                         post=None):
+  def fn_infer_each_step(self, label=None, feature=None, name=None, post=None):
     v = self.v
     origin_feat = feature
     for fn in v.feature_callbacks:
       feature = fn(feature, name=name)
-    outputs, _ = self.model.test_batch(feature, None)
+    if v.ensemble:
+      # add self-ensemble boosting metric score
+      feature_ensemble = _ensemble_expand(feature)
+      outputs_ensemble = []
+      for f in feature_ensemble:
+        y, _ = self.model.test_batch(f, None)
+        outputs_ensemble.append(y)
+      outputs = []
+      for i in range(len(outputs_ensemble[0])):
+        outputs.append([j[i] for j in outputs_ensemble])
+      outputs = _ensemble_reduce_mean(outputs)
+    else:
+      outputs, _ = self.model.test_batch(feature, None)
     for fn in v.output_callbacks:
       outputs = fn(outputs, input=origin_feat, name=name,
                    subdir=v.subdir, mode=v.color_format)

@@ -66,6 +66,8 @@ tf.flags.DEFINE_bool('random_val', True,
                      "Randomly select validation patches. "
                      "Set to false if you want to trace the same patch"
                      " (i.e. GAN).")
+tf.flags.DEFINE_bool('ensemble', False,
+                     "Enable self-ensemble at inferring. (ONLY INFER)")
 tf.flags.DEFINE_bool('v', False, help="show verbose info")
 
 
@@ -157,6 +159,7 @@ def init_loader_config(opt):
   #   divisible by `scale`. It's useful when to provide batches with original
   #   shapes.
   infer_config.modcrop = False
+  infer_config.ensemble = opt.ensemble  # self-ensemble
   train_config.random_val = opt.random_val
   return train_config, benchmark_config, infer_config
 
