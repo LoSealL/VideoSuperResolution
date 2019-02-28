@@ -19,9 +19,8 @@ _NOTE: all results are evaluated from retrained model here._
 |BM3D    |     50     |25.62/0.6864|26.72/0.7676|25.95/0.7791|
 
 ## Degradation Image Super-Resolution
-|Model   | Scale | AWGN Level | Set5       | Set12      | Urban100   |
+|Model   | Scale | AWGN Level | Set5       | Set14      | Urban100   |
 |:-------|:------|:-----------|:-----------|:-----------|:-----------|
-|BM3D+Bi |  x4   |     15     |26.14/0.7425|
-|VDSR    |  x4   |     15     |26.14/0.7425|
-|VDSR    |  x4   |     25     |24.66/0.6909|
-|VDSR    |  x4   |     50     |22.20/0.5982|
+|VDSR    |  x4   |     15     |26.14/0.7425|24.09/0.6320|22.10/0.6353|
+|VDSR    |  x4   |     25     |24.66/0.6909|23.08/0.5866|21.27/0.5900|
+|VDSR    |  x4   |     50     |22.20/0.5982|21.25/0.5092|19.74/0.5028|

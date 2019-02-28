@@ -442,6 +442,11 @@ def shave_if_divide(x, value=16):
   return x[..., :h2, :w2, :]
 
 
+def clip_image(image, max_val=255):
+  image = tf.clip_by_value(image / max_val, 0, 1) * 255
+  return tf.cast(tf.round(image), tf.uint8)
+
+
 class SpectralNorm(tf.keras.constraints.Constraint):
   """Spectral normalization constraint.
     Ref: https://arxiv.org/pdf/1802.05957
