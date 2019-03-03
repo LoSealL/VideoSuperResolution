@@ -18,18 +18,17 @@ from ..DataLoader.Dataset import Dataset, _glob_absolute_pattern
 
 tf.flags.DEFINE_string("input_dir", None, "images to test")
 tf.flags.DEFINE_string("reference_dir", None,
-                       "GT images to refer, ignored if --dataset is not none.")
+                       "GT images to refer, ignored if --test is not none.")
 FLAGS = tf.flags.FLAGS
 
 
 def load_folder(path1, path2=None):
   """loading `path` into a Dataset"""
-  if not Path(path1).exists():
-    raise FileNotFoundError("path can't be found.")
 
-  images = sorted(Path(path1).glob('*'))
+  images = _glob_absolute_pattern(Path(path1))
   if not images:
-    images = sorted(Path(path1).iterdir())
+    raise FileNotFoundError("No files in {}".format(path1))
+
   if isinstance(path2, (str, Path)):
     images2 = _glob_absolute_pattern(path2)
   else:

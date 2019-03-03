@@ -71,6 +71,24 @@ tf.flags.DEFINE_bool('ensemble', False,
 tf.flags.DEFINE_bool('v', False, help="show verbose info")
 
 
+def cross_type_assign(value, dtype):
+  """Convert `value` to `dtype`.
+    Usually this can be done by simply `dtype(value)`, however, this ain't
+    correct for str -> bool conversion.
+  """
+
+  if dtype is bool and isinstance(value, str):
+    if value.lower() == 'false':
+      return False
+    elif value.lower() == 'true':
+      return True
+    else:
+      tf.logging.warning(
+        "suspect wrong typo {}, do you mean true/false?".format(value))
+      return True
+  return dtype(value)
+
+
 def check_args(opt):
   if opt.c:
     opt.update(Config(opt.c))
@@ -205,7 +223,8 @@ def suppress_opt_by_args(opt, *args):
         if not value.endswith(']') and not value.endswith(')'):
           raise TypeError("Invalid list syntax: {}".format(value))
         values = value[1:-1].split(',')
-        new_v = [type(ov)(nv) for ov, nv in zip(old_v, values)]
+        new_v = [cross_type_assign(nv, type(ov)) for ov, nv in
+                 zip(old_v, values)]
         opt[keys[0]] = new_v
       elif isinstance(old_v, dict):
         # dict support
@@ -218,10 +237,10 @@ def suppress_opt_by_args(opt, *args):
           raise KeyError("Parameter {} doesn't exist in model!".format(key))
         if isinstance(old_v, (list, tuple)):
           raise NotImplementedError("Don't support nested list type.")
-        new_v = type(old_v)(value)
+        new_v = cross_type_assign(value, type(old_v))
         ref_v[keys[-1]] = new_v
       else:
-        new_v = type(old_v)(value)  # TODO: can't convert list in this way.
+        new_v = cross_type_assign(value, type(old_v))
         opt[keys[0]] = new_v
     elif key:
       prev_arg = key
