@@ -69,7 +69,9 @@ class EpochIterator:
     self.grids = grids
 
   def __len__(self):
-    return len(self.grids) // self.batch
+    t = len(self.grids)
+    b = self.batch
+    return t // b + int(np.ceil((t % b) / b))
 
   def __iter__(self):
     return self
@@ -169,7 +171,6 @@ class BasicLoader:
                          'Unknown format {}'.format(config.convert_to))
       self.color_format = 'L'
     self.loaded = 0
-    self.free_memory_on_start = virtual_memory().free
     self.frames = []  # a list of tuple represents (HR, LR, name) of a clip
     self.prob = self._read_file(dataset)._calc_select_prob()
 
@@ -410,7 +411,7 @@ class BasicLoader:
                 for _x, _y in zip(x, y)]
     if shuffle:
       np.random.shuffle(grids)
-    return grids
+    return grids[:size]
 
   @property
   def size(self):
@@ -452,10 +453,11 @@ class BasicLoader:
     # check memory usage
     if isinstance(memory_usage, str):
       memory_usage = Utility.str_to_bytes(memory_usage)
+    free_memory = virtual_memory().free
     if not memory_usage:
-      memory_usage = self.free_memory_on_start
+      memory_usage = free_memory
     memory_usage = np.min(
-      [np.uint64(memory_usage), self.free_memory_on_start])
+      [np.uint64(memory_usage), free_memory])
     capacity = self.size
     frames = []
     tf.logging.debug('memory limit: ' + str(memory_usage))
