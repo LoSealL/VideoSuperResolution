@@ -158,7 +158,7 @@ class BasicLoader:
     self.file_names = dataset.__getattr__(method.lower()) or []
     self.method = method
     self.flow = dataset.flow
-    self.pair = dataset.pair
+    self.pair = getattr(dataset, '{}_pair'.format(method))
     self.aug = augmentation
     if config.convert_to.lower() in ('gray', 'l'):
       self.color_format = 'L'
@@ -385,7 +385,7 @@ class BasicLoader:
     grids = []
     for i, (hr, lr, name) in enumerate(frames):
       _w, _h = hr[0].width, hr[0].height
-      if self.crop == 'not' or self.crop is None:
+      if self.crop in ('not', 'none') or self.crop is None:
         _pw, _ph = _w, _h
       else:
         _pw, _ph = patch_size

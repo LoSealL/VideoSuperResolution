@@ -24,10 +24,12 @@ tf.flags.DEFINE_enum('output_color', 'RGB', ('RGB', 'L', 'GRAY', 'Y'),
                      help="specify output color format")
 tf.flags.DEFINE_enum('train_data_crop', 'random', ('random', 'stride'),
                      help="how to crop training data")
+tf.flags.DEFINE_enum('val_data_crop', 'random', ('random', 'center', 'none'),
+                     help="how to crop validating data")
 tf.flags.DEFINE_integer('epochs', 50, lower_bound=1, help="training epochs")
 tf.flags.DEFINE_integer('steps_per_epoch', 200, lower_bound=1,
                         help="specify steps in every epoch training")
-tf.flags.DEFINE_integer('val_num', 1, lower_bound=1,
+tf.flags.DEFINE_integer('val_num', 10, lower_bound=1,
                         help="Number of validations in training.")
 tf.flags.DEFINE_integer('threads', 1, lower_bound=1,
                         help="number of threads to use while reading data")
@@ -305,7 +307,8 @@ def run(*args, **kwargs):
     train_loader = loader(train_data, 'train', train_config,
                           augmentation=True)
     val_loader = loader(train_data, 'val', train_config,
-                        crop='random' if opt.random_val else 'center',
+                        batch=1,
+                        crop=opt.val_data_crop,
                         steps_per_epoch=opt.val_num)
     test_loader = loader(test_data, 'test', test_config)
     infer_loader = loader(infer_data, 'infer', infer_config)
