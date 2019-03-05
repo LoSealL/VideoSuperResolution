@@ -9,7 +9,7 @@ commonly used layers helper
 import tensorflow as tf
 
 from ..Util.Utility import (SpectralNorm, pixel_shift, pop_dict_wo_keyerror,
-                            prelu, to_list)
+                            prelu, to_list, TorchInitializer)
 
 
 class Layers(object):
@@ -51,12 +51,21 @@ class Layers(object):
              kernel_regularizer='l2', **kwargs):
     """wrap a convolution for common use case"""
 
-    ki, kr = self._kernel(kernel_initializer, kernel_regularizer)
+    if kernel_initializer == 'torch':
+      ki = TorchInitializer()
+      kr = None
+      if use_bias:
+        bi = TorchInitializer(kernel_size * kernel_size * x.shape[-1])
+      else:
+        bi = tf.zeros_initializer()
+    else:
+      ki, kr = self._kernel(kernel_initializer, kernel_regularizer)
+      bi = tf.zeros_initializer()
     nn = tf.layers.Conv2D(filters, kernel_size, strides=strides,
                           padding=padding, data_format=data_format,
                           dilation_rate=dilation_rate, use_bias=use_bias,
                           kernel_initializer=ki, kernel_regularizer=kr,
-                          **kwargs)
+                          bias_initializer=bi, **kwargs)
     nn.build(x.shape.as_list())
     if use_sn:
       nn.kernel = SpectralNorm()(nn.kernel)
@@ -80,12 +89,22 @@ class Layers(object):
              use_in=False, use_ln=False, use_gn=False,
              kernel_initializer='he_normal', kernel_regularizer='l2',
              **kwargs):
-    ki, kr = self._kernel(kernel_initializer, kernel_regularizer)
+
+    if kernel_initializer == 'torch':
+      ki = TorchInitializer()
+      kr = None
+      if use_bias:
+        bi = TorchInitializer(kernel_size * kernel_size * x.shape[-1])
+      else:
+        bi = tf.zeros_initializer()
+    else:
+      ki, kr = self._kernel(kernel_initializer, kernel_regularizer)
+      bi = tf.zeros_initializer()
     nn = tf.layers.Conv3D(filters, kernel_size, strides=strides,
                           padding=padding, data_format=data_format,
                           dilation_rate=dilation_rate, use_bias=use_bias,
                           kernel_initializer=ki, kernel_regularizer=kr,
-                          **kwargs)
+                          bias_initializer=bi, **kwargs)
     nn.build(x.shape.as_list())
     x = nn(x)
     if use_batchnorm:
@@ -119,11 +138,21 @@ class Layers(object):
                **kwargs):
     """warp a conv2d_transpose op for simplicity usage"""
 
-    ki, kr = self._kernel(kernel_initializer, kernel_regularizer)
+    if kernel_initializer == 'torch':
+      ki = TorchInitializer()
+      kr = None
+      if use_bias:
+        bi = TorchInitializer(kernel_size * kernel_size * x.shape[-1])
+      else:
+        bi = tf.zeros_initializer()
+    else:
+      ki, kr = self._kernel(kernel_initializer, kernel_regularizer)
+      bi = tf.zeros_initializer()
     nn = tf.layers.Conv2DTranspose(filters, kernel_size, strides=strides,
                                    padding=padding,
                                    data_format=data_format,
                                    use_bias=use_bias,
+                                   bias_initializer=bi,
                                    kernel_initializer=ki,
                                    kernel_regularizer=kr, **kwargs)
     nn.build(x.shape.as_list())
@@ -158,11 +187,22 @@ class Layers(object):
                kernel_initializer='he_normal',
                kernel_regularizer='l2',
                **kwargs):
-    ki, kr = self._kernel(kernel_initializer, kernel_regularizer)
+
+    if kernel_initializer == 'torch':
+      ki = TorchInitializer()
+      kr = None
+      if use_bias:
+        bi = TorchInitializer(kernel_size * kernel_size * x.shape[-1])
+      else:
+        bi = tf.zeros_initializer()
+    else:
+      ki, kr = self._kernel(kernel_initializer, kernel_regularizer)
+      bi = tf.zeros_initializer()
     nn = tf.layers.Conv3DTranspose(filters, kernel_size, strides=strides,
                                    padding=padding,
                                    data_format=data_format,
                                    use_bias=use_bias,
+                                   bias_initializer=bi,
                                    kernel_initializer=ki,
                                    kernel_regularizer=kr, **kwargs)
     nn.build(x.shape.as_list())
@@ -268,6 +308,9 @@ class Layers(object):
     assert str(method).lower() in _allowed_method
     method = str(method).lower()
     act = kwargs.get('activator')
+    ki = kwargs.get('kernel_initializer', 'he_normal')
+    kr = kwargs.get('kernel_regularizer', 'l2')
+    use_bias = kwargs.get('use_bias', True)
 
     scale_x, scale_y = to_list(scale, 2) or self.scale
     features = self.channel if direct_output else image.shape.as_list()[-1]
@@ -276,8 +319,8 @@ class Layers(object):
         if method == 'espcn':
           image = pixel_shift(self.conv2d(
             image, features * scale_x * scale_y, 3,
-            kernel_initializer='he_normal',
-            kernel_regularizer='l2'), [scale_x, scale_y], features)
+            use_bias=use_bias, kernel_initializer=ki, kernel_regularizer=kr),
+            [scale_x, scale_y], features)
         elif method == 'nearest':
           image = pixel_shift(
             tf.concat([image] * scale_x * scale_y, -1),
@@ -286,7 +329,9 @@ class Layers(object):
         elif method == 'deconv':
           image = self.deconv2d(image, features, 3,
                                 strides=[scale_y, scale_x],
-                                kernel_initializer='he_normal')
+                                kernel_initializer=ki,
+                                kernel_regularizer=kr,
+                                use_bias=use_bias)
         if act:
           image = act(image)
         break
@@ -295,18 +340,17 @@ class Layers(object):
         scale_y //= 2
         if method == 'espcn':
           image = pixel_shift(self.conv2d(
-            image, features * 4, 3,
-            kernel_initializer='he_normal',
-            kernel_regularizer='l2'), [2, 2], features)
+            image, features * 4, 3, use_bias=use_bias,
+            kernel_initializer=ki, kernel_regularizer=kr), [2, 2], features)
         elif method == 'nearest':
           image = pixel_shift(
             tf.concat([image] * 4, -1),
             [2, 2],
             image.shape[-1])
         elif method == 'deconv':
-          image = self.deconv2d(image, features, 3,
-                                strides=2,
-                                kernel_initializer='he_normal')
+          image = self.deconv2d(image, features, 3, strides=2,
+                                use_bias=use_bias,
+                                kernel_initializer=ki, kernel_regularizer=kr)
         if act:
           image = act(image)
     return image
