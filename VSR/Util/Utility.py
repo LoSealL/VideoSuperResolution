@@ -655,7 +655,7 @@ class TorchInitializer(tf.keras.initializers.Initializer):
     if self.fan_in is None:
       self.fan_in, _ = self._compute_fans(scale_shape)
     gain2 = 2.0 / (1 + self.a)  # 1/3
-    bound = np.sqrt(3.0 * gain2 / self.fan_in)
+    bound = np.sqrt(3.0 * gain2 / int(self.fan_in))
     return tf.random_uniform(shape, -bound, bound, dtype, self.seed)
 
   def get_config(self):
