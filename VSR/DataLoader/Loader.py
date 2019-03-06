@@ -377,6 +377,7 @@ class BasicLoader:
     patch_size = Utility.shrink_mod_scale(patch_size, self.scale)
     if size < 0:
       index = np.arange(len(frames)).tolist()
+      size = len(frames)
     else:
       if self.crop == 'random':
         index = np.random.randint(len(frames), size=size).tolist()
