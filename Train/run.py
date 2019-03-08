@@ -27,7 +27,8 @@ FLAGS = tf.flags.FLAGS
 
 def main(*args, **kwargs):
   additional_functions = {}
-  callbacks = FLAGS.f or []
+  callbacks = []
+  callbacks += FLAGS.f or []
   callbacks += FLAGS.f2 or []
   callbacks += FLAGS.f3 or []
   if callbacks:
