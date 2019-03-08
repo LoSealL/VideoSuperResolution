@@ -25,7 +25,7 @@ FLAGS = tf.flags.FLAGS
 def load_folder(path1, path2=None):
   """loading `path` into a Dataset"""
 
-  images = _glob_absolute_pattern(Path(path1))
+  images = _glob_absolute_pattern(path1)
   if not images:
     raise FileNotFoundError("No files in {}".format(path1))
 
@@ -33,10 +33,12 @@ def load_folder(path1, path2=None):
     images2 = _glob_absolute_pattern(path2)
   else:
     images2 = path2
-  return Dataset(test=images, pair=images2)
+  return Dataset(test=images, test_pair=images2)
 
 
 def evaluate(*args):
+  if FLAGS.v:
+    tf.logging.set_verbosity('DEBUG')
   if not FLAGS.input_dir:
     raise ValueError("--input_dir is required.")
   data_config_file = Path(FLAGS.data_config)

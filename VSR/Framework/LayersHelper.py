@@ -365,9 +365,7 @@ class Layers(object):
     
     NOTE: orders do not matter.
     """
-    if 'deconv2d' in item:
-      pass
-    elif 'conv2d' in item:
+    if 'conv2d' in item:
       items = item.split('_')
       kwargs = {
         'kernel_initializer': 'he_normal',
