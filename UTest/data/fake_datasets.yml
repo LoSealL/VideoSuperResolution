@@ -56,7 +56,7 @@ Dataset:
 
   PAIR:
     train: [FOO]
-    pair: [FOO]
+    train_pair: [FOO]
     val: []
     test: []
 

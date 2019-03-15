@@ -24,10 +24,12 @@ tf.flags.DEFINE_enum('output_color', 'RGB', ('RGB', 'L', 'GRAY', 'Y'),
                      help="specify output color format")
 tf.flags.DEFINE_enum('train_data_crop', 'random', ('random', 'stride'),
                      help="how to crop training data")
+tf.flags.DEFINE_enum('val_data_crop', 'random', ('random', 'center', 'none'),
+                     help="how to crop validating data")
 tf.flags.DEFINE_integer('epochs', 50, lower_bound=1, help="training epochs")
 tf.flags.DEFINE_integer('steps_per_epoch', 200, lower_bound=1,
                         help="specify steps in every epoch training")
-tf.flags.DEFINE_integer('val_num', 1, lower_bound=1,
+tf.flags.DEFINE_integer('val_num', 10, lower_bound=1,
                         help="Number of validations in training.")
 tf.flags.DEFINE_integer('threads', 1, lower_bound=1,
                         help="number of threads to use while reading data")
@@ -62,7 +64,31 @@ tf.flags.DEFINE_bool('freeze', False,
                           "ignored if export is False")
 tf.flags.DEFINE_bool('auto_rename', True,
                      "Add a suffix and auto rename the conflict output file.")
+tf.flags.DEFINE_bool('random_val', True,
+                     "Randomly select validation patches. "
+                     "Set to false if you want to trace the same patch"
+                     " (i.e. GAN).")
+tf.flags.DEFINE_bool('ensemble', False,
+                     "Enable self-ensemble at inferring. (ONLY INFER)")
 tf.flags.DEFINE_bool('v', False, help="show verbose info")
+
+
+def cross_type_assign(value, dtype):
+  """Convert `value` to `dtype`.
+    Usually this can be done by simply `dtype(value)`, however, this ain't
+    correct for str -> bool conversion.
+  """
+
+  if dtype is bool and isinstance(value, str):
+    if value.lower() == 'false':
+      return False
+    elif value.lower() == 'true':
+      return True
+    else:
+      tf.logging.warning(
+        "suspect wrong typo {}, do you mean true/false?".format(value))
+      return True
+  return dtype(value)
 
 
 def check_args(opt):
@@ -153,6 +179,8 @@ def init_loader_config(opt):
   #   divisible by `scale`. It's useful when to provide batches with original
   #   shapes.
   infer_config.modcrop = False
+  infer_config.ensemble = opt.ensemble  # self-ensemble
+  train_config.random_val = opt.random_val
   return train_config, benchmark_config, infer_config
 
 
@@ -197,7 +225,8 @@ def suppress_opt_by_args(opt, *args):
         if not value.endswith(']') and not value.endswith(')'):
           raise TypeError("Invalid list syntax: {}".format(value))
         values = value[1:-1].split(',')
-        new_v = [type(ov)(nv) for ov, nv in zip(old_v, values)]
+        new_v = [cross_type_assign(nv, type(ov)) for ov, nv in
+                 zip(old_v, values)]
         opt[keys[0]] = new_v
       elif isinstance(old_v, dict):
         # dict support
@@ -210,10 +239,10 @@ def suppress_opt_by_args(opt, *args):
           raise KeyError("Parameter {} doesn't exist in model!".format(key))
         if isinstance(old_v, (list, tuple)):
           raise NotImplementedError("Don't support nested list type.")
-        new_v = type(old_v)(value)
+        new_v = cross_type_assign(value, type(old_v))
         ref_v[keys[-1]] = new_v
       else:
-        new_v = type(old_v)(value)  # TODO: can't convert list in this way.
+        new_v = cross_type_assign(value, type(old_v))
         opt[keys[0]] = new_v
     elif key:
       prev_arg = key
@@ -277,7 +306,9 @@ def run(*args, **kwargs):
     loader = partial(QuickLoader, n_threads=opt.threads)
     train_loader = loader(train_data, 'train', train_config,
                           augmentation=True)
-    val_loader = loader(train_data, 'val', train_config, crop='center',
+    val_loader = loader(train_data, 'val', train_config,
+                        batch=1,
+                        crop=opt.val_data_crop,
                         steps_per_epoch=opt.val_num)
     test_loader = loader(test_data, 'test', test_config)
     infer_loader = loader(infer_data, 'infer', infer_config)

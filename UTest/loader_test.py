@@ -160,7 +160,8 @@ def test_crop_center():
 
 def test_crop_stride():
   dut = DATASETS['NORMAL']
-  config = Config(batch=1, scale=1, depth=1, patch_size=32, crop='stride')
+  config = Config(batch=1, scale=1, depth=1, patch_size=32, crop='stride',
+                  steps_per_epoch=999)
   np.random.seed(1)
   loader = QuickLoader(dut, 'test', config, False, n_threads=8)
   ref = QuickLoader(dut, 'test', config, False, n_threads=8, crop='not')

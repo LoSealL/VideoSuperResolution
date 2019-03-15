@@ -50,7 +50,7 @@ def poisson_noise(inputs, stddev=None, sigma_max=0.16):
   if stddev is None:
     stddev = np.random.rand(inputs.shape[-1]) * sigma_max
   stddev = np.reshape(stddev, [1] * (inputs.ndim - 1) + [-1])
-  sigma_map = inputs * stddev
+  sigma_map = (1 - inputs) * stddev
   return np.random.randn(*inputs.shape) * sigma_map
 
 
@@ -59,7 +59,7 @@ def tf_poisson_noise(inputs, stddev=None, sigma_max=0.16):
     if stddev is None:
       stddev = tf.random_uniform(inputs.shape[-1:], maxval=sigma_max)
     stddev = tf.reshape(stddev, [1, 1, 1, -1])
-    sigma_map = inputs * stddev
+    sigma_map = (1 - inputs) * stddev
     return tf.random_normal(tf.shape(inputs)) * sigma_map
 
 

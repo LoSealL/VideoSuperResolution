@@ -442,6 +442,11 @@ def shave_if_divide(x, value=16):
   return x[..., :h2, :w2, :]
 
 
+def clip_image(image, max_val=255):
+  image = tf.clip_by_value(image / max_val, 0, 1) * 255
+  return tf.cast(tf.round(image), tf.uint8)
+
+
 class SpectralNorm(tf.keras.constraints.Constraint):
   """Spectral normalization constraint.
     Ref: https://arxiv.org/pdf/1802.05957
@@ -620,3 +625,70 @@ class Vgg:
         "make inference on any tensor to build the model."))
 
     print(self.outputs.keys())
+
+
+class TorchInitializer(tf.keras.initializers.Initializer):
+  """Default weight and bias initializer in PyTorch.
+    PyTorch (v1.0.1) uses a modified Kaiming (He) uniform distribution to
+    initialize both weight and bias.
+
+  Args:
+    fan_in: in order to init bias, give weight's fan_in here.
+    a: a scale factor in PyTorch, do not modify.
+    seed: A Python integer. Used to create random seeds. See
+      `tf.set_random_seed` for behavior.
+    dtype: Default data type, used if no `dtype` argument is provided when
+      calling the initializer. Only floating point types are supported.
+  """
+  def __init__(self, fan_in=None, a=5, seed=None, dtype=tf.float32):
+    self.fan_in = fan_in
+    self.a = a
+    self.seed = seed
+    self.dtype = tf.as_dtype(dtype)
+
+  def __call__(self, shape, dtype=None, partition_info=None):
+    if dtype is None:
+      dtype = self.dtype
+    scale_shape = shape
+    if partition_info is not None:
+      scale_shape = partition_info.full_shape
+    if self.fan_in is None:
+      self.fan_in, _ = self._compute_fans(scale_shape)
+    gain2 = 2.0 / (1 + self.a)  # 1/3
+    bound = np.sqrt(3.0 * gain2 / int(self.fan_in))
+    return tf.random_uniform(shape, -bound, bound, dtype, self.seed)
+
+  def get_config(self):
+    return {
+      "fan_in": self.fan_in,
+      "a": self.a,
+      "seed": self.seed,
+      "dtype": self.dtype.name
+    }
+
+  @staticmethod
+  def _compute_fans(shape):
+    """Computes the number of input and output units for a weight shape.
+
+    Args:
+      shape: Integer shape tuple or TF tensor shape.
+
+    Returns:
+      A tuple of scalars (fan_in, fan_out).
+    """
+    if len(shape) < 1:  # Just to avoid errors for constants.
+      fan_in = fan_out = 1
+    elif len(shape) == 1:
+      fan_in = fan_out = shape[0]
+    elif len(shape) == 2:
+      fan_in = shape[0]
+      fan_out = shape[1]
+    else:
+      # Assuming convolution kernels (2D, 3D, or more).
+      # kernel shape: (..., input_depth, depth)
+      receptive_field_size = 1.
+      for dim in shape[:-2]:
+        receptive_field_size *= dim
+      fan_in = shape[-2] * receptive_field_size
+      fan_out = shape[-1] * receptive_field_size
+    return fan_in, fan_out

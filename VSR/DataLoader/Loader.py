@@ -69,7 +69,9 @@ class EpochIterator:
     self.grids = grids
 
   def __len__(self):
-    return len(self.grids) // self.batch
+    t = len(self.grids)
+    b = self.batch
+    return t // b + int(np.ceil((t % b) / b))
 
   def __iter__(self):
     return self
@@ -156,7 +158,7 @@ class BasicLoader:
     self.file_names = dataset.__getattr__(method.lower()) or []
     self.method = method
     self.flow = dataset.flow
-    self.pair = dataset.pair
+    self.pair = getattr(dataset, '{}_pair'.format(method))
     self.aug = augmentation
     if config.convert_to.lower() in ('gray', 'l'):
       self.color_format = 'L'
@@ -169,7 +171,6 @@ class BasicLoader:
                          'Unknown format {}'.format(config.convert_to))
       self.color_format = 'L'
     self.loaded = 0
-    self.free_memory_on_start = virtual_memory().free
     self.frames = []  # a list of tuple represents (HR, LR, name) of a clip
     self.prob = self._read_file(dataset)._calc_select_prob()
 
@@ -376,6 +377,7 @@ class BasicLoader:
     patch_size = Utility.shrink_mod_scale(patch_size, self.scale)
     if size < 0:
       index = np.arange(len(frames)).tolist()
+      size = len(frames)
     else:
       if self.crop == 'random':
         index = np.random.randint(len(frames), size=size).tolist()
@@ -384,7 +386,7 @@ class BasicLoader:
     grids = []
     for i, (hr, lr, name) in enumerate(frames):
       _w, _h = hr[0].width, hr[0].height
-      if self.crop == 'not' or self.crop is None:
+      if self.crop in ('not', 'none') or self.crop is None:
         _pw, _ph = _w, _h
       else:
         _pw, _ph = patch_size
@@ -410,7 +412,7 @@ class BasicLoader:
                 for _x, _y in zip(x, y)]
     if shuffle:
       np.random.shuffle(grids)
-    return grids
+    return grids[:size]
 
   @property
   def size(self):
@@ -452,10 +454,11 @@ class BasicLoader:
     # check memory usage
     if isinstance(memory_usage, str):
       memory_usage = Utility.str_to_bytes(memory_usage)
+    free_memory = virtual_memory().free
     if not memory_usage:
-      memory_usage = self.free_memory_on_start
+      memory_usage = free_memory
     memory_usage = np.min(
-      [np.uint64(memory_usage), self.free_memory_on_start])
+      [np.uint64(memory_usage), free_memory])
     capacity = self.size
     frames = []
     tf.logging.debug('memory limit: ' + str(memory_usage))

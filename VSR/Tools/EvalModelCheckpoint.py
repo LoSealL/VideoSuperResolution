@@ -56,6 +56,7 @@ def evaluate(*args):
   for key in FLAGS:
     opt.setdefault(key, FLAGS.get_flag_value(key, None))
   check_args(opt)
+  opt.random_val = False
   data_config_file = Path(opt.data_config)
   if not data_config_file.exists():
     raise RuntimeError("dataset config file doesn't exist!")
