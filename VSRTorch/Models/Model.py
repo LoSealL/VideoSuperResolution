@@ -1,0 +1,71 @@
+#  Copyright (c): Wenyi Tang 2017-2019.
+#  Author: Wenyi Tang
+#  Email: wenyi.tang@intel.com
+#  Update Date: 2019 - 3 - 13
+
+import torch
+
+from ..Framework.Trainer import SRTrainer
+
+
+class BasicModel:
+
+  def __init__(self, **kwargs):
+    self.modules = {}
+    self.name = ''
+    self.writer = None
+    self._trainer = None
+
+  def __setattr__(self, key, value):
+    if isinstance(value, torch.nn.Module):
+      if key in self.modules:
+        if self.modules[key] is value:
+          return
+        else:
+          raise NotImplemented
+      else:
+        self.modules[key] = value
+        self.name += f'[{key}]'
+
+    return super(BasicModel, self).__setattr__(key, value)
+
+  def trainable_variables(self, name=None):
+    _m = self.modules.get(name) if name else self.modules.values()
+    _var = []
+    for i in _m:
+      _var += filter(lambda p: p.requires_grad, i.parameters())
+    return _var
+
+  def to_train(self):
+    for _m in self.modules.values():
+      _m.train()
+
+  def train(self, *args, **kwargs):
+    raise NotImplemented
+
+  def to_eval(self):
+    for _m in self.modules.values():
+      _m.eval()
+
+  def eval(self, *args, **kwargs):
+    raise NotImplemented
+
+  def display(self):
+    pass
+
+  def cuda(self):
+    for i in self.modules:
+      self.modules[i] = self.modules[i].cuda()
+
+  @property
+  def trainer(self):
+    return self._trainer
+
+
+class SuperResolution(BasicModel):
+
+  def __init__(self, scale, channel, **kwargs):
+    super(SuperResolution, self).__init__(**kwargs)
+    self.scale = scale
+    self.channel = channel
+    self._trainer = SRTrainer

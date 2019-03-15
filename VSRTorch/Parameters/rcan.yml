@@ -1,0 +1,9 @@
+rcan:
+  scale: 4
+  n_resgroups: 10
+  n_resblocks: 20
+  n_feats: 64
+  reduction: 16
+  rgb_range: 1
+  n_colors: 3
+  res_scale: 1.0

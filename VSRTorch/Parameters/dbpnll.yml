@@ -1,0 +1,11 @@
+dbpn:
+  scale: 4
+  mode: 'dbpnll'
+  num_channels: 3
+  base_filter: 64
+  feat: 256
+  num_stages: 10
+
+batch: 16
+patch_size: 128
+lr: 1.0e-4
