@@ -2,9 +2,9 @@
 Copyright: Wenyi Tang 2017-2018
 Author: Wenyi Tang
 Email: wenyi.tang@intel.com
-Created Date: Oct 15th 2018
+Created Date: Mar. 15 2019
 
-Improved train/benchmark/infer script
+help to benchmark models
 Type --helpfull to get full doc.
 """
 
@@ -18,7 +18,7 @@ from importlib import import_module
 
 import tensorflow as tf
 
-from VSR.Tools import Run
+from VSR.Tools import EvalDataDirectory, EvalModelCheckpoint
 
 FLAGS = tf.flags.FLAGS
 
@@ -39,7 +39,13 @@ def main(*args, **kwargs):
       except KeyError:
         raise KeyError(
           "Function [{}] couldn't be found in 'custom_api.py'".format(fn_name))
-  return Run.run(*args[0][1:], **additional_functions)
+
+  if FLAGS.checkpoint_dir:
+    return EvalModelCheckpoint.evaluate(*args[0][1:])
+  elif FLAGS.input_dir:
+    return EvalDataDirectory.evaluate(*args[0][1:])
+  print(("In mode 'eval', parse either '--checkpoint_dir' with '--model'"
+         " or '--input_dir' to evaluate models, see details --helpfull"))
 
 
 if __name__ == '__main__':

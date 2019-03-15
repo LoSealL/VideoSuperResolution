@@ -33,9 +33,9 @@ Ticket: [S1erHoR5t7](https://github.com/reproducibility-challenge/iclr_2019/issu
 
 4. Train models from scratch
 
-    1. Refer to general guide [here](./README.md)
-    2. (Optional) Prepare your own dataset (if needed, refer DDF [here](./Data/README.md))
-    3. (Optional) Modify [model config file](./Train/parameters/rgan.yaml), all models and information are defined [here](./VSR/Models/Gan.py)
+    1. Refer to general guide [here](../README.md)
+    2. (Optional) Prepare your own dataset (if needed, refer DDF [here](../Data/README.md))
+    3. (Optional) Modify [model config file](../Train/parameters/rgan.yaml), all models and information are defined [here](../VSR/Models/Gan.py)
     4. Run script: (i.e. RGAN)
     ```bash
     cd Train
