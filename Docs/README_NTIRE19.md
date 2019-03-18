@@ -1,9 +1,19 @@
 ## One-click script
-Make sure you are in the root folder. 
+Make sure you are in the root folder. You should also have `tensorflow(-gpu)>=1.12.0` and `pytorch>=1.0.0` installed manually.
 
 Before running `one_click_ntire19_rsr.sh` for Real Image Super Resolution, set two paths: `RSR_TEST_DIR` for testing images and `RSR_SAVE_DIR` for saving results.
+```bash
+RSR_TEST_DIR=bla/bla/bla
+RSR_SAVE_DIR=bli/bli/bli
+. one_click_ntire19_rsr.sh
+```
  
 Before running `one_click_ntire19_drn.sh` for sRGB Image Denoising, set two paths: `DRN_TEST_MAT` for testing mat file and `DRN_SAVE_DIR` for saving results.
+```bash
+DRN_TEST_MAT=bla/bla/bla/BenchmarkNoisyBlocksSrgb.mat
+DRN_SAVE_DIR=bli/bli/bli
+. one_click_ntire19_drn.sh
+```
 
 You can also do it step-by-step as follows.
 
@@ -22,17 +32,17 @@ You can also do it step-by-step as follows.
    
    For Real Image Super-Resolution
    ```bash
-   python prepare_data.py --filter=rsr 
+   python prepare_data.py --filter=rsr -q
    ```
    
    For sRGB Real Image Denoising (Track #2: sRGB)
    ```bash
-   python prepare_data.py --filter=drn 
+   python prepare_data.py --filter=drn -q
    ```
 
    Model url for manually download:
-   - [rsr]():
-   - [drn]():
+   - [rsr](https://github.com/LoSealL/Model/releases/download/crdn/rsr.zip): https://github.com/LoSealL/Model/releases/download/crdn/rsr.zip
+   - [drn](https://github.com/LoSealL/Model/releases/download/mldn/drn.zip): https://github.com/LoSealL/Model/releases/download/mldn/drn.zip
    
 3. Prepare testing data:
 
@@ -73,7 +83,7 @@ You can also do it step-by-step as follows.
    Entering VSRTorch folder
    ```bash
    cd VSRTorch
-   python eval.py drn --cuda -t=/path/to/divided/test/images/folder --pth=../Results/drn/save/drn_ep2000.pth
+   python eval.py drn --cuda -t=/path/to/divided/test/images/folder --pth=../Results/drn/save/drn_ep2000.pth --output_index=0
    ```
    The output will be saved in `../Results/drn/<your-image-folder-name>`. To pack them into mat file:
    ```bash

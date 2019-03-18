@@ -16,6 +16,7 @@ REQUIRED_PACKAGES = [
   'google-api-python-client',
   'oauth2client',
   'torch >= 1.0.0',
+  'torchvision',
   'tensorboardX',
   'easydict >= 1.9',
 ]
