@@ -83,7 +83,7 @@ def rsr():
         sub.sort(key=lambda x: int(x.stem[-4:]))
         sub = [Image.open(s) for s in sub]
         img = combine(Image.open(f), sub, FLAGS.stride)
-        img.save("{}/{}_sr.png".format(save_dir, f.stem))
+        img.save("{}/{}.png".format(save_dir, f.stem))
     else:
       print(" [!] Dividing...\n")
       for f in tqdm.tqdm(files, ascii=True):

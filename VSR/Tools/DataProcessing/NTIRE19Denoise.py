@@ -110,7 +110,10 @@ def denoise():
     metadata = np.asarray([m.split('_') for m in metadata])
     assert metadata.shape[1] == 7
   if val_mat:
-    val_mat = loadmat(val_mat)['ValidationNoisyBlocksSrgb']
+    val_mat = loadmat(val_mat)
+    key = list(val_mat.keys())[-1]
+    print(f"key=[{key}]")
+    val_mat = val_mat[key]
     assert val_mat.shape == (40, 32, 256, 256, 3)
     assert val_mat.dtype == 'uint8'
     g = enumerate(val_mat.reshape([-1, 256, 256, 3]))
@@ -119,6 +122,8 @@ def denoise():
       if metadata is not None:
         suffix = "{}_{}_{}_{}_{}_{}".format(*metadata[i // 32][1:])
         img.save("{}/{:04d}_{}.png".format(save_dir, i, suffix))
+      else:
+        img.save("{}/{:04d}.png".format(save_dir, i))
   if FLAGS.results:
     results = []
     g = sorted(Path(FLAGS.results).glob('*.png'))

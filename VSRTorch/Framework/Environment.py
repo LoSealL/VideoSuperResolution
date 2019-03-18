@@ -47,6 +47,7 @@ class Env:
     """Create session of tensorflow and build model graph"""
 
     self._startup()
+    self.model.display()
     return self
 
   def __exit__(self, exc_type, exc_val, exc_tb):

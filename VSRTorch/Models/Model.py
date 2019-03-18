@@ -4,6 +4,7 @@
 #  Update Date: 2019 - 3 - 13
 
 import torch
+import logging
 
 from ..Framework.Trainer import SRTrainer
 
@@ -51,7 +52,11 @@ class BasicModel:
     raise NotImplemented
 
   def display(self):
-    pass
+    num_params = 0
+    for m in self.modules.values():
+      for p in m.parameters():
+        num_params += p.nelement()
+    logging.getLogger('VSR').info(f"Total params: {num_params}")
 
   def cuda(self):
     for i in self.modules:

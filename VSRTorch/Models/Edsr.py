@@ -18,11 +18,12 @@ class EDSR(SuperResolution):
     super(EDSR, self).__init__(scale, 3)
     args = Config(kwargs)
     args.scale = [scale]
+    self.rgb_range = args.rgb_range
     self.edsr = edsr.EDSR(args)
     self.opt = torch.optim.Adam(self.trainable_variables(), 1e-4)
 
   def train(self, inputs, labels, learning_rate=None):
-    sr = self.edsr(inputs[0])
+    sr = self.edsr(inputs[0] * self.rgb_range) / self.rgb_range
     loss = F.l1_loss(sr, labels[0])
     if learning_rate:
       for param_group in self.opt.param_groups:
@@ -34,7 +35,8 @@ class EDSR(SuperResolution):
 
   def eval(self, inputs, labels=None, **kwargs):
     metrics = {}
-    sr = self.edsr(inputs[0]).cpu().detach()
+    sr = self.edsr(inputs[0] * self.rgb_range) / self.rgb_range
+    sr = sr.cpu().detach()
     if labels is not None:
       metrics['psnr'] = Metrics.psnr(sr.numpy(), labels[0].cpu().numpy())
     return [sr.numpy()], metrics
@@ -47,13 +49,14 @@ class MSDR(SuperResolution):
     args = Config(kwargs)
     args.scale = [2, 3, 4]
     self.scales = args.scale
+    self.rgb_range = args.rgb_range
     self.edsr = mdsr.MDSR(args)
     self.opt = torch.optim.Adam(self.trainable_variables(), 1e-4)
 
   def train(self, inputs, labels, learning_rate=None):
     # TODO
     self.edsr.set_scale(2)
-    sr = self.edsr(inputs[0])
+    sr = self.edsr(inputs[0] * self.rgb_range) / self.rgb_range
     loss = F.l1_loss(sr, labels[0])
     if learning_rate:
       for param_group in self.opt.param_groups:
@@ -66,7 +69,8 @@ class MSDR(SuperResolution):
   def eval(self, inputs, labels=None, **kwargs):
     metrics = {}
     self.edsr.set_scale(self.scales.index(self.scale))
-    sr = self.edsr(inputs[0]).cpu().detach()
+    sr = self.edsr(inputs[0] * self.rgb_range) / self.rgb_range
+    sr = sr.cpu().detach()
     if labels is not None:
       metrics['psnr'] = Metrics.psnr(sr.numpy(), labels[0].cpu().numpy())
     return [sr.numpy()], metrics

@@ -1,7 +1,7 @@
 from setuptools import find_packages
 from setuptools import setup
 
-VERSION = '0.6.4'
+VERSION = '0.7.0'
 
 REQUIRED_PACKAGES = [
   'numpy',
@@ -13,6 +13,10 @@ REQUIRED_PACKAGES = [
   'tqdm',
   'h5py',
   'scipy',
+  'google-api-python-client',
+  'oauth2client',
+  'torch >= 1.0.0',
+  'tensorboardX',
   'easydict >= 1.9',
 ]
 

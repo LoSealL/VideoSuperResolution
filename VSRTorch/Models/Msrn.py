@@ -7,23 +7,23 @@ import torch
 import torch.nn.functional as F
 
 from .Model import SuperResolution
-from .rcan import rcan
+from .msrn import msrn
 from ..Util import Metrics
 from VSR.Util.Config import Config
 
 
-class RCAN(SuperResolution):
+class MSRN(SuperResolution):
 
   def __init__(self, scale, **kwargs):
-    super(RCAN, self).__init__(scale, 3)
+    super(MSRN, self).__init__(scale, 3)
     args = Config(kwargs)
     args.scale = [scale]
     self.rgb_range = args.rgb_range
-    self.rcan = rcan.RCAN(args)
+    self.msrn = msrn.MSRN(args)
     self.opt = torch.optim.Adam(self.trainable_variables(), 1e-4)
 
   def train(self, inputs, labels, learning_rate=None):
-    sr = self.rcan(inputs[0] * self.rgb_range) / self.rgb_range
+    sr = self.msrn(inputs[0] * self.rgb_range) / self.rgb_range
     loss = F.l1_loss(sr, labels[0])
     if learning_rate:
       for param_group in self.opt.param_groups:
@@ -35,7 +35,7 @@ class RCAN(SuperResolution):
 
   def eval(self, inputs, labels=None, **kwargs):
     metrics = {}
-    sr = self.rcan(inputs[0] * self.rgb_range) / self.rgb_range
+    sr = self.msrn(inputs[0] * self.rgb_range) / self.rgb_range
     sr = sr.cpu().detach()
     if labels is not None:
       metrics['psnr'] = Metrics.psnr(sr.numpy(), labels[0].cpu().numpy())

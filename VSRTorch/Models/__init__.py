@@ -8,11 +8,13 @@ import importlib
 __all__ = ['get_model', 'list_supported_models']
 
 models = {
+  # alias: (file, class)
   'edsr': ('Edsr', 'EDSR'),
   'carn': ('Carn', 'CARN'),
   'dbpn': ('Dbpn', 'DBPN'),
   'rcan': ('Rcan', 'RCAN'),
   'esrgan': ('Esrgan', 'ESRGAN'),
+  'msrn': ('Msrn', 'MSRN'),
   'rsr': ('Rsr', 'RSR'),
   'drn': ('Drn', 'DRN'),
 }

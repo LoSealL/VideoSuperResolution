@@ -14,21 +14,13 @@ Path:
   BSD100: BSD100_SR/image_SRF_2/*HR.*
   BSD500-Train: BSR_bsds500/BSR/BSDS500/data/images/train/*.jpg
   BSD500-Val: BSR_bsds500/BSR/BSDS500/data/images/val/*.jpg
-  BSD500-Test: BSR_bsds500/BSR/BSDS500/data/images/test/*.jpg
   91-IMAGE: 91-image/
   IMAGENET: Imagenet/20180122/*.jpg
   GOPRO-Train: GOPRO_Large_all/train
-  GOPRO-Val: GOPRO_Large_all/test
   MCL-V: MCL-V/train/*.yuv
   WATERLOO: exploration_database_and_code/pristine_images/
   DIV2K-Train: DIV2K/DIV2K_train_HR/
   DIV2K-Val: DIV2K/DIV2K_valid_HR/
-  DIV2K-Pred: DIV2K/DIV2K_valid_LR_bicubic/X4/
-  NTIRE-Dehaze-GT: NTIRE19/Dehaze/TrainGT
-  NTIRE-Dehaze-Hazy: NTIRE19/Dehaze/TrainHazy
-  NTIRE-Dehaze-ValHazy: NTIRE19/Dehaze/ValidationHazy
-  SIDD-GT-SRGB: NTIRE19/Denoise/SIDD_Medium_Srgb/Data/**/*GT_SRGB_010.png
-  SIDD-NOISY-SRGB: NTIRE19/Denoise/SIDD_Medium_Srgb/Data/**/*NOISY_SRGB_010.png
   # FlyingChairs datasets are split with below file >>
   # https://lmb.informatik.uni-freiburg.de/resources/datasets/FlyingChairs/FlyingChairs_train_val.txt
   # but for convenience, all .flo files are put into a separate folder 'flow'
@@ -39,11 +31,15 @@ Path:
   FlyingChairsFlow: FlyingChairs/flow/*.flo
 
 Path_Tracked:
-  URBAN100: Urban100_SR/image_SRF_4/*HR.*
-  SUNHAY80: SunHays80_SR/image_SRF_8/*HR.*
   SET5: Set5_SR/Set5/image_SRF_4/*HR.*
   SET14: Set14_SR/Set14/image_SRF_4/*HR.*
+  BSD100: BSD100_SR/image_SRF_4/*HR.*
+  URBAN100: Urban100_SR/image_SRF_4/*HR.*
+  SUNHAY80: SunHays80_SR/image_SRF_8/*HR.*
+  BSD500: BSR_bsds500/BSR/BSDS500/data/images/test/*.jpg
   VID4-HR: vid4/original/
+  GOPRO-Val: GOPRO_Large_all/test
+  SIDD-VAL: NTIRE19/Denoise/validation_corrected
 
 # bind datasets to a name, called in scripts
 Dataset:
@@ -70,17 +66,10 @@ Dataset:
   DIV2K:  # NTIRE-2017 Challenge
     train: DIV2K-Train
     val: [DIV2K-Val]
-    test: [SET5, SET14]
 
-  DW2K:
-    train: [DIV2K-Train, WATERLOO]
+  DW2K: # Combined DIV2K & Waterloo
+    train: [DIV2K-Train, WATERLOO, BSD500-Train]
     val: [DIV2K-Val]
-    test: []
-
-  DW2KTF:
-    train: ["dw2k-train.tfrecords"]
-    val: ["dw2k-val.tfrecords"]
-    test: []
 
   MCL-V:  # http://mcl.usc.edu/mcl-v-database/, small set videos
     train: MCL-V
@@ -93,65 +82,56 @@ Dataset:
       width: 1920
       height: 1080
 
-  GOPRO: # https://github.com/SeungjunNah/DeepDeblur_release
-    train: [GOPRO-Train]
-    val: [GOPRO-Val]
-    test: [VID4-HR]
+#  GOPRO: # https://github.com/SeungjunNah/DeepDeblur_release
+#    train: [GOPRO-Train]
+#    val: [GOPRO-Val]
+#    test: [VID4-HR]
 
   VID4:  # popular video benchmark baseline
     test: VID4-HR
     infer: vid4/input/
 
-  CHAIRS:  # flying chairs, a popular optical flow train-set
-    train: FlyingChairs
-    flow: FlyingChairsFlow
-    val: FlyingChairsVal
-    test: FlyingChairsTest
-
-  MINICHAIRS:  # a small set of flying chairs, for quick testing
-    train: MiniFlyingChairs
-    flow: FlyingChairsFlow
-    val: FlyingChairsVal
-    test: FlyingChairsTest
-
-  NTIRE19:
-    train: [NTIRE-Dehaze-GT]
-    pair: [NTIRE-Dehaze-Hazy]
-    val: []
-    test: []
-
-  NTIRE19TF:
-    train: "ntire_dehaze-train.tfrecords"
-    val: []
-    test: "ntire_dehaze-test.tfrecords"
+#  CHAIRS:  # flying chairs, a popular optical flow train-set
+#    train: FlyingChairs
+#    flow: FlyingChairsFlow
+#    val: FlyingChairsVal
+#    test: FlyingChairsTest
+#
+#  MINICHAIRS:  # a small set of flying chairs, for quick testing
+#    train: MiniFlyingChairs
+#    flow: FlyingChairsFlow
+#    val: FlyingChairsVal
+#    test: FlyingChairsTest
 
   SIDD:
-    train: SIDD-GT-SRGB
-    pair: SIDD-NOISY-SRGB
-    val: "NTIRE19/Denoise/validation"
-    test: ["NTIRE19/Denoise/validation"]
+    train: "NTIRE19/Denoise/train/drsr_patches/**/*.png"
+    train_pair: "NTIRE19/Denoise/train/noisy_patches/**/*.png"
+    val: "NTIRE19/Denoise/train/gt_patches/**/*.png"
+    val_pair: "NTIRE19/Denoise/train/noisy_patches/**/*.png"
+    infer: ["NTIRE19/Denoise/validation_corrected"]
 
-  SIDDTF:
-    train: "ntire_denoise-train.tfrecords"
-    val: "NTIRE19/Denoise/validation"
-    test: ["NTIRE19/Denoise/validation"]
+  RSR:
+    train: ["NTIRE19/SR/EXGT"]
+    train_pair: ["NTIRE19/SR/EXLR/"]
+    val: ["NTIRE19/SR/EXGT/"]
+    val_pair: ["NTIRE19/SR/EXLR/"]
 
-  CELEBA:  # center cropped and resize to 64x64
-    # test images are randomly selected (10,000 samples)
-    # please refer to VSR/Tools/DataProcessing/CelebA.py for more details
-    train: celeba/resize64/*.png
-    val: [celeba/test64/000001.png]  # just use as a placeholder
-    test: [celeba/test64/*.png]
-    infer: []
-
-  CIFAR10:  # well-known cifar-10
-    # alpha version, loading ndarray data(s)
-    param:
-      mode: numpy  # specify `mode` as "numpy"
-      numpy:
-        # execution python source
-        exec: '(x,_),(y,_)=tf.keras.datasets.cifar10.load_data()'
-        # specify result variables
-        train: 'x'
-        val: 'y'
-        test: 'y[:10000]'
+#  CELEBA:  # center cropped and resize to 64x64
+#    # test images are randomly selected (10,000 samples)
+#    # please refer to VSR/Tools/DataProcessing/CelebA.py for more details
+#    train: celeba/resize64/*.png
+#    val: [celeba/test64/000001.png]  # just use as a placeholder
+#    test: [celeba/test64/*.png]
+#    infer: []
+#
+#  CIFAR10:  # well-known cifar-10
+#    # alpha version, loading ndarray data(s)
+#    param:
+#      mode: numpy  # specify `mode` as "numpy"
+#      numpy:
+#        # execution python source
+#        exec: '(x,_),(y,_)=tf.keras.datasets.cifar10.load_data()'
+#        # specify result variables
+#        train: 'x'
+#        val: 'y'
+#        test: 'y[:10000]'

@@ -131,8 +131,6 @@ class RCAN(nn.Module):
   def load_state_dict(self, state_dict, strict=False):
     own_state = self.state_dict()
     for name, param in state_dict.items():
-      if 'sub_mean' in name or 'add_mean' in name:
-        continue
       if name in own_state:
         if isinstance(param, nn.Parameter):
           param = param.data
