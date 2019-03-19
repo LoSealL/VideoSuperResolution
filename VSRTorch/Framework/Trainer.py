@@ -46,7 +46,7 @@ def _ensemble_reduce_mean(outputs):
 def to_tensor(x, cuda=False):
   x = torch.Tensor(x.copy())
   x = x.transpose(1, 2).transpose(1, 3).contiguous() / 255.0
-  if cuda:
+  if cuda and torch.cuda.is_available():
     x = x.cuda()
   return x
 

@@ -60,7 +60,8 @@ class BasicModel:
 
   def cuda(self):
     for i in self.modules:
-      self.modules[i] = self.modules[i].cuda()
+      if torch.cuda.is_available():
+        self.modules[i] = self.modules[i].cuda()
 
   @property
   def trainer(self):
