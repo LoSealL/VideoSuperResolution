@@ -176,6 +176,10 @@ class Trainer:
     else:
       self.model.export_saved_model(export_dir)
 
+  def set_seed(self, seed):
+    np.random.seed(seed)
+    tf.set_random_seed(seed)
+
   def fit(self, *args, **kwargs):
     raise NotImplementedError
 

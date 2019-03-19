@@ -35,6 +35,7 @@ tf.flags.DEFINE_integer('threads', 1, lower_bound=1,
                         help="number of threads to use while reading data")
 tf.flags.DEFINE_integer('output_index', -1,
                         help="specify access index of output array")
+tf.flags.DEFINE_integer('seed', None, help="set random seed")
 tf.flags.DEFINE_string('c', None, help="specify a configure file")
 tf.flags.DEFINE_string('p', None,
                        help="specify a parameter file, "
@@ -302,6 +303,8 @@ def run(*args, **kwargs):
   if opt.v:
     dump(opt)
   with trainer(model, root, verbosity) as t:
+    if opt.seed is not None:
+      t.set_seed(opt.seed)
     # prepare loader
     loader = partial(QuickLoader, n_threads=opt.threads)
     train_loader = loader(train_data, 'train', train_config,

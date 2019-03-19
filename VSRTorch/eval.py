@@ -37,6 +37,7 @@ parser.add_argument("--thread", type=int, default=8,
                     help="Specify loading threads number")
 parser.add_argument("--output_index", type=int, default=-1,
                     help="specify access index of output array")
+parser.add_argument("--seed", type=int, default=None, help="set random seed")
 parser.add_argument("--cuda", action="store_true")
 parser.add_argument("--auto_rename", action="store_true")
 parser.add_argument("--ensemble", action="store_true")
@@ -102,6 +103,8 @@ def main():
   if opt.verbose:
     dump(opt)
   with trainer(model, root, verbosity, flags.pth) as t:
+    if flags.seed is not None:
+      t.set_seed(flags.seed)
     loader = QuickLoader(test_data, 'test', loader_config,
                          n_threads=flags.thread)
     if run_benchmark:

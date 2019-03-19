@@ -9,57 +9,113 @@ Architectures of common residual blocks used in SR researches
 import tensorflow as tf
 
 from ..Framework.LayersHelper import Layers
+from ..Util.Utility import to_list
 
 
-def rcab(layers: Layers, inputs,
-         filters=64, ratio=16, scope=None, reuse=None):
+def rdn(layers: Layers, inputs, depth, scaling=1.0,
+        scope=None, reuse=None, **kwargs):
+  """Residual Dense Block (CVPR18)"""
+
+  k = kwargs.pop('kernel_size', 3)
+  f = kwargs.pop('filters', 64)
+  act = kwargs.pop('activation', 'relu')
+  kwargs.pop('name', None)
+  with tf.variable_scope(scope, 'RDN', reuse=reuse):
+    fl = [inputs]
+    for i in range(depth - 1):
+      x = layers.conv2d(tf.concat(fl, -1), f, k, activation=act, **kwargs)
+      fl.append(x)
+    x = layers.conv2d(tf.concat(fl, -1), f, k, **kwargs)
+    return x * scaling + inputs
+
+
+def rcab(layers: Layers, inputs, ratio=16, scope=None, reuse=None, **kwargs):
   """Residual channel attention block (ECCV18)
 
   """
+
+  k = kwargs.pop('kernel_size', 3)
+  f = kwargs.pop('filters', 64)
+  act = kwargs.pop('activation', 'relu')
   with tf.variable_scope(scope, 'RCAB', reuse=reuse):
-    pre_input = inputs
-    x = layers.relu_conv2d(inputs, filters, 3)
-    y = layers.conv2d(x, filters, 3)
+    x = layers.conv2d(inputs, f, k, activation=act, **kwargs)
+    y = layers.conv2d(x, f, k, **kwargs)
     x = tf.reduce_mean(y, axis=[1, 2], keepdims=True)
-    x = layers.relu_conv2d(x, filters // ratio, 1)
-    x = layers.conv2d(x, filters, 1, activation=tf.nn.sigmoid)
+    x = layers.conv2d(x, f // ratio, 1, activation=act, **kwargs)
+    x = layers.conv2d(x, f, 1, activation=tf.nn.sigmoid, **kwargs)
     y *= x
-    y += pre_input
-  return y
+  return y + inputs
 
 
-def msrb(layers: Layers, inputs, filters=64, scope=None, reuse=None):
+def msrb(layers: Layers, inputs, scope=None, reuse=None, **kwargs):
   """Multi-scale residual block (ECCV18)
 
   """
+
+  k1, k2 = kwargs.pop('kernel_size', (3, 5))
+  f = kwargs.pop('filters', 64)
+  act = kwargs.pop('activation', 'relu')
   with tf.variable_scope(scope, 'MSRB', reuse=reuse):
-    pre_input = inputs
-    s1 = layers.relu_conv2d(inputs, filters, 3)
-    p1 = layers.relu_conv2d(inputs, filters, 5)
+    s1 = layers.conv2d(inputs, f, k1, activation=act)
+    p1 = layers.conv2d(inputs, f, k2, activation=act)
 
-    s2 = layers.relu_conv2d(tf.concat([s1, p1], -1), filters * 2, 3)
-    p2 = layers.relu_conv2d(tf.concat([p1, s1], -1), filters * 2, 5)
+    s2 = layers.conv2d(tf.concat([s1, p1], -1), f * 2, k1, activation=act)
+    p2 = layers.conv2d(tf.concat([p1, s1], -1), f * 2, k2, activation=act)
 
-    s = layers.conv2d(tf.concat([s2, p2], -1), filters, 1)
-    s += pre_input
-  return s
+    s = layers.conv2d(tf.concat([s2, p2], -1), f, 1)
+  return s + inputs
 
 
-def cascade_block(layers: Layers, inputs,
-                  filters=64, depth=4, scope=None, reuse=None):
+def cascade_block(layers: Layers, inputs, depth=4,
+                  scope=None, reuse=None, **kwargs):
   """Cascading residual block (ECCV18)
 
   """
+
+  k = kwargs.pop('kernel_size', 3)
+  f = kwargs.pop('filters', 64)
+  act = kwargs.pop('activation', 'relu')
   with tf.variable_scope(scope, 'CARB', reuse=reuse):
     feat = [inputs]
     for i in range(depth):
-      x = layers.resblock(inputs, filters, 3, activation='relu')
+      x = layers.resblock(inputs, f, k, activation=act)
       feat.append(x)
       inputs = layers.conv2d(
-        tf.concat(feat, axis=-1), filters, 1,
+        tf.concat(feat, axis=-1), f, 1,
         kernel_initializer='he_uniform')
-    inputs = layers.conv2d(inputs, filters, 3)
+    inputs = layers.conv2d(inputs, f, k)
     return inputs
+
+
+def cascade_rdn(layers: Layers, inputs, depth, use_ca=False,
+                scope=None, reuse=None, **kwargs):
+  """Cascaded residual dense block.
+  Args:
+    layers: child class of Layers
+    inputs: input tensor
+    depth: an int or list of 2 ints, representing number of rdbs
+    use_ca: insert channel attention layer
+    scope: scope name
+    reuse: reuse variables
+  """
+
+  k = kwargs.pop('kernel_size', 3)
+  f = kwargs.pop('filters', 64)
+  act = kwargs.pop('activation', 'relu')
+  kwargs.pop('name', None)
+  depth = to_list(depth, 2)
+  with tf.variable_scope(scope, 'CascadeRDN', reuse=reuse):
+    fl = [inputs]
+    x = inputs
+    for i in range(depth[0]):
+      x = rdn(layers, x, depth[1], kernel_size=k, filters=f, activation=act,
+              **kwargs)
+      if use_ca:
+        x = rcab(layers, x, kernel_size=k, filters=f, activation=act, **kwargs)
+      fl.append(x)
+      x = tf.concat(fl, -1)
+      x = layers.conv2d(x, f, 1, **kwargs)
+    return x
 
 
 def non_local(layers: Layers, inputs, filters=64, func=None, scaling=1,

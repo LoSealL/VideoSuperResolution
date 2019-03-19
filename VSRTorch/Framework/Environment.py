@@ -5,6 +5,8 @@
 
 import logging
 from pathlib import Path
+
+import numpy as np
 import torch
 
 
@@ -17,7 +19,6 @@ def _parse_ckpt_name(name):
     return 0
   model_name, epochs = Path(name).stem.split('.')[0].split('_')
   return int(epochs[2:])
-
 
 
 class Env:
@@ -97,3 +98,7 @@ class Env:
     self.last_epoch = self._restore_model(epoch, self._pth)
     self._restored = True
     return self.last_epoch
+
+  def set_seed(self, seed):
+    np.random.seed(seed)
+    torch.manual_seed(seed)

@@ -16,6 +16,7 @@ class CARN(SuperResolution):
     super(CARN, self).__init__(scale, channel, **kwargs)
     group = kwargs.get('group', 1)
     ms = kwargs.get('multi_scale', 0)
+    self.clip = kwargs.get('clip', 10)
     if group > 1:
       self.carn = carn_m.Net(group=group, scale=scale, multi_scale=ms)
     else:
@@ -30,6 +31,7 @@ class CARN(SuperResolution):
         param_group["lr"] = learning_rate
     self.opt.zero_grad()
     loss.backward()
+    torch.nn.utils.clip_grad_norm_(self.carn.parameters(), self.clip)
     self.opt.step()
     return {'l1': loss.detach().cpu().numpy()}
 

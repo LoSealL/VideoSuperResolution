@@ -44,6 +44,7 @@ parser.add_argument("--steps_per_epoch", type=int, default=200,
                     help="specify steps in every epoch training")
 parser.add_argument("--thread", type=int, default=8,
                     help="Specify loading threads number")
+parser.add_argument("--seed", type=int, default=None, help="set random seed")
 parser.add_argument("--pth", help="Specify the pre-trained model path. "
                                   "If not given, will search into `save_dir`.")
 parser.add_argument("--cuda", action="store_true")
@@ -98,6 +99,8 @@ def main():
   if opt.verbose:
     dump(opt)
   with trainer(model, root, verbosity, opt.pth) as t:
+    if opt.seed is not None:
+      t.set_seed(opt.seed)
     loader = QuickLoader(dataset, 'train', train_config, True, flags.thread)
     vloader = QuickLoader(dataset, 'val', train_config, False,
                           batch=1,

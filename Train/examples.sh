@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # show model configuration
 cat parameters/edsr.yaml
 
