@@ -18,7 +18,7 @@ fi
 echo "RSR_TEST_DIR=${RSR_TEST_DIR}"
 echo "RSR_SAVE_DIR=${RSR_SAVE_DIR}"
 
-pip install -e .
+pip install -q -e .
 python prepare_data.py --filter=rsr -q
 echo " [*] Model extracted into Results/rsr/save"
 python VSR/Tools/DataProcessing/NTIRE19RSR.py --ref_dir=${RSR_TEST_DIR} --patch_size=${_PATCH_SIZE} --stride=${_STRIDE} --save_dir=${RSR_SAVE_DIR}/1/
