@@ -107,10 +107,11 @@ def main():
       t.set_seed(flags.seed)
     loader = QuickLoader(test_data, 'test', loader_config,
                          n_threads=flags.thread)
+    loader_config.epoch = flags.epoch
     if run_benchmark:
-      t.benchmark(loader, loader_config, flags.epoch)
+      t.benchmark(loader, loader_config)
     else:
-      t.infer(loader, loader_config, flags.epoch)
+      t.infer(loader, loader_config)
 
 
 if __name__ == '__main__':

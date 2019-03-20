@@ -8,9 +8,9 @@ import time
 import numpy as np
 import torch
 import tqdm
-from tensorboardX import SummaryWriter
 
 from .Environment import Env
+from .Summary import Summarizer
 from VSR.Util.Config import Config
 
 
@@ -79,18 +79,17 @@ class SRTrainer(Env):
 
   def fit_init(self) -> bool:
     v = self.v
-    if self._restore() >= v.epochs:
+    v.epoch = self._restore()
+    if v.epoch >= v.epochs:
       return False
     self._logger.info('Fitting: {}'.format(self.model.name.upper()))
-    self.model.display()
-    self.model.writer = SummaryWriter(str(self._logd))
-    v.global_step = 0
+    v.writer = Summarizer(str(self._logd), self.model.name)
     return True
 
   def fit_close(self):
     # flush all pending summaries to disk
-    if self.v.summary_writer:
-      self.v.summary_writer.close()
+    if isinstance(self.v.writer, Summarizer):
+      self.v.writer.close()
 
   def fit(self, loaders, config, **kwargs):
     v = self.query_config(config, **kwargs)
@@ -106,7 +105,7 @@ class SRTrainer(Env):
       date = time.strftime('%Y-%m-%d %T', time.localtime())
       v.avg_meas = {}
       if v.lr_schedule and callable(v.lr_schedule):
-        v.lr = v.lr_schedule(steps=v.global_step)
+        v.lr = v.lr_schedule(steps=v.epoch)
       print('| {} | Epoch: {}/{} | LR: {:.2g} |'.format(
         date, v.epoch, v.epochs, v.lr))
       with tqdm.tqdm(train_iter, unit='batch', ascii=True) as r:
@@ -116,9 +115,11 @@ class SRTrainer(Env):
           self.fn_train_each_step(label, feature, name, post)
           r.set_postfix(v.loss)
       for _k, _v in v.avg_meas.items():
-        print('| Epoch average {} = {:.6f} |'.format(_k, np.mean(_v)))
+        _v = np.mean(_v)
+        v.writer.scalar(_k, _v, step=v.epoch, collection='train')
+        print('| Epoch average {} = {:.6f} |'.format(_k, _v))
       if v.epoch % v.validate_every_n_epoch == 0:
-        self.benchmark(v.val_loader, v, epoch=v.epoch)
+        self.benchmark(v.val_loader, v)
       self._save_model(v.epoch)
     self.fit_close()
 
@@ -131,14 +132,13 @@ class SRTrainer(Env):
     feature = to_tensor(feature, v.cuda)
     label = to_tensor(label, v.cuda)
     loss = self.model.train([feature], [label], v.lr)
-    v.global_step += 1
     for _k, _v in loss.items():
       v.avg_meas[_k] = \
         v.avg_meas[_k] + [_v] if v.avg_meas.get(_k) else [_v]
       loss[_k] = '{:08.5f}'.format(_v)
     v.loss = loss
 
-  def benchmark(self, loader, config, epoch=None, **kwargs):
+  def benchmark(self, loader, config, **kwargs):
     """Benchmark/validate the model.
 
     Args:
@@ -149,7 +149,7 @@ class SRTrainer(Env):
     v = self.query_config(config, **kwargs)
     v.color_format = loader.color_format
 
-    self._restore(epoch)
+    self._restore(config.epoch)
     v.mean_metrics = {}
     v.loader = loader
     it = v.loader.make_one_shot_iterator(v.memory_limit, shuffle=v.random_val)
@@ -158,7 +158,9 @@ class SRTrainer(Env):
       label, feature, name, post = items[:4]
       self.fn_benchmark_each_step(label, feature, name, post)
     for _k, _v in v.mean_metrics.items():
-      print('{}: {:.6f}'.format(_k, np.mean(_v)), end=', ')
+      _v = np.mean(_v)
+      v.writer.scalar(_k, _v, step=v.epoch, collection='eval')
+      print('{}: {:.6f}'.format(_k, _v), end=', ')
     print('')
 
   def fn_benchmark_each_step(self, label=None, feature=None, name=None,
@@ -181,7 +183,7 @@ class SRTrainer(Env):
       outputs = fn(outputs, input=origin_feat, label=label, name=name,
                    mode=v.color_format, subdir=v.subdir)
 
-  def infer(self, loader, config, epoch=None, **kwargs):
+  def infer(self, loader, config, **kwargs):
     """Infer SR images.
 
     Args:
@@ -192,7 +194,7 @@ class SRTrainer(Env):
     v = self.query_config(config, **kwargs)
     v.color_format = loader.color_format
 
-    self._restore(epoch)
+    self._restore(config.epoch)
     it = loader.make_one_shot_iterator()
     if len(it):
       self._logger.info('Inferring {} at epoch {}'.format(

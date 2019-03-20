@@ -4,9 +4,9 @@ python:
 cache: pip
 
 install:
-  - pip install tensorflow
-  - pip install google-api-python-client oauth2client
-  - pip install -U -e .
+  - pip install -q tensorflow google-api-python-client oauth2client
+  - pip install -q https://download.pytorch.org/whl/cpu/torch-1.0.1.post2-cp36-cp36m-linux_x86_64.whl
+  - pip install -U -q -e .
 script:
   - pytest -v UTest/correlation_test.py UTest/dataset_test.py UTest/virtualfile_test.py --disable-warnings
   - pytest -v UTest/image_test.py --disable-warnings

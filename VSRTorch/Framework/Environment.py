@@ -84,12 +84,23 @@ class Env:
         except ValueError:
           last_epoch = 0
         model.load_state_dict(torch.load(str(fp)))
+    if pth is None:
+      for key, opt in self.model.opts.items():
+        fp = self._saved / f'{key}.pth'
+        try:
+          opt.load_state_dict(torch.load(str(fp)))
+        except (ValueError, FileNotFoundError):
+          self._logger.warning(f"trying to restore state for optimizer {key}, "
+                               "but failed.")
     return last_epoch
 
   def _save_model(self, step):
     for key, model in self.model.modules.items():
       fp = self._saved / _make_ckpt_name(key, step)
       torch.save(model.state_dict(), str(fp))
+    for key, opt in self.model.opts.items():
+      fp = self._saved / f'{key}.pth'
+      torch.save(opt.state_dict(), str(fp))
 
   def _restore(self, epoch=None):
     # restore graph

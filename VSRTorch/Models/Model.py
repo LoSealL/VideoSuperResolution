@@ -13,11 +13,14 @@ class BasicModel:
 
   def __init__(self, **kwargs):
     self.modules = {}
+    self.opts = {}
     self.name = ''
-    self.writer = None
     self._trainer = None
 
   def __setattr__(self, key, value):
+    if key in ('modules', 'opts',):
+      if hasattr(self, key):
+        raise ValueError("Can't overwrite built-in attributes of BasicModel")
     if isinstance(value, torch.nn.Module):
       if key in self.modules:
         if self.modules[key] is value:
@@ -27,6 +30,14 @@ class BasicModel:
       else:
         self.modules[key] = value
         self.name += f'[{key}]'
+    if isinstance(value, torch.optim.Optimizer):
+      if key in self.opts:
+        if self.opts[key] is value:
+          return
+        else:
+          raise NotImplemented
+      else:
+        self.opts[key] = value
 
     return super(BasicModel, self).__setattr__(key, value)
 

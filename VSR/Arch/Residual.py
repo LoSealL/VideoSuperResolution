@@ -203,8 +203,8 @@ def non_local(layers: Layers, inputs, filters=64, func=None, scaling=1,
     else:
       f = embedded
     corr = f(inputs)
-    y = tf.matmul(corr, g)
-    y = tf.reshape(y, [shape[0], shape[1], shape[2], -1])
+    y = tf.matmul(corr, flatten(g))
+    y = tf.reshape(y, [shape[0], shape[1], shape[2], channels // scaling])
     y = embedding(y, channels, 1)
     if use_bn:
       y = layers.batch_norm(y, layers.training_phase)

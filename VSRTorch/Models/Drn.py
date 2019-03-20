@@ -6,12 +6,11 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from tensorboardX import SummaryWriter
 
 from .Model import SuperResolution
 from .Arch import CascadeRdn, Upsample
 from ..Util import Metrics, Utility
-from VSR.Util.Config import Config
+from ..Framework.Summary import get_writer
 
 
 class NoiseExtractor(nn.Module):
@@ -139,10 +138,9 @@ class DRN(SuperResolution):
     if labels is not None:
       metrics['psnr'] = Metrics.psnr(clean.numpy(), label0.cpu().numpy())
 
-    if 'epoch' in kwargs:
-      self.writer.add_scalar('psnr', metrics['psnr'], kwargs['epoch'])
-      self.writer.add_image('clean', clean[0], kwargs['epoch'])
-      self.writer.add_image('up2', sub1[0], kwargs['epoch'])
-      self.writer.add_image('up4', sub2[0], kwargs['epoch'])
-      self.writer.add_image('up8', sub4[0], kwargs['epoch'])
+    writer = get_writer(self.name)
+    writer.image('clean', clean[0])
+    writer.image('up2', sub1[0])
+    writer.image('up4', sub2[0])
+    writer.image('up8', sub4[0])
     return [clean.numpy(), sub1.numpy(), sub2.numpy(), sub4.numpy()], metrics

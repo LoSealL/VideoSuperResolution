@@ -90,7 +90,7 @@ You can also do it step-by-step as follows.
    The output will be saved in `../Results/drn/<your-image-folder-name>`. To pack them into mat file:
    ```bash
    cd ..
-   python VSR/Tools/DataProcessing/NTIRE19Denoise.py --results=Results/drn/<your-image-folder-name>
+   python VSR/Tools/DataProcessing/NTIRE19Denoise.py --results=Results/drn/<your-image-folder-name> --save_dir=path/to/saving/folder
    ```
    
    *If OOM happened, try not to enable `--cuda` flag.

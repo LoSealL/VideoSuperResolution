@@ -35,7 +35,6 @@ tf.flags.DEFINE_integer('depth', 1, help="depth number for video.")
 tf.flags.DEFINE_integer('num', 10000, help="number of samples to generate.")
 tf.flags.DEFINE_integer('jpeg_min_quality', None,
                         help="if None, save image in JPEG with quality [q, 100]")
-tf.flags.DEFINE_integer('seed', None, help="random seed.")
 tf.flags.DEFINE_string('crf', None, help="path to CRF npz file.")
 tf.flags.DEFINE_multi_float('sigma', 0,
                             help="must pass 2 float values: (poison, gaussian)")
