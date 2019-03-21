@@ -72,7 +72,7 @@ You can also do it step-by-step as follows.
    Entering VSRTorch folder
    ```bash
    cd VSRTorch
-   python eval.py rsr --cuda -t=/path/to/divided/test/images/folder --ensemble --pth=../Results/rsr/save/rsr_ep2000.pth
+   python eval.py rsr --cuda -t=/path/to/divided/test/images/folder --pth=../Results/rsr/save/rsr_ep2000.pth --ensemble
    ```
    The output will be saved in `../Results/rsr/<your-image-folder-name>`. To combine them back together:
    ```bash
@@ -85,7 +85,7 @@ You can also do it step-by-step as follows.
    Entering VSRTorch folder
    ```bash
    cd VSRTorch
-   python eval.py drn --cuda -t=/path/to/divided/test/images/folder --pth=../Results/drn/save/drn_ep2000.pth --output_index=0
+   python eval.py drn --cuda -t=/path/to/divided/test/images/folder --pth=../Results/drn/save/drn_ep2000.pth --output_index=0 --ensemble
    ```
    The output will be saved in `../Results/drn/<your-image-folder-name>`. To pack them into mat file:
    ```bash

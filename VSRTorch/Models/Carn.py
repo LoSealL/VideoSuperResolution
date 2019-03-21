@@ -41,3 +41,12 @@ class CARN(SuperResolution):
     if labels is not None:
       metrics['psnr'] = Metrics.psnr(sr.numpy(), labels[0].cpu().numpy())
     return [sr.numpy()], metrics
+
+  def export(self, export_dir):
+    """An example of how to export ONNX format"""
+
+    # ONNX needs input placeholder to export model!
+    # Sounds stupid to set a 48x48 inputs.
+    inputs = torch.randn(1, self.channel, 48, 48, requires_grad=True)
+    scale = torch.Tensor(self.scale)
+    torch.onnx.export(self.carn, (inputs, scale), export_dir / 'carn.onnx')

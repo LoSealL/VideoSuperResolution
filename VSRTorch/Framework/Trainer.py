@@ -81,6 +81,8 @@ class SRTrainer(Env):
     v = self.v
     v.epoch = self._restore()
     if v.epoch >= v.epochs:
+      self._logger.info(f'Found pre-trained epoch {v.epoch}>=target {v.epochs},'
+                        ' quit fitting.')
       return False
     self._logger.info('Fitting: {}'.format(self.model.name.upper()))
     v.writer = Summarizer(str(self._logd), self.model.name)
@@ -90,6 +92,7 @@ class SRTrainer(Env):
     # flush all pending summaries to disk
     if isinstance(self.v.writer, Summarizer):
       self.v.writer.close()
+    self._logger.info(f'Training {self.model.name.upper()} finished.')
 
   def fit(self, loaders, config, **kwargs):
     v = self.query_config(config, **kwargs)

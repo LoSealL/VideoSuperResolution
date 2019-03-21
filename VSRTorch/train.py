@@ -26,6 +26,7 @@ parser.add_argument("--data_config", default="../Data/datasets.yaml",
                     help="Specify dataset config file")
 parser.add_argument("--dataset", default='none',
                     help="specify a dataset alias for training")
+parser.add_argument("--export", help="export ONNX (needs support from model).")
 parser.add_argument("-c", "--comment", default=None,
                     help="extend a comment string after saving folder")
 parser.add_argument('--memory_limit', default=None,
@@ -107,6 +108,8 @@ def main():
                           crop=opt.val_data_crop,
                           steps_per_epoch=opt.val_num)
     t.fit([loader, vloader], train_config)
+    if opt.export:
+      t.export(opt.export)
 
 
 if __name__ == '__main__':

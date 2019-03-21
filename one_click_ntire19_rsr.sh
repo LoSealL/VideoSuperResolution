@@ -5,8 +5,14 @@
 
 #RSR_TEST_DIR=
 #RSR_SAVE_DIR=
-_PATCH_SIZE=768
-_STRIDE=760
+if [ -z ${_PATCH_SIZE} ];
+then
+  _PATCH_SIZE=768
+fi
+if [ -z ${_STRIDE} ];
+then
+  _STRIDE=760
+fi
 
 # git clone https://github.com/LoSealL/VideoSuperResolution -b ntire_2019 && cd VideoSuperResolution
 
@@ -17,6 +23,7 @@ fi
 
 echo "RSR_TEST_DIR=${RSR_TEST_DIR}"
 echo "RSR_SAVE_DIR=${RSR_SAVE_DIR}"
+echo "Patch size=${_PATCH_SIZE}, stride=${_STRIDE}"
 
 pip install -q -e .
 python prepare_data.py --filter=rsr -q

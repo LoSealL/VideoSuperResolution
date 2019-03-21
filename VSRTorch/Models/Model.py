@@ -10,6 +10,14 @@ from ..Framework.Trainer import SRTrainer
 
 
 class BasicModel:
+  """Trainable model wrapper for PyTorch nn.Module objects
+
+  There are 2 built-in attributes:
+    - modules: contains a K-V pair of `str: nn.Module`. It will be automatically
+      appended if a derived object assign any attribute with `nn.Module` object.
+    - opts: contains a K-V pair of `str: optim.Optimizer`. Will be automatically
+      appended if a derived object assign any attribute with `optim.Optimizer`.
+  """
 
   def __init__(self, **kwargs):
     self.modules = {}
@@ -20,13 +28,14 @@ class BasicModel:
   def __setattr__(self, key, value):
     if key in ('modules', 'opts',):
       if hasattr(self, key):
-        raise ValueError("Can't overwrite built-in attributes of BasicModel")
+        raise ValueError(f"Can't overwrite built-in '{key}' of BasicModel")
     if isinstance(value, torch.nn.Module):
       if key in self.modules:
         if self.modules[key] is value:
           return
         else:
-          raise NotImplemented
+          # TODO: why assign twice??
+          raise NotImplementedError
       else:
         self.modules[key] = value
         self.name += f'[{key}]'
@@ -35,7 +44,7 @@ class BasicModel:
         if self.opts[key] is value:
           return
         else:
-          raise NotImplemented
+          raise NotImplementedError
       else:
         self.opts[key] = value
 
@@ -53,14 +62,14 @@ class BasicModel:
       _m.train()
 
   def train(self, *args, **kwargs):
-    raise NotImplemented
+    raise NotImplementedError
 
   def to_eval(self):
     for _m in self.modules.values():
       _m.eval()
 
   def eval(self, *args, **kwargs):
-    raise NotImplemented
+    raise NotImplementedError
 
   def display(self):
     num_params = 0
@@ -73,6 +82,15 @@ class BasicModel:
     for i in self.modules:
       if torch.cuda.is_available():
         self.modules[i] = self.modules[i].cuda()
+
+  def export(self, export_dir):
+    """export ONNX model.
+
+    Args:
+      export_dir: path to save onnx files.
+    """
+
+    raise NotImplementedError("Should implement in specific model!")
 
   @property
   def trainer(self):

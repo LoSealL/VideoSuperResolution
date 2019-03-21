@@ -137,10 +137,10 @@ class DRN(SuperResolution):
     sub4 = outputs[3].detach().cpu()
     if labels is not None:
       metrics['psnr'] = Metrics.psnr(clean.numpy(), label0.cpu().numpy())
-
-    writer = get_writer(self.name)
-    writer.image('clean', clean[0])
-    writer.image('up2', sub1[0])
-    writer.image('up4', sub2[0])
-    writer.image('up8', sub4[0])
+      writer = get_writer(self.name)
+      if writer is not None:
+        writer.image('clean', clean[0])
+        writer.image('up2', sub1[0])
+        writer.image('up4', sub2[0])
+        writer.image('up8', sub4[0])
     return [clean.numpy(), sub1.numpy(), sub2.numpy(), sub4.numpy()], metrics
