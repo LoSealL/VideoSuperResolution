@@ -119,7 +119,8 @@ class SRTrainer(Env):
           r.set_postfix(v.loss)
       for _k, _v in v.avg_meas.items():
         _v = np.mean(_v)
-        v.writer.scalar(_k, _v, step=v.epoch, collection='train')
+        if isinstance(self.v.writer, Summarizer):
+          v.writer.scalar(_k, _v, step=v.epoch, collection='train')
         print('| Epoch average {} = {:.6f} |'.format(_k, _v))
       if v.epoch % v.validate_every_n_epoch == 0:
         self.benchmark(v.val_loader, v)
@@ -162,7 +163,8 @@ class SRTrainer(Env):
       self.fn_benchmark_each_step(label, feature, name, post)
     for _k, _v in v.mean_metrics.items():
       _v = np.mean(_v)
-      v.writer.scalar(_k, _v, step=v.epoch, collection='eval')
+      if isinstance(self.v.writer, Summarizer):
+        v.writer.scalar(_k, _v, step=v.epoch, collection='eval')
       print('{}: {:.6f}'.format(_k, _v), end=', ')
     print('')
 
