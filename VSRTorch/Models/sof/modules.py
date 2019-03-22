@@ -137,7 +137,8 @@ class OFRnet(nn.Module):
     optical_flow_L3 = self.conv_L3_2(optical_flow_L3)
     optical_flow_L3 = self.shuffle(optical_flow_L3) + self.final_upsample(
       optical_flow_L2)  # *4
-    return optical_flow_L3
+
+    return optical_flow_L3, optical_flow_L2, optical_flow_L1
 
 
 class SRnet(nn.Module):
@@ -181,8 +182,8 @@ class SOFVSR(nn.Module):
                           torch.unsqueeze(x[:, 1, :, :], dim=1)), 1)
     input_21 = torch.cat((torch.unsqueeze(x[:, 2, :, :], dim=1),
                           torch.unsqueeze(x[:, 1, :, :], dim=1)), 1)
-    flow_01_L3 = self.OFRnet(input_01)
-    flow_21_L3 = self.OFRnet(input_21)
+    flow_01_L3, flow_01_L2, flow_01_L1 = self.OFRnet(input_01)
+    flow_21_L3, flow_21_L2, flow_21_L1 = self.OFRnet(input_21)
     draft_cube = x
     for i in range(self.upscale_factor):
       for j in range(self.upscale_factor):
@@ -194,4 +195,4 @@ class SOFVSR(nn.Module):
                                      j::self.upscale_factor] / self.upscale_factor)
         draft_cube = torch.cat((draft_cube, draft_01, draft_21), 1)
     output = self.SRnet(draft_cube)
-    return output
+    return output, (flow_01_L3, flow_01_L2, flow_01_L1), (flow_21_L3, flow_21_L2, flow_21_L1)
