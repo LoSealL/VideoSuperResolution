@@ -13,7 +13,7 @@ from VSR.DataLoader.Dataset import load_datasets
 from VSR.DataLoader.Loader import QuickLoader
 from VSR.Framework.Callbacks import lr_decay
 from VSR.Util.Config import Config
-from VSR.Tools.Run import suppress_opt_by_args, dump
+from VSR.Tools.Run import suppress_opt_by_args, dump, init_loader_config
 
 parser = argparse.ArgumentParser()
 parser.add_argument("model", choices=list_supported_models(),
@@ -92,6 +92,8 @@ def main():
 
   train_config = Config(crop=opt.train_data_crop, feature_callbacks=[],
                         label_callbacks=[], convert_to='rgb', **opt)
+  if opt.channel == 1:
+    train_config.convert_to = 'gray'
   if opt.lr_decay:
     train_config.lr_schedule = lr_decay(lr=opt.lr, **opt.lr_decay)
   train_config.random_val = not opt.traced_val

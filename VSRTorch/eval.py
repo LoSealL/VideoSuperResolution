@@ -99,6 +99,8 @@ def main():
   loader_config.subdir = test_data.name
   loader_config.output_callbacks += [
     save_image(root, flags.output_index, flags.auto_rename)]
+  if opt.channel == 1:
+    loader_config.convert_to='gray'
 
   if opt.verbose:
     dump(opt)

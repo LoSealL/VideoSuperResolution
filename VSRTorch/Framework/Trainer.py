@@ -45,14 +45,22 @@ def _ensemble_reduce_mean(outputs):
 
 def to_tensor(x, cuda=False):
   x = torch.Tensor(x.copy())
-  x = x.transpose(1, 2).transpose(1, 3).contiguous() / 255.0
+  if x.dim() == 4:
+    x = x.transpose(1, 2).transpose(1, 3).contiguous() / 255.0
+  elif x.dim() == 5:
+    x = x.transpose(2, 3).transpose(2, 4).contiguous() / 255.0
+  else:
+    raise ValueError(f"Tensor dimension error: {x.dim()} != 4 or 5")
   if cuda and torch.cuda.is_available():
     x = x.cuda()
   return x
 
 
 def from_tensor(x):
-  y = x.transpose([0, 2, 3, 1]) * 255
+  if np.ndim(x) == 4:
+    y = x.transpose([0, 2, 3, 1]) * 255
+  else:
+    raise NotImplementedError(f"Got an unexpected ndim {np.ndim(x)}.")
   return y
 
 
