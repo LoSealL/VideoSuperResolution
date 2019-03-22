@@ -18,6 +18,7 @@ models = {
   'msrn': ('Msrn', 'MSRN'),
   'rsr': ('Rsr', 'RSR'),
   'drn': ('Drn', 'DRN'),
+  'sofvsr': ('Sofvsr', 'SOFVSR'),
 }
 
 def get_model(name):

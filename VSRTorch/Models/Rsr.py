@@ -10,6 +10,7 @@ import torch.nn.functional as F
 from VSR.Util.Utility import to_list
 from . import Model
 from .Arch import CascadeRdn
+from ..Framework.Summary import get_writer
 from ..Util import Metrics
 
 
@@ -88,4 +89,7 @@ class RSR(Model.SuperResolution):
     sr = self.rsr(inputs[0]).cpu().detach()
     if labels is not None:
       metrics['psnr'] = Metrics.psnr(sr.numpy(), labels[0].cpu().numpy())
+      writer = get_writer(self.name)
+      if writer is not None:
+        writer.image('clean', sr)
     return [sr.numpy()], metrics
