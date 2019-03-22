@@ -155,17 +155,19 @@ def crop(image, box):
         (left, upper, right, lower)
   """
 
-  if isinstance(image, np.ndarray):
-    x0, y0, x1, y1 = map(int, map(round, box))
-
-    if x1 < x0:
-      x1 = x0
-    if y1 < y0:
-      y1 = y0
-
-    return image[..., y0:y1, x0:x1, :]
   if isinstance(image, Image.Image):
-    return image.crop(box)
+    image = np.asarray(image)
+    if np.ndim(image) == 2:
+      image = np.expand_dims(image, -1)
+  assert isinstance(image, np.ndarray)
+  x0, y0, x1, y1 = map(int, map(round, box))
+
+  if x1 < x0:
+    x1 = x0
+  if y1 < y0:
+    y1 = y0
+
+  return image[..., y0:y1, x0:x1, :]
 
 
 def imread(url, mode='RGB'):

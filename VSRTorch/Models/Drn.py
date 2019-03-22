@@ -7,10 +7,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .Model import SuperResolution
 from .Arch import CascadeRdn, Upsample
-from ..Util import Metrics, Utility
+from .Model import SuperResolution
 from ..Framework.Summary import get_writer
+from ..Util import Metrics, Utility
 
 
 class NoiseExtractor(nn.Module):
@@ -139,8 +139,8 @@ class DRN(SuperResolution):
       metrics['psnr'] = Metrics.psnr(clean.numpy(), label0.cpu().numpy())
       writer = get_writer(self.name)
       if writer is not None:
-        writer.image('clean', clean[0])
-        writer.image('up2', sub1[0])
-        writer.image('up4', sub2[0])
-        writer.image('up8', sub4[0])
+        writer.image('clean', clean)
+        writer.image('up2', sub1)
+        writer.image('up4', sub2)
+        writer.image('up8', sub4)
     return [clean.numpy(), sub1.numpy(), sub2.numpy(), sub4.numpy()], metrics

@@ -340,6 +340,9 @@ class BasicLoader:
 
     tf.logging.debug('Prefetching ' + vf.name)
     depth = self.depth
+    if self.method in ('test', 'infer') and depth > 1:
+      # padding head and tail
+      vf.pad([depth // 2, depth // 2])
     # read all frames if depth is set to -1
     if depth == -1:
       depth = vf.frames
@@ -347,13 +350,14 @@ class BasicLoader:
     if self.method == 'train':
       np.random.shuffle(index)
     frames = []
+    if self.flow:
+      gen_fn = self._vf_gen_flow_img_pair
+    elif self.pair:
+      gen_fn = self._vf_gen_custom_pair
+    else:
+      gen_fn = self._vf_gen_lr_hr_pair
     for i in index[:clips]:
-      if self.flow:
-        frames.append(self._vf_gen_flow_img_pair(vf, depth, i))
-      elif self.pair:
-        frames.append(self._vf_gen_custom_pair(vf, depth, i))
-      else:
-        frames.append(self._vf_gen_lr_hr_pair(vf, depth, i))
+      frames.append(gen_fn(vf, depth, i))
     vf.reopen()  # necessary, rewind the read pointer
     return frames
 

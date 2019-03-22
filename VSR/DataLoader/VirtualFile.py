@@ -46,6 +46,7 @@ class File:
         self.length[_file.name] = _file.stat().st_size
       # sort the files by name, because they are unordered in UNIX
       self.file.sort()
+    self.file_ = self.file.copy()
     self.read_file = []
     self.read_pointer = 0
     self.end_pointer = sum(self.length.values())
@@ -98,7 +99,7 @@ class File:
 
   def reopen(self):
     """clear the current state and re-initialize read pointer"""
-    self.file = self.read_file + self.file
+    self.file = self.file_.copy()
     self.read_file.clear()
     self.read_pointer = 0
     self.cur_fd = None
@@ -306,6 +307,11 @@ class RawFile(File):
     if where == SEEK_END:
       super(RawFile, self).seek(offset * self.pitch, where)
 
+  def pad(self, padding):
+    """RawFile doesn't support pad for now"""
+
+    print(" [!] warning: pad is not supported in RawFile")
+
   def attach_pair(self, pair_file):
     self._pair = RawFile(pair_file, self.rewind)
     return self
@@ -360,10 +366,29 @@ class ImageFile(File):
       pos = len(self.read_file) + len(self.file) + offset
     else:
       pos = offset
-    self.reopen()
+    if pos < 0:
+      pos = 0
+    self.file = self.read_file + self.file
     self.read_file = self.file[:pos]
     self.file = self.file[pos:]
     self.cur_fd = None
+
+  def pad(self, padding):
+    """Pad file(s) list in the head and tail.
+      Padded file is temperate and will be dropped after `reopen()`
+
+    Args:
+      padding: a integer or a list of 2 integers.
+    """
+
+    padding = to_list(padding, 2)
+    if self.read_file:
+      raise RuntimeError(
+        "pad must be called when reading cursor is at the beginning.")
+    for _ in range(padding[0]):
+      self.file.insert(0, self.file[0])
+    for _ in range(padding[1]):
+      self.file.append(self.file[-1])
 
   def attach_flow(self, flow_file):
     self._flow = flow_file

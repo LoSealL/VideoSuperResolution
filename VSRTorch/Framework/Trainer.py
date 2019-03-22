@@ -16,13 +16,13 @@ from VSR.Util.Config import Config
 
 def _ensemble_expand(feature):
   r0 = feature
-  r1 = np.rot90(feature, 1, axes=[1, 2])
-  r2 = np.rot90(feature, 2, axes=[1, 2])
-  r3 = np.rot90(feature, 3, axes=[1, 2])
-  r4 = np.flip(feature, axis=2)
-  r5 = np.rot90(r4, 1, axes=[1, 2])
-  r6 = np.rot90(r4, 2, axes=[1, 2])
-  r7 = np.rot90(r4, 3, axes=[1, 2])
+  r1 = np.rot90(feature, 1, axes=[-3, -2])
+  r2 = np.rot90(feature, 2, axes=[-3, -2])
+  r3 = np.rot90(feature, 3, axes=[-3, -2])
+  r4 = np.flip(feature, axis=-2)
+  r5 = np.rot90(r4, 1, axes=[-3, -2])
+  r6 = np.rot90(r4, 2, axes=[-3, -2])
+  r7 = np.rot90(r4, 3, axes=[-3, -2])
   return r0, r1, r2, r3, r4, r5, r6, r7
 
 
@@ -31,13 +31,13 @@ def _ensemble_reduce_mean(outputs):
   for i in outputs:
     outputs_ensemble = [
       i[0],
-      np.rot90(i[1], 3, axes=[1, 2]),
-      np.rot90(i[2], 2, axes=[1, 2]),
-      np.rot90(i[3], 1, axes=[1, 2]),
-      np.flip(i[4], axis=2),
-      np.flip(np.rot90(i[5], 3, axes=[1, 2]), axis=2),
-      np.flip(np.rot90(i[6], 2, axes=[1, 2]), axis=2),
-      np.flip(np.rot90(i[7], 1, axes=[1, 2]), axis=2),
+      np.rot90(i[1], 3, axes=[-3, -2]),
+      np.rot90(i[2], 2, axes=[-3, -2]),
+      np.rot90(i[3], 1, axes=[-3, -2]),
+      np.flip(i[4], axis=-2),
+      np.flip(np.rot90(i[5], 3, axes=[-3, -2]), axis=-2),
+      np.flip(np.rot90(i[6], 2, axes=[-3, -2]), axis=-2),
+      np.flip(np.rot90(i[7], 1, axes=[-3, -2]), axis=-2),
     ]
     results.append(np.concatenate(outputs_ensemble).mean(axis=0, keepdims=True))
   return results
@@ -45,14 +45,22 @@ def _ensemble_reduce_mean(outputs):
 
 def to_tensor(x, cuda=False):
   x = torch.Tensor(x.copy())
-  x = x.transpose(1, 2).transpose(1, 3).contiguous() / 255.0
+  if x.dim() == 4:
+    x = x.transpose(1, 2).transpose(1, 3).contiguous() / 255.0
+  elif x.dim() == 5:
+    x = x.transpose(2, 3).transpose(2, 4).contiguous() / 255.0
+  else:
+    raise ValueError(f"Tensor dimension error: {x.dim()} != 4 or 5")
   if cuda and torch.cuda.is_available():
     x = x.cuda()
   return x
 
 
 def from_tensor(x):
-  y = x.transpose([0, 2, 3, 1]) * 255
+  if np.ndim(x) == 4:
+    y = x.transpose([0, 2, 3, 1]) * 255
+  else:
+    raise NotImplementedError(f"Got an unexpected ndim {np.ndim(x)}.")
   return y
 
 
