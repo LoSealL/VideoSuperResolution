@@ -80,7 +80,7 @@ class Env:
     ckpt = sorted(self._saved.glob(pattern), key=lambda x: x.stat().st_mtime_ns)
     return ckpt[-1].resolve() if ckpt else None
 
-  def _restore_model(self, epoch=None, pth=None):
+  def _restore_model(self, epoch=None, pth=None, map_location=None):
     last_epoch = 0
     for key, model in self.model.modules.items():
       if pth is None:
@@ -97,7 +97,7 @@ class Env:
           last_epoch = max(_parse_ckpt_name(str(fp)), last_epoch)
         except ValueError:
           last_epoch = 0
-        model.load_state_dict(torch.load(str(fp)))
+        model.load_state_dict(torch.load(str(fp), map_location=map_location))
     if pth is None:
       for key, opt in self.model.opts.items():
         fp = self._saved / f'{key}.pth'
@@ -116,11 +116,11 @@ class Env:
       fp = self._saved / f'{key}.pth'
       torch.save(opt.state_dict(), str(fp))
 
-  def _restore(self, epoch=None):
+  def _restore(self, epoch=None, map_location=None):
     # restore graph
     if self._restored:
       return self.last_epoch
-    self.last_epoch = self._restore_model(epoch, self._pth)
+    self.last_epoch = self._restore_model(epoch, self._pth, map_location)
     self._restored = True
     return self.last_epoch
 

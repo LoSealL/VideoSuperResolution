@@ -83,6 +83,7 @@ class SRTrainer(Env):
     self.v.random_val = config.random_val
     self.v.ensemble = config.ensemble
     self.v.cuda = config.cuda
+    self.v.map_location = 'cuda:0' if config.cuda and torch.cuda.is_available() else 'cpu'
     return self.v
 
   def fit_init(self) -> bool:
@@ -161,7 +162,7 @@ class SRTrainer(Env):
     v = self.query_config(config, **kwargs)
     v.color_format = loader.color_format
 
-    self._restore(config.epoch)
+    self._restore(config.epoch, v.map_location)
     v.mean_metrics = {}
     v.loader = loader
     it = v.loader.make_one_shot_iterator(v.memory_limit, shuffle=v.random_val)
@@ -207,7 +208,7 @@ class SRTrainer(Env):
     v = self.query_config(config, **kwargs)
     v.color_format = loader.color_format
 
-    self._restore(config.epoch)
+    self._restore(config.epoch, v.map_location)
     it = loader.make_one_shot_iterator()
     if len(it):
       self._logger.info('Inferring {} at epoch {}'.format(
