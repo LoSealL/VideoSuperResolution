@@ -156,8 +156,7 @@ def main():
   args, _ = parser.parse_known_args()
   # make work dir
   Path(args.download_dir).mkdir(exist_ok=True, parents=True)
-  Path(args.data_dir).mkdir(exist_ok=True, parents=True)
-
+  
   def get_leaf(key: str, node: dict):
     for k, v in node.items():
       if isinstance(v, dict):
@@ -167,9 +166,13 @@ def main():
         yield Path(key) / k, v
 
   need_to_download = {}
-  for k, v in get_leaf(args.data_dir, DATASETS):
-    if user_input(k.stem, args.quiet, args.filter):
-      need_to_download[k] = v
+  try:
+    Path(args.data_dir).mkdir(exist_ok=True, parents=True)
+    for k, v in get_leaf(args.data_dir, DATASETS):
+      if user_input(k.stem, args.quiet, args.filter):
+        need_to_download[k] = v
+  except:
+    pass
   for k, v in get_leaf(args.weights_dir, WEIGHTS):
     if user_input(k.stem, args.quiet, args.filter):
       need_to_download[k] = v
