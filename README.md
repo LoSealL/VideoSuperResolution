@@ -5,7 +5,7 @@ A collection of state-of-the-art video or single-image super-resolution architec
 
 **Several referenced PyTorch implementations are also included now.**
 
-**Quick Link:** [Installation](#install) [Getting Started](#Getting Started) 
+**Quick Link:** [Installation](#install) [Getting Started](#Getting-Started) 
 
 ## Network list and reference (Updating)
 The hyperlink directs to paper site, follows the official codes if the authors open sources.
@@ -117,23 +117,12 @@ Moreover, VSR can handle raw NV12/YUV as well as a sequence of images as inputs.
 
 3. Train
    ```shell
+   python prepare_data.py --filter mcl-v
    cd Train
    python run.py --model vespcn --dataset mcl-v --memory_limit 1GB --epochs 100
    ```
 
 OK, that's all you need. For more details, use `--help` to get more information.
 
-**Update 2018.12.20:** use `prepare_data.py` to help you download datasets and pre-trained weights.
-
-```bash
-python prepare_data.py --download_dir=/tmp/downloads --data_dir=/mnt/data/datasets --weights_dir=./Results
-```
-
-__PS__: To download google drive shared files, `google-api-python-client`, `oauth2client` are required.
-You also need to authorize to get to access to drive files.
-
-__PPS__: `.rar` files are not able to decompressed in the script.
-
-### How to use
-To train/test/infer any model in [VSR.Models](./VSR/Models/__init__.py), please see [README](./Train/README.md).
+To train/test/infer any other model in [VSR.Models](./VSR/Models/__init__.py), please see [README](./Train/README.md).
 To write and train your own model via VSR, please see [Docs](./Docs).

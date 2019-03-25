@@ -96,7 +96,7 @@ def get_input(question):
 def matches(str1, pattern):
   if not pattern:
     return str1
-  ret = re.match(pattern, str1)
+  ret = re.match(pattern.lower(), str1.lower())
   if ret:
     return str1
 

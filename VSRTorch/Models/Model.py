@@ -51,6 +51,12 @@ class BasicModel:
     return super(BasicModel, self).__setattr__(key, value)
 
   def trainable_variables(self, name=None):
+    """Return variables who require gradients.
+
+    Args:
+      name: module name. Will return all trainable variables if no name given.
+    """
+
     _m = self.modules.get(name) if name else self.modules.values()
     _var = []
     for i in _m:
@@ -58,20 +64,26 @@ class BasicModel:
     return _var
 
   def to_train(self):
+    """Change modules to train mode."""
     for _m in self.modules.values():
       _m.train()
 
   def train(self, *args, **kwargs):
+    """Forward and backward data path.
+      The trainer knows data pipeline through this callback."""
     raise NotImplementedError
 
   def to_eval(self):
+    """Change modules to evaluate mode."""
     for _m in self.modules.values():
       _m.eval()
 
   def eval(self, *args, **kwargs):
+    """Forward data path. No backward needed for this is only for testing."""
     raise NotImplementedError
 
   def display(self):
+    """Show model info"""
     num_params = 0
     for m in self.modules.values():
       for p in m.parameters():
@@ -79,6 +91,7 @@ class BasicModel:
     logging.getLogger('VSR').info(f"Total params: {num_params}")
 
   def cuda(self):
+    """Move model to cuda device."""
     for i in self.modules:
       if torch.cuda.is_available():
         self.modules[i] = self.modules[i].cuda()
@@ -94,13 +107,16 @@ class BasicModel:
 
   @property
   def trainer(self):
+    """Return the trainer used for this model."""
     return self._trainer
 
 
 class SuperResolution(BasicModel):
+  """A default model for (video) super-resolution"""
 
   def __init__(self, scale, channel, **kwargs):
     super(SuperResolution, self).__init__(**kwargs)
     self.scale = scale
     self.channel = channel
+    # Default SR trainer
     self._trainer = SRTrainer
