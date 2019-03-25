@@ -7,6 +7,12 @@ import argparse
 import logging
 from pathlib import Path
 
+try:
+  import torch
+except ImportError:
+  print(" [!] Couldn't find pytorch. You should install it before starting.")
+  exit(0)
+
 from VSRTorch.Models import get_model, list_supported_models
 from VSR.DataLoader.Dataset import Dataset, _glob_absolute_pattern, \
   load_datasets
@@ -20,7 +26,7 @@ parser.add_argument("model", choices=list_supported_models(),
                     help="Specify the model name")
 parser.add_argument("-p", "--parameter",
                     help="Specify the model parameter file (*.yaml)")
-parser.add_argument("-t", "--test",
+parser.add_argument("-t", "--test", nargs='*',
                     help="Specify test dataset name or data path")
 parser.add_argument("--save_dir", default='../Results',
                     help="Working directory")
@@ -79,41 +85,45 @@ def main():
 
   datasets = load_datasets(data_config_file)
   try:
-    test_data = datasets[flags.test.upper()]
+    test_datas = [datasets[t.upper()] for t in flags.test]
     run_benchmark = True
   except KeyError:
-    test_data = Dataset(test=_glob_absolute_pattern(flags.test),
-                        mode='pil-image1', modcrop=False)
-    father = Path(flags.test)
-    while not father.is_dir():
-      if father.parent == father:
-        break
-      father = father.parent
-    test_data.name = father.stem
+    test_datas = []
+    for pattern in flags.test:
+      test_data = Dataset(test=_glob_absolute_pattern(pattern),
+                          mode='pil-image1', modcrop=False)
+      father = Path(flags.test)
+      while not father.is_dir():
+        if father.parent == father:
+          break
+        father = father.parent
+      test_data.name = father.stem
+      test_datas.append(test_data)
     run_benchmark = False
-
-  loader_config = Config(convert_to='rgb',
-                         feature_callbacks=[], label_callbacks=[],
-                         output_callbacks=[], **opt)
-  loader_config.batch = 1
-  loader_config.subdir = test_data.name
-  loader_config.output_callbacks += [
-    save_image(root, flags.output_index, flags.auto_rename)]
-  if opt.channel == 1:
-    loader_config.convert_to='gray'
 
   if opt.verbose:
     dump(opt)
-  with trainer(model, root, verbosity, flags.pth) as t:
-    if flags.seed is not None:
-      t.set_seed(flags.seed)
-    loader = QuickLoader(test_data, 'test', loader_config,
-                         n_threads=flags.thread)
-    loader_config.epoch = flags.epoch
-    if run_benchmark:
-      t.benchmark(loader, loader_config)
-    else:
-      t.infer(loader, loader_config)
+  for test_data in test_datas:
+    loader_config = Config(convert_to='rgb',
+                           feature_callbacks=[], label_callbacks=[],
+                           output_callbacks=[], **opt)
+    loader_config.batch = 1
+    loader_config.subdir = test_data.name
+    loader_config.output_callbacks += [
+      save_image(root, flags.output_index, flags.auto_rename)]
+    if opt.channel == 1:
+      loader_config.convert_to = 'gray'
+
+    with trainer(model, root, verbosity, flags.pth) as t:
+      if flags.seed is not None:
+        t.set_seed(flags.seed)
+      loader = QuickLoader(test_data, 'test', loader_config,
+                           n_threads=flags.thread)
+      loader_config.epoch = flags.epoch
+      if run_benchmark:
+        t.benchmark(loader, loader_config)
+      else:
+        t.infer(loader, loader_config)
 
 
 if __name__ == '__main__':

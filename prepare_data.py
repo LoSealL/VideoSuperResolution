@@ -102,10 +102,14 @@ def matches(str1, pattern):
 
 
 def user_input(name, defaults=False, pattern=None):
-  name = matches(name, pattern)
-  if not name:
+  _name = name
+  for _pat in pattern:
+    _name = matches(name, _pat)
+    if _name is not None:
+      break
+  if not _name:
     return
-  question = 'Do you wish to download {}? '.format(name)
+  question = 'Do you wish to download {}? '.format(_name)
   if defaults:
     return True
   else:
@@ -142,21 +146,24 @@ def main():
   parser = argparse.ArgumentParser()
   parser.add_argument("--download_dir", type=str,
                       default=_DEFAULT_DOWNLOAD_DIR,
-                      help="Specify download directory.")
+                      help="Specify download directory. "
+                           "[{}]".format(_DEFAULT_DOWNLOAD_DIR))
   parser.add_argument("--data_dir", type=str,
                       default=_DEFAULT_DATASET_PATH,
-                      help="Specify dataset extracted directory.")
+                      help="Specify dataset extracted directory. "
+                           "[{}]".format(_DEFAULT_DATASET_PATH))
   parser.add_argument("--weights_dir", type=str,
                       default=_DEFAULT_WEIGHTS_DIR,
-                      help="Specify weights extracted directory.")
-  parser.add_argument("--filter", type=str, default=None,
+                      help="Specify weights extracted directory. "
+                           "[{}]".format(_DEFAULT_WEIGHTS_DIR))
+  parser.add_argument("--filter", nargs='*', default=[],
                       help="an re pattern to filter candidates.")
   parser.add_argument("-q", "--quiet", action="store_true",
                       help="download quietly")
   args, _ = parser.parse_known_args()
   # make work dir
   Path(args.download_dir).mkdir(exist_ok=True, parents=True)
-  
+
   def get_leaf(key: str, node: dict):
     for k, v in node.items():
       if isinstance(v, dict):
@@ -171,7 +178,7 @@ def main():
     for k, v in get_leaf(args.data_dir, DATASETS):
       if user_input(k.stem, args.quiet, args.filter):
         need_to_download[k] = v
-  except:
+  except (FileNotFoundError, OSError):
     pass
   for k, v in get_leaf(args.weights_dir, WEIGHTS):
     if user_input(k.stem, args.quiet, args.filter):

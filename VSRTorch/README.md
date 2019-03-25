@@ -9,7 +9,7 @@ This extension is used for cross-framework comparison. They share the same data 
 
 Besides, most works are implemented in pytorch now, it's quite easy to integrate their pre-trained models into this framework.
 
-## How to use
+## Getting Started
 Similar to original VSR, there are two main entries "`train.py`" and "`eval.py`"
 
 #### Train models
@@ -17,16 +17,22 @@ Similar to original VSR, there are two main entries "`train.py`" and "`eval.py`"
 python train.py <model-name> [--cuda] [--dataset name] [--epochs num]
 ```
 
-I.e. `python train.py carn --cuda --dataset=div2k --epochs=1000`.
-
 #### Test models
 ```bash
 python eval.py <model-name> [--cuda] [--test path/or/name] [--pth model.pth/path]
 ```
 
-I.e. `python eval.py carn --cuda --test=set5 --pth=a/b/c/d.pth`.
-
 For more information about dataset name and more advanced options, please refer to documents of original VSR, [here](../Data/README.md) and [here](../Train/README.md).
+
+#### Sample Code: CARN
+```bash
+# training
+python train.py carn --cuda --dataset div2k --epochs 1000
+# testing
+python eval.py carn --cuda --test set5 set14 bsd100 urban100
+# predicting own data
+python eval.py carn --cuda --test /tmp/myphotos/*.png
+```
 
 
 ## NTIRE 19 Reproduce

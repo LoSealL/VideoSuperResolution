@@ -3,6 +3,10 @@ A collection of state-of-the-art video or single-image super-resolution architec
 
 **Pretrained weights is uploading now.**
 
+**Several referenced PyTorch implementations are also included now.**
+
+**Quick Link:** [Installation](#install) [Getting Started](#Getting Started) 
+
 ## Network list and reference (Updating)
 The hyperlink directs to paper site, follows the official codes if the authors open sources.
 
@@ -83,12 +87,44 @@ Moreover, VSR can handle raw NV12/YUV as well as a sequence of images as inputs.
 
 ### Install
 
-```bash
-git clone https://github.com/loseall/VideoSuperResolution && cd VideoSuperResolution
-pip install -e .
-```
+1. Prepare proper tensorflow and pytorch(optional). For example, GPU and CUDA10.0 (recommend to use `conda`):
+
+   ```shell
+   conda install tensorflow-gpu==1.12.0
+   # optional
+   # conda install pytorch==1.0.1
+   ```
+
+2. Install VSR package
+
+   ```bash
+   # For someone see this doc online
+   # git clone https://github.com/loseall/VideoSuperResolution && cd VideoSuperResolution
+   pip install -e .
+   ```
+### Getting Started
+
+1. Download pre-trained weights and (optinal) training datasets. For instance, let\'s begin with VESPCN and vid4 test data:
+   ```shell
+   python prepare_data.py --filter vespcn vid4
+   ```
+
+2. Evaluate
+   ```shell
+   cd Train
+   python run.py --model vespcn --test vid4
+   ```
+
+3. Train
+   ```shell
+   cd Train
+   python run.py --model vespcn --dataset mcl-v --memory_limit 1GB --epochs 100
+   ```
+
+OK, that's all you need. For more details, use `--help` to get more information.
 
 **Update 2018.12.20:** use `prepare_data.py` to help you download datasets and pre-trained weights.
+
 ```bash
 python prepare_data.py --download_dir=/tmp/downloads --data_dir=/mnt/data/datasets --weights_dir=./Results
 ```

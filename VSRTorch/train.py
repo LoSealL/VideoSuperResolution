@@ -8,12 +8,18 @@ import argparse
 import logging
 from pathlib import Path
 
+try:
+  import torch
+except ImportError:
+  print(" [!] Couldn't find pytorch. You should install it before starting.")
+  exit(0)
+
 from VSRTorch.Models import get_model, list_supported_models
 from VSR.DataLoader.Dataset import load_datasets
 from VSR.DataLoader.Loader import QuickLoader
 from VSR.Framework.Callbacks import lr_decay
 from VSR.Util.Config import Config
-from VSR.Tools.Run import suppress_opt_by_args, dump, init_loader_config
+from VSR.Tools.Run import suppress_opt_by_args, dump
 
 parser = argparse.ArgumentParser()
 parser.add_argument("model", choices=list_supported_models(),
