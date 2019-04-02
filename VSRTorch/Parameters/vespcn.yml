@@ -1,0 +1,8 @@
+---
+vespcn:
+  depth: 3
+  channel: 3
+  scale: 4
+
+batch: 16
+patch_size: 64

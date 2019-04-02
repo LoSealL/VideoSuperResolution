@@ -1,7 +1,7 @@
 #  Copyright (c): Wenyi Tang 2017-2019.
 #  Author: Wenyi Tang
 #  Email: wenyi.tang@intel.com
-#  Update Date: 2019 - 3 - 20
+#  Update Date: 2019/4/2 上午10:54
 
 from tensorboardX import SummaryWriter
 
@@ -35,7 +35,7 @@ class Summarizer:
     if collection is not None:
       name = f'{collection}/{name}'
     for i, img in enumerate(images):
-      self.writer.add_image(f'{name}_{i}', img, step)
+      self.writer.add_image(f'{name}_{i}', img.squeeze(0), step)
 
   def tensor(self, name, tensor, max=3, step=None, reshape=None):
     assert tensor.ndimension() == 4, "Support 4-D tensor only!"

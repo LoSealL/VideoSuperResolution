@@ -1,7 +1,7 @@
 #  Copyright (c): Wenyi Tang 2017-2019.
 #  Author: Wenyi Tang
 #  Email: wenyi.tang@intel.com
-#  Update Date: 2019 - 3 - 14
+#  Update Date: 2019/4/2 上午10:54
 
 import importlib
 
@@ -19,6 +19,7 @@ models = {
   'rsr': ('Rsr', 'RSR'),
   'drn': ('Drn', 'DRN'),
   'sofvsr': ('Sofvsr', 'SOFVSR'),
+  'vespcn': ('Vespcn', 'VESPCN'),
 }
 
 def get_model(name):

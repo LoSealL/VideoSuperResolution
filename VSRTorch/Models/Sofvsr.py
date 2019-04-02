@@ -1,7 +1,7 @@
 #  Copyright (c): Wenyi Tang 2017-2019.
 #  Author: Wenyi Tang
 #  Email: wenyi.tang@intel.com
-#  Update Date: 2019 - 3 - 22
+#  Update Date: 2019/4/2 上午10:54
 
 import torch
 import torch.nn.functional as F
@@ -10,17 +10,7 @@ from .Model import SuperResolution
 from .sof.modules import SOFVSR as _SOFVSR
 from .sof.modules import optical_flow_warp
 from ..Util import Metrics
-
-
-def total_variance(x: torch.Tensor, reduction='mean'):
-  hor = x[..., :-1, :] - x[..., 1:, :]
-  ver = x[..., :-1] - x[..., 1:]
-  tot_var = torch.sum(torch.abs(hor)) + torch.sum(torch.abs(ver))
-  if reduction == 'mean':
-    reduce = x.shape[-1] * x.shape[-2]
-  else:
-    reduce = 1
-  return tot_var / reduce
+from ..Util.Metrics import total_variance
 
 
 class SOFVSR(SuperResolution):
@@ -84,6 +74,6 @@ class SOFVSR(SuperResolution):
     sr, _, _ = self.sof(low_res)
     sr = sr.cpu().detach()
     if labels is not None:
-      hr = labels[0][: self.center]
-      metrics['psnr'] = Metrics.psnr(sr.numpy(), hr.cpu().numpy())
+      hr = labels[0][:, self.center]
+      metrics['psnr'] = Metrics.psnr(sr, hr)
     return [sr.numpy()], metrics

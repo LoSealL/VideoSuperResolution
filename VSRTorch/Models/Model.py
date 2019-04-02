@@ -1,12 +1,13 @@
 #  Copyright (c): Wenyi Tang 2017-2019.
 #  Author: Wenyi Tang
 #  Email: wenyi.tang@intel.com
-#  Update Date: 2019 - 3 - 13
+#  Update Date: 2019/4/2 上午10:54
 
 import torch
 import logging
 
 from ..Framework.Trainer import SRTrainer
+from VSR.DataLoader.Loader import QuickLoader
 
 
 class BasicModel:
@@ -24,6 +25,7 @@ class BasicModel:
     self.opts = {}
     self.name = ''
     self._trainer = None
+    self._loader = None
 
   def __setattr__(self, key, value):
     if key in ('modules', 'opts',):
@@ -107,8 +109,13 @@ class BasicModel:
 
   @property
   def trainer(self):
-    """Return the trainer used for this model."""
+    """Return the trainer class type for this model."""
     return self._trainer
+
+  @property
+  def loader(self):
+    """Return the loader class type for this model."""
+    return self._loader
 
 
 class SuperResolution(BasicModel):
@@ -120,3 +127,5 @@ class SuperResolution(BasicModel):
     self.channel = channel
     # Default SR trainer
     self._trainer = SRTrainer
+    # Default SR loader
+    self._loader = QuickLoader

@@ -1,12 +1,14 @@
 #  Copyright (c): Wenyi Tang 2017-2019.
 #  Author: Wenyi Tang
 #  Email: wenyi.tang@intel.com
-#  Update Date: 2019 - 3 - 13
+#  Update Date: 2019/4/2 上午10:54
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 from VSR.Util.Utility import to_list
+from VSRTorch.Util.Utility import nd_meshgrid, transpose, irtranspose
 
 
 def _get_act(name, *args, inplace=False):
@@ -159,3 +161,68 @@ class Upsample(nn.Module):
 
   def extra_repr(self):
     return f"{self.name}: scale={self.scale}"
+
+
+class STN(nn.Module):
+  """Spatial transformer network.
+    For optical flow based frame warping.
+  """
+
+  def __init__(self, mode='bilinear', padding_mode='zeros'):
+    super(STN, self).__init__()
+    self.mode = mode
+    self.padding_mode = padding_mode
+
+  def forward(self, inputs, u, v, normalized=True):
+    batch = inputs.shape[0]
+    device = inputs.device
+    mesh = nd_meshgrid(*inputs.shape[-2:], permute=[1, 0])
+    mesh = torch.stack([torch.Tensor(mesh)] * batch)
+    # add flow to mesh
+    _u, _v = u, v
+    if not normalized:
+      # flow needs to normalize to [-1, 1]
+      h, w = inputs.shape[-2:]
+      _u = u / w * 2
+      _v = v / h * 2
+    flow = torch.stack([_u, _v], dim=-1)
+    assert flow.shape == mesh.shape
+    mesh = mesh.to(device)
+    mesh += flow
+    return F.grid_sample(inputs, mesh,
+                         mode=self.mode, padding_mode=self.padding_mode)
+
+
+class STTN(nn.Module):
+  """Spatio-temporal transformer network. (ECCV 2018)"""
+
+  def __init__(self, transpose_ncthw=(0, 1, 2, 3, 4),
+               mode='bilinear', padding_mode='zeros'):
+    super(STTN, self).__init__()
+    self.mode = mode
+    self.padding_mode = padding_mode
+    self.t = transpose_ncthw
+
+  def forward(self, inputs, d, u, v, normalized=True):
+    _error_msg = "STTN only works for 5D tensor but got {}D input!"
+    if inputs.dim() != 5:
+      raise ValueError(_error_msg.format(inputs.dim()))
+    device = inputs.device
+    batch, channel, t, h, w = (inputs.shape[i] for i in self.t)
+    mesh = nd_meshgrid(t, h, w, permute=[2, 1, 0])
+    mesh = torch.stack([torch.Tensor(mesh)] * batch)
+    _d, _u, _v = t, w, h
+    if not normalized:
+      _d = d / t * 2
+      _u = u / w * 2
+      _v = v / h * 2
+    st_flow = torch.stack([_d, _u, _v], dim=-1)
+    assert st_flow.shape == mesh.shape
+    mesh = mesh.to(device)
+    mesh += st_flow
+    inputs = transpose(inputs, self.t)
+    warp = F.grid_sample(inputs, mesh, mode=self.mode,
+                         padding_mode=self.padding_mode)
+    # STTN warps into a single frame
+    warp = warp[:, :, 0:1]
+    return irtranspose(warp, self.t)
