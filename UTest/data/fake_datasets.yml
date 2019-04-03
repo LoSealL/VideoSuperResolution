@@ -25,42 +25,29 @@ Dataset:
   NUMPY:
     # alpha version, loading ndarray data(s)
     param:
-      mode: numpy  # specify `mode` as "numpy"
-      numpy:
-        # execution python source
-        exec: '(x,_),(y,_)=tf.keras.datasets.cifar10.load_data()'
-        # specify result variables
-        train: 'x'
-        val: 'y'
-        test: 'y[:10]'
-
-  TFRECORD:
-    train: ["./91-image.tfrecords"]
-    val: [BAR]
-    test: ["./91-image.tfrecords"]
+      parser: cifar10
 
   RAW:
     train: [raw.yv12]
     val: [raw.yv12]
     test: [raw.yv12]
     param:
+      parser: raw
       mode: yv12
       width: 32
       hight: 32
 
   FLOW:
     train: [flying_chair/pair]
-    val: []
-    test: []
     flow: [flying_chair/flow/*.flo]
+    param:
+      parser: flow
 
   PAIR:
     train: [FOO]
     train_pair: [FOO]
-    val: []
-    test: []
+    param:
+      parser: custom_pairs
 
   GHOST:
     train: ["/what-the-fuck"]
-    val: []
-    test: []

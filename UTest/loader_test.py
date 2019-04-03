@@ -4,7 +4,7 @@ Unit test for DataLoader.Loader
 #  Copyright (c): Wenyi Tang 2017-2019.
 #  Author: Wenyi Tang
 #  Email: wenyi.tang@intel.com
-#  Update Date: 2019/4/3 下午5:03
+#  Update Date: 2019/4/3 下午8:28
 
 import os
 
@@ -109,22 +109,6 @@ def test_cifar_loader():
   loader = BasicLoader(dut, 'train', config, False)
   r = loader.make_one_shot_iterator()
   list(tqdm(r))
-
-
-def test_tfrecord():
-  dut = DATASETS['TFRECORD']
-  loader = QuickLoader(dut, 'train',
-                       Config(batch=16, steps_per_epoch=200, convert_to='RGB'))
-  with tf.Session() as sess:
-    it = loader.make_one_shot_iterator()
-    for a, b, c, d in it:
-      print(c)
-  loader = QuickLoader(dut, 'test',
-                       Config(batch=16, steps_per_epoch=200, convert_to='RGB'))
-  with tf.Session() as sess:
-    it = loader.make_one_shot_iterator()
-    for a, b, c, d in it:
-      print(c)
 
 
 def test_crop_center():

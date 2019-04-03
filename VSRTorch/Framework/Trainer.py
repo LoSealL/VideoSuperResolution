@@ -1,7 +1,7 @@
 #  Copyright (c): Wenyi Tang 2017-2019.
 #  Author: Wenyi Tang
 #  Email: wenyi.tang@intel.com
-#  Update Date: 2019/4/3 下午5:10
+#  Update Date: 2019/4/3 下午8:28
 
 import time
 
@@ -108,10 +108,10 @@ class SRTrainer(Env):
     v.train_loader, v.val_loader = loaders
     if not self.fit_init():
       return
+    mem = v.memory_limit
     for epoch in range(self.last_epoch + 1, v.epochs + 1):
       v.epoch = epoch
-      train_iter = v.train_loader.make_one_shot_iterator(
-        v.memory_limit, shuffle=True)
+      train_iter = v.train_loader.make_one_shot_iterator(mem, shuffle=True)
       if hasattr(v.train_loader, 'prefetch'):
         v.train_loader.prefetch(v.memory_limit)
       date = time.strftime('%Y-%m-%d %T', time.localtime())
@@ -132,7 +132,8 @@ class SRTrainer(Env):
           v.writer.scalar(_k, _v, step=v.epoch, collection='train')
         print('| Epoch average {} = {:.6f} |'.format(_k, _v))
       if v.epoch % v.validate_every_n_epoch == 0:
-        self.benchmark(v.val_loader, v)
+        # Hard-coded memory limitation for validating
+        self.benchmark(v.val_loader, v, memory_limit='1GB')
       self._save_model(v.epoch)
     self.fit_close()
 

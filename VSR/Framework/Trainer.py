@@ -8,6 +8,11 @@ Extend the pre-Environment module, provide different and extensible
 training methodology for SISR, VSR or other image tasks.
 """
 
+#  Copyright (c): Wenyi Tang 2017-2019.
+#  Author: Wenyi Tang
+#  Email: wenyi.tang@intel.com
+#  Update Date: 2019/4/3 下午8:28
+
 import csv
 import time
 from pathlib import Path
@@ -240,8 +245,8 @@ class VSR(Trainer):
 
   def fn_train_each_epoch(self):
     v = self.v
-    train_iter = v.train_loader.make_one_shot_iterator(
-      v.memory_limit, shuffle=True)
+    mem = v.memory_limit
+    train_iter = v.train_loader.make_one_shot_iterator(mem, shuffle=True)
     if hasattr(v.train_loader, 'prefetch'):
       v.train_loader.prefetch(v.memory_limit)
     date = time.strftime('%Y-%m-%d %T', time.localtime())
@@ -263,7 +268,7 @@ class VSR(Trainer):
       self._csv_writer.writerow([np.mean(s) for s in v.avg_meas.values()])
       self._csv_file.flush()
     if v.epoch % v.validate_every_n_epoch == 0:
-      self.benchmark(v.val_loader, v, epoch=v.epoch)
+      self.benchmark(v.val_loader, v, epoch=v.epoch, memory_limit='1GB')
       v.summary_writer.add_summary(self.model.summary(), v.global_step)
       self._save_model(v.sess, v.epoch)
 
