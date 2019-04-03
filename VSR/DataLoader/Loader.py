@@ -19,7 +19,7 @@ changelog 2018-8-29
 #  Copyright (c): Wenyi Tang 2017-2019.
 #  Author: Wenyi Tang
 #  Email: wenyi.tang@intel.com
-#  Update Date: 2019/4/3 下午5:03
+#  Update Date: 2019/4/3 下午8:28
 
 import importlib
 import threading as th
@@ -268,7 +268,7 @@ class BasicLoader:
       prop = memory_usage / cap / shard * scale_factor
       # How many frames can be read into memory each thread each epoch
       # Note: we assume each "frame" has a close size.
-      n = int(np.round(len(self.parser) * prop))
+      n = max(1, int(np.round(len(self.parser) * prop)))  # at least 1 sample
       frames = []
       for i in np.random.permutation(len(self.parser))[:n]:
         frames += self.parser[i]
