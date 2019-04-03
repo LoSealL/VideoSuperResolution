@@ -9,6 +9,11 @@ Pre-processing CelebA dataset:
 - Randomly split into (train, test)
 """
 
+#  Copyright (c): Wenyi Tang 2017-2019.
+#  Author: Wenyi Tang
+#  Email: wenyi.tang@intel.com
+#  Update Date: 2019/4/3 下午5:03
+
 import argparse
 from pathlib import Path
 

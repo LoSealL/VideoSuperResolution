@@ -8,12 +8,15 @@ Updated Date: May 8th 2018
 Image processing tools
 """
 
+#  Copyright (c): Wenyi Tang 2017-2019.
+#  Author: Wenyi Tang
+#  Email: wenyi.tang@intel.com
+#  Update Date: 2019/4/3 下午5:03
+
 from pathlib import Path
 
 import numpy as np
 from PIL import Image
-
-from .Utility import to_list
 
 
 def _resample(name):
@@ -188,8 +191,7 @@ def imwrite(url, data, mode='RGB', name=None):
   imgs = np.split(data, data.shape[0])
   if name is None:
     name = ['image_{:03d}'.format(i) for i in range(data.shape[0])]
-  urls = to_list(url, data.shape[0])
-  for img, url, n in zip(imgs, urls, name):
+  for img, n in zip(imgs, name):
     if url.is_dir():
       url_f = url / n
     else:
@@ -280,55 +282,3 @@ def rgb_to_yuv(img, max_val=1.0, standard='bt601'):
     _yuv = _yuv.transpose() + _bias
     _yuv = _yuv.reshape(img.shape)
   return np.clip(_yuv, 0, 1) * max_val
-
-
-import tensorflow as tf
-
-"""
-Functions that start with `tf_` process image(s) using TF functions,
-this intends to speed up image procession.
-
-But I personally thought `tf.image` is hard to use
-"""
-
-
-def tf_decode_image_file(url, dtype=None):
-  """Decode image from file
-    Args:
-        url: path to image
-        dtype: target image type
-
-    Return:
-        A 4-D tensor image with shape [len(url), H, W, C]
-  """
-  url = to_list(url)
-  with tf.name_scope('DecodeImageFile'):
-    images = []
-    for _url in url:
-      with open(_url, 'rb') as fp:
-        img = tf.image.decode_image(fp.read())
-        img = tf.image.convert_image_dtype(img, dtype)
-      images.append(img)
-    return tf.concat(images, 0)
-
-
-def tf_random_crop_batch_image(image, batch, shape, seed=None, name=None):
-  """Randomly crop a single image into `batch` pieces
-
-    Args:
-        image: A 3-D tensor with shape [H, W, C]
-        batch: A scalar of type UINT
-        shape: A 3-D tensor with crop shape
-        seed: seed of random op
-        name: op name
-
-    Return:
-        A 4-D tensor image with shape [batch, *shape]
-  """
-
-  with tf.name_scope('RandomCropBatchImage'):
-    image = tf.expand_dims(image, 0)
-    op = tf.random_crop(image, [1, shape[0], shape[1], shape[2]], seed,
-                        name)
-    image = tf.tile(op, [batch, 1, 1, 1])
-  return image

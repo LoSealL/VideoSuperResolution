@@ -5,10 +5,15 @@ Email: wenyi.tang@intel.com
 Last update date: Mar. 25th 2019
 """
 
+#  Copyright (c): Wenyi Tang 2017-2019.
+#  Author: Wenyi Tang
+#  Email: wenyi.tang@intel.com
+#  Update Date: 2019/4/3 下午5:03
+
 from setuptools import find_packages
 from setuptools import setup
 
-VERSION = '0.7.3'
+VERSION = '0.7.4'
 
 REQUIRED_PACKAGES = [
   'numpy',

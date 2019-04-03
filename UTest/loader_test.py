@@ -1,6 +1,11 @@
 """
 Unit test for DataLoader.Loader
 """
+#  Copyright (c): Wenyi Tang 2017-2019.
+#  Author: Wenyi Tang
+#  Email: wenyi.tang@intel.com
+#  Update Date: 2019/4/3 下午5:03
+
 import os
 
 if not os.getcwd().endswith('UTest'):
@@ -11,27 +16,6 @@ from VSR.Util.ImageProcess import *
 from VSR.Framework.Callbacks import _viz_flow
 
 DATASETS = load_datasets('./data/fake_datasets.yml')
-
-
-def test_loader_prob():
-  dut = DATASETS['BAR']
-  prob = [0.46196357, 0.14616816, 0.11549089, 0.13816049, 0.13821688]
-  config = Config(batch=1, scale=1, depth=1, steps_per_epoch=-1,
-                  convert_to='RGB')
-  r = BasicLoader(dut, 'test', config)
-  mc = 10000
-  p = r._random_select(mc, seed=1).values()
-  epsilon = 1e-2
-  for p, p_hat in zip(p, prob):
-    assert np.abs(p / 1e4 - p_hat) <= epsilon
-
-  r.change_select_method(Select.EQUAL_FILE)
-  mc = 10000
-  p = r._random_select(mc, seed=1).values()
-  epsilon = 1e-2
-  prob = [.2, .2, .2, .2, .2]
-  for p, p_hat in zip(p, prob):
-    assert np.abs(p / 1e4 - p_hat) <= epsilon
 
 
 def test_basicloader_iter():

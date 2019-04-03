@@ -16,6 +16,10 @@ Pre-processing DND dataset:
 - Submit denoised .png files into bundled .mat files.
 """
 
+#  Copyright (c): Wenyi Tang 2017-2019.
+#  Author: Wenyi Tang
+#  Email: wenyi.tang@intel.com
+#  Update Date: 2019/4/3 下午5:03
 import argparse
 import os
 from pathlib import Path
@@ -218,7 +222,7 @@ def bundle_submissions_srgb(submission_folder):
 
 
 if __name__ == '__main__':
-  parser = argparse.ArgumentParser()
+  parser = argparse.ArgumentParser(description="DND submission tool")
   parser.add_argument("--data_dir", type=str, default=None,
                       help="dnd data folder (root folder).")
   parser.add_argument("--save_dir", type=str, default='./outputs',

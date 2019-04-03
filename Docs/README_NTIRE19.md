@@ -54,14 +54,14 @@ You can also do it step-by-step as follows.
    
    You need to crop images into small patches by:
    ```bash
-   python VSR/Tools/DataProcessing/NTIRE19RSR.py --ref_dir=path/to/test/data/folder --patch_size=768 --stride=760 --save_dir=path/to/saving/folder
+   python Tools/NtireHelper.py path/to/test/data/folder path/to/saving/folder --task=divide --patch=768 --stride=760
    ```
    
    For sRGB Denoising:
    
    You need to convert .MAT file to png images by:
    ```bash
-   python VSR/Tools/DataProcessing/NTIRE19Denoise.py --validation=path/to/.MAT --save_dir=path/to/saving/folder
+   python Tools/NtireHelper.py path/to/.MAT path/to/saving/folder --task=parse_mat
    ```
    
 4. Predicting
@@ -77,9 +77,9 @@ You can also do it step-by-step as follows.
    The output will be saved in `../Results/rsr/<your-image-folder-name>`. To combine them back together:
    ```bash
    cd ..
-   python VSR/Tools/DataProcessing/NTIRE19RSR.py --ref_dir=path/to/test/data/folder --patch_size=768 --stride=760 --results=Results/rsr/<your-image-folder>/ --save_dir=path/to/saving/folder
+   python Tools/NtireHelper.py Results/rsr/<your-image-folder>/ path/to/saving/folder --ref=path/to/test/data/folder --stride=760 --task=combine
    ```
-   Where `--ref_dir` should keep the same as the folder in step 3, it's a reference to know how to combine patches. `--patch_size` and `--stride` should also keep the same.
+   Where `--ref` should keep the same as the folder in step 3, it's a reference to know how to combine patches. `--stride` should also keep the same.
    
    For sRGB Denoising:
    Entering VSRTorch folder
@@ -90,7 +90,7 @@ You can also do it step-by-step as follows.
    The output will be saved in `../Results/drn/<your-image-folder-name>`. To pack them into mat file:
    ```bash
    cd ..
-   python VSR/Tools/DataProcessing/NTIRE19Denoise.py --results=Results/drn/<your-image-folder-name> --save_dir=path/to/saving/folder
+   python Tools/NtireHelper.py Results/drn/<your-image-folder-name> path/to/saving/folder --task=group_mat
    ```
    
    *If OOM happened, try not to enable `--cuda` flag.

@@ -1,6 +1,9 @@
 # VSR Dataset Description File
 # Date: Oct 17th 2018
-# Ver: v1.2.0
+# Ver: v1.2.1
+
+# changelog 2019-4-1:
+# - Introduce `parser`: see VSR.DataLoader.Parser for details.
 
 # changelog 2019-1-9:
 # - `Root` will affect absolute url in `Dataset` as well
@@ -79,13 +82,14 @@ Dataset:
     test: [MCL-V/test/*.yuv]  # or as array like this
     param:  # For MCL-V is raw data, these param must be specified
       mode: YV12
+      parser: raw
       width: 1920
       height: 1080
 
-#  GOPRO: # https://github.com/SeungjunNah/DeepDeblur_release
-#    train: [GOPRO-Train]
-#    val: [GOPRO-Val]
-#    test: [VID4-HR]
+  GOPRO: # https://github.com/SeungjunNah/DeepDeblur_release
+    train: [GOPRO-Train]
+    val: [GOPRO-Val]
+    test: [VID4-HR]
 
   VID4:  # popular video benchmark baseline
     test: VID4-HR
@@ -96,12 +100,14 @@ Dataset:
 #    flow: FlyingChairsFlow
 #    val: FlyingChairsVal
 #    test: FlyingChairsTest
-#
+
 #  MINICHAIRS:  # a small set of flying chairs, for quick testing
 #    train: MiniFlyingChairs
 #    flow: FlyingChairsFlow
 #    val: FlyingChairsVal
 #    test: FlyingChairsTest
+  #    param:
+  #      parser: flow
 
   SIDD:
     train: "NTIRE19/Denoise/train/drsr_patches/**/*.png"
@@ -109,12 +115,16 @@ Dataset:
     val: "NTIRE19/Denoise/train/gt_patches/**/*.png"
     val_pair: "NTIRE19/Denoise/train/noisy_patches/**/*.png"
     infer: ["NTIRE19/Denoise/validation_corrected"]
+    param:
+      parser: custom_pairs
 
   RSR:
     train: ["NTIRE19/SR/EXGT"]
     train_pair: ["NTIRE19/SR/EXLR/"]
     val: ["NTIRE19/SR/EXGT/"]
     val_pair: ["NTIRE19/SR/EXLR/"]
+    param:
+      parser: custom_pairs
 
 #  CELEBA:  # center cropped and resize to 64x64
 #    # test images are randomly selected (10,000 samples)
@@ -125,13 +135,5 @@ Dataset:
 #    infer: []
 #
 #  CIFAR10:  # well-known cifar-10
-#    # alpha version, loading ndarray data(s)
 #    param:
-#      mode: numpy  # specify `mode` as "numpy"
-#      numpy:
-#        # execution python source
-#        exec: '(x,_),(y,_)=tf.keras.datasets.cifar10.load_data()'
-#        # specify result variables
-#        train: 'x'
-#        val: 'y'
-#        test: 'y[:10000]'
+#      parser: cifar10
