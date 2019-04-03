@@ -4,3 +4,11 @@ edsr:
   clip: 0.1
   scale: 4
   channel: 3
+
+batch: 16
+patch_size: 128
+lr: 1.0e-4
+lr_decay:
+  method: multistep
+  decay_step: [150000]
+  decay_rate: 0.1

@@ -58,6 +58,8 @@ WEIGHTS = {
   'edsr.zip': 'https://github.com/LoSealL/Model/releases/download/edsr/edsr.zip',
   'dncnn.zip': 'https://github.com/LoSealL/Model/releases/download/DnCNN/dncnn.zip',
   'carn.zip': 'https://github.com/LoSealL/Model/releases/download/CARN/carn.zip',
+  'rsr.zip': 'https://github.com/LoSealL/Model/releases/download/crdn/rsr.zip',
+  'drn.zip': 'https://github.com/LoSealL/Model/releases/download/mldn/drn.zip',
   # Google Drive File ID.
   # If you can't download from this file, visit url https://drive.google.com/open?id=<id>
   # paste the file id into position <id>.
@@ -94,18 +96,22 @@ def get_input(question):
 def matches(str1, pattern):
   if not pattern:
     return str1
-  ret = re.match(pattern, str1)
+  ret = re.match(pattern.lower(), str1.lower())
   if ret:
     return str1
 
 
 def user_input(name, defaults=False, pattern=None):
-  name = matches(name, pattern)
-  if not name:
+  _name = name
+  for _pat in pattern:
+    _name = matches(name, _pat)
+    if _name is not None:
+      break
+  if not _name:
     return
-  question = 'Do you wish to download {}? '.format(name)
+  question = 'Do you wish to download {}? '.format(_name)
   if defaults:
-    question += '[Y/n] '
+    return True
   else:
     question += '[y/N] '
   var = None
@@ -140,21 +146,23 @@ def main():
   parser = argparse.ArgumentParser()
   parser.add_argument("--download_dir", type=str,
                       default=_DEFAULT_DOWNLOAD_DIR,
-                      help="Specify download directory.")
+                      help="Specify download directory. "
+                           "[{}]".format(_DEFAULT_DOWNLOAD_DIR))
   parser.add_argument("--data_dir", type=str,
                       default=_DEFAULT_DATASET_PATH,
-                      help="Specify dataset extracted directory.")
+                      help="Specify dataset extracted directory. "
+                           "[{}]".format(_DEFAULT_DATASET_PATH))
   parser.add_argument("--weights_dir", type=str,
                       default=_DEFAULT_WEIGHTS_DIR,
-                      help="Specify weights extracted directory.")
-  parser.add_argument("--yes_to_all", type=bool, default=False,
-                      help="download every file by default.")
-  parser.add_argument("--filter", type=str, default=None,
+                      help="Specify weights extracted directory. "
+                           "[{}]".format(_DEFAULT_WEIGHTS_DIR))
+  parser.add_argument("--filter", nargs='*', default=[],
                       help="an re pattern to filter candidates.")
+  parser.add_argument("-q", "--quiet", action="store_true",
+                      help="download quietly")
   args, _ = parser.parse_known_args()
   # make work dir
   Path(args.download_dir).mkdir(exist_ok=True, parents=True)
-  Path(args.data_dir).mkdir(exist_ok=True, parents=True)
 
   def get_leaf(key: str, node: dict):
     for k, v in node.items():
@@ -165,11 +173,15 @@ def main():
         yield Path(key) / k, v
 
   need_to_download = {}
-  for k, v in get_leaf(args.data_dir, DATASETS):
-    if user_input(k.stem, args.yes_to_all, args.filter):
-      need_to_download[k] = v
+  try:
+    Path(args.data_dir).mkdir(exist_ok=True, parents=True)
+    for k, v in get_leaf(args.data_dir, DATASETS):
+      if user_input(k.stem, args.quiet, args.filter):
+        need_to_download[k] = v
+  except (FileNotFoundError, OSError):
+    pass
   for k, v in get_leaf(args.weights_dir, WEIGHTS):
-    if user_input(k.stem, args.yes_to_all, args.filter):
+    if user_input(k.stem, args.quiet, args.filter):
       need_to_download[k] = v
   need_to_extract = {}
   for k, v in need_to_download.items():

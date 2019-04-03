@@ -9,23 +9,35 @@ python run.py --model=srcnn --dataset=91-image --test=set14
 That's all! It will read training data from `91-image` and train `srcnn` network 50 epochs with 50*200 steps.
 And test it on `Set14` dataset afterward.
 
-## 2. Eval mode:
-You can use **eval** mode in `run.py` to benchmark models using built-in metrics.
-There are two ways to execute in eval mode:
+## 2. Train model more customized:
+`run.py` can be used to train/benchmark/infer models collected in [VSR.Models](../VSR/Models)
+
+The model parameters can be configured through [parameters/root.yaml](./parameters/root.yaml) and
+*<parameters/model-name.yaml>* (i.e. [srcnn](./parameters/srcnn.yaml))
+
+```Bash
+python run.py --model <model-name> --epochs <num> --steps_per_epoch <num> --dataset <train-dataset-name> \
+  --test <test-dataset-name> --infer <infer-dir | single-file | infer-dataset-name> --threads <loading-thread-num>\
+  --save_dir <save>
+```
+Type `python run.py --helpfull` for more information.
+
+## 3. Eval mode:
+You can use `ben.py` for **eval** mode now. There are two ways to execute in eval mode:
 1. Run on existing generated images v.s. test images: 
     ```bash
-    python run.py --mode=eval --input_dir=../Results/srcnn/SET14 --test=set14 --enable_psnr
+    python ben.py --input_dir=../Results/srcnn/SET14 --test=set14 --enable_psnr
     ```
     It will benchmark your just trained `srcnn`, print PSNR metric on `Set14` dataset.
     You can also use a reference dir to replace the dataset `--test=Set14`:
     ```bash
-    python run.py --mode=eval --input_dir=../Results/srcnn/SET14 --reference_dir=/datasets/set14/hr/ --enable_ssim
+    python ben.py --input_dir=../Results/srcnn/SET14 --reference_dir=/datasets/set14/hr/ --enable_ssim
     ```
     Remember that the file order in reference dir must **exactly match** the order in input dir.
 
 2. Run on model checkpoint:
     ```bash
-    python run.py --mode=eval --model=srcnn --epochs=50 --checkpoint_dir=../Results/srcnn/save --test=set5 --enable_psnr
+    python ben.py --model=srcnn --epochs=50 --checkpoint_dir=../Results/srcnn/save --test=set5 --enable_psnr
     ```
     It will first load `srcnn` checkpoint and evaluate `Set14` data, then benchmark PSNR metric.
     Different from 1, this one saves disc space, and can run on an given epoch (as long as the checkpoint is saved, otherwise the latest checkpoint is loaded). 
@@ -44,19 +56,6 @@ There are two ways to execute in eval mode:
 - `--l_only`: A flag, benchmark metrics only on luminance channel (A.K.A Y channel of YUV color space)
 - `l_standard`: Use together with `--l_only` flag. This specify how to transform RGB image to YUV image.
                 Please note different method will lead to different results. (The default value gives your best results :).)
-
-## 3. Train model more customized:
-`run.py` can be used to train/benchmark/infer models collected in [VSR.Models](../VSR/Models)
-
-The model parameters can be configured through [parameters/root.yaml](./parameters/root.yaml) and
-*<parameters/model-name.yaml>* (i.e. [srcnn](./parameters/srcnn.yaml))
-
-```Bash
-python run.py --mode <eval | run> --model <model-name> --epochs <num> --steps_per_epoch <num> --dataset <train-dataset-name> \
-  --test <test-dataset-name> --infer <infer-dir | single-file | infer-dataset-name> --threads <loading-thread-num>\
-  --save_dir <save>
-```
-Type `python run.py --helpfull` for more information.
 
 #### Examples
 1. VDSR
@@ -80,8 +79,8 @@ Type `python run.py --helpfull` for more information.
     ```
 - Evaluate:
     ```Bash
-    python run.py --mode=eval --model=vdsr --checkpoint_dir=../Results/vdsr --epochs=100 --test=set14 --enable_psnr --enable_ssim
-    python run.py --mode=eval --input_dir=../Results/vdsr/SET14 --test=set14 --enable_psnr --enable_ssim
+    python run.py --model=vdsr --checkpoint_dir=../Results/vdsr --epochs=100 --test=set14 --enable_psnr --enable_ssim
+    python run.py --input_dir=../Results/vdsr/SET14 --test=set14 --enable_psnr --enable_ssim
     ```
 
 ## 5. Dataset

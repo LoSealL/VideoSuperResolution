@@ -1,0 +1,11 @@
+# Common parameters for all models
+# Can also be override in individual yaml
+---
+batch: 16
+patch_size: 48
+depth: 1
+lr: 1.0e-4
+lr_decay:
+  method: multistep
+  decay_step: []
+  decay_rate: 1

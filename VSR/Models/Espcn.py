@@ -14,6 +14,14 @@ from ..Framework.SuperResolution import SuperResolution
 from ..Util.Utility import to_list
 
 
+def _normalize(x):
+  return x / 127.5 - 1
+
+
+def _denormalize(x):
+  return (x + 1) * 127.5
+
+
 class ESPCN(SuperResolution):
   """Efficient Sub-Pixel Convolutional Neural Network.
 
@@ -23,12 +31,12 @@ class ESPCN(SuperResolution):
       kernel: a tuple of integer, representing each layer's kernel size
   """
 
-  def __init__(self, layers=3, filters=(64, 32, 32), kernel=(5, 3, 3),
+  def __init__(self, layers=3, filters=(64, 32), kernel=(5, 3, 3),
                name='espcn', **kwargs):
     super(ESPCN, self).__init__(**kwargs)
     self.name = name
     self.layers = layers
-    self.filters = to_list(filters, layers)
+    self.filters = to_list(filters, layers - 1)
     self.kernel_size = to_list(kernel, layers)
     if len(self.kernel_size) < self.layers:
       self.kernel_size += to_list(
@@ -37,11 +45,12 @@ class ESPCN(SuperResolution):
   def build_graph(self):
     super(ESPCN, self).build_graph()
     with tf.variable_scope(self.name):
-      x = self.inputs_preproc[-1] / 127.5 - 1
+      x = _normalize(self.inputs_preproc[-1])
       for f, k in zip(self.filters, self.kernel_size):
-        x = self.tanh_conv2d(x, f, k)
-      x = self.upscale(x, 'espcn', direct_output=True)
-      self.outputs.append((x + 1) * 127.5)
+        x = self.tanh_conv2d(x, f, k, kernel_initializer='torch')
+      x = self.upscale(x, 'espcn', direct_output=True,
+                       kernel_initializer='torch')
+      self.outputs.append(_denormalize(x))
 
   def build_loss(self):
     with tf.name_scope('loss'):

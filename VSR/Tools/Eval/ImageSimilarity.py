@@ -22,10 +22,6 @@ tf.flags.DEFINE_string("l_standard", "matlab",
                        "yuv convertion standard, "
                        "either 'bt601', 'bt709' or 'matlab'")
 tf.flags.DEFINE_integer("shave", 0, "shave border pixels")
-tf.flags.DEFINE_integer("offset", 0,
-                        "using data[offset:] in calculation. "
-                        "Positive value to offset label data; "
-                        "Negative value to offset generated data.")
 FLAGS = tf.flags.FLAGS
 
 
@@ -72,11 +68,8 @@ def check_shape_compatibility(a: np.ndarray, b: np.ndarray):
   if a.shape[0] != b.shape[0]:
     tf.logging.warning("Number of images doesn't match, try adapting...")
     tf.logging.info("# {} vs {}".format(a.shape[0], b.shape[0]))
-    tf.logging.info("Offset: {}".format(FLAGS.offset))
-    offset_a = max(FLAGS.offset, 0)
-    offset_b = max(-FLAGS.offset, 0)
-    batch = min(a.shape[0] - offset_a, b.shape[0] - offset_b)
-    return a[offset_a:offset_a + batch], b[offset_b:offset_b + batch], True
+    batch = min(a.shape[0], b.shape[0])
+    return a[:batch], b[:batch], True
 
 
 class PsnrTask(Task):
@@ -88,11 +81,6 @@ class PsnrTask(Task):
     label_ph = tf.placeholder('float32', [None, None, None, None])
     fake_ph = tf.placeholder('float32', [None, None, None, None])
     psnr_tensor = tf.image.psnr(label_ph, fake_ph, 255)
-    if len(label_images) != len(fake_images):
-      offset_label = max(FLAGS.offset, 0)
-      offset_fake = max(-FLAGS.offset, 0)
-      label_images = label_images[offset_label:]
-      fake_images = fake_images[offset_fake:]
     for x0, x1 in zip(label_images, fake_images):
       x0, x1 = normalize(x0, x1)
       x0, x1, valid = check_shape_compatibility(x0, x1)
@@ -109,11 +97,6 @@ class SsimTask(Task):
     label_ph = tf.placeholder('float32', [None, None, None, None])
     fake_ph = tf.placeholder('float32', [None, None, None, None])
     ssim_tensor = tf.image.ssim(label_ph, fake_ph, 255)
-    if len(label_images) != len(fake_images):
-      offset_label = max(FLAGS.offset, 0)
-      offset_fake = max(-FLAGS.offset, 0)
-      label_images = label_images[offset_label:]
-      fake_images = fake_images[offset_fake:]
     for x0, x1 in zip(label_images, fake_images):
       x0, x1 = normalize(x0, x1)
       x0, x1, valid = check_shape_compatibility(x0, x1)

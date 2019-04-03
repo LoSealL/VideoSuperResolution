@@ -83,6 +83,8 @@ def evaluate(*args):
   test_config.subdir = test_data.name
   infer_config.subdir = 'infer'
   with trainer(model, root, tf.logging.INFO) as t:
+    if opt.seed is not None:
+      t.set_seed(opt.seed)
     loader = QuickLoader(test_data, 'test', test_config, n_threads=4)
     opt.data = []
     test_config.output_callbacks = [partial(get_outputs, config=opt)]

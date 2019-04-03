@@ -1,0 +1,11 @@
+espcn:
+  scale: 4
+  channel: 3
+
+batch: 64
+patch_size: 96
+lr: 1.0e-2
+lr_decay:
+    method: multistep
+    decay_step: [50, 75]
+    decay_rate: 0.1
