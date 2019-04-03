@@ -1,7 +1,7 @@
 #  Copyright (c): Wenyi Tang 2017-2019.
 #  Author: Wenyi Tang
 #  Email: wenyi.tang@intel.com
-#  Update Date: 2019/4/2 上午10:54
+#  Update Date: 2019/4/3 下午5:10
 
 
 import argparse
@@ -19,6 +19,7 @@ from VSR.DataLoader.Dataset import load_datasets
 from VSR.Framework.Callbacks import lr_decay
 from VSR.Util.Config import Config
 from VSR.Tools.Run import suppress_opt_by_args, dump
+from VSR.DataLoader.Loader import QuickLoader
 
 parser = argparse.ArgumentParser()
 parser.add_argument("model", choices=list_supported_models(),
@@ -91,7 +92,6 @@ def main():
     root += '_' + flags.comment
   verbosity = logging.DEBUG if flags.verbose else logging.INFO
   trainer = model.trainer
-  loader = model.loader
 
   datasets = load_datasets(data_config_file)
   dataset = datasets[flags.dataset.upper()]
@@ -110,11 +110,11 @@ def main():
   with trainer(model, root, verbosity, opt.pth) as t:
     if opt.seed is not None:
       t.set_seed(opt.seed)
-    tloader = loader(dataset, 'train', train_config, True, flags.thread)
-    vloader = loader(dataset, 'val', train_config, False, flags.thread,
-                     batch=1,
-                     crop=opt.val_data_crop,
-                     steps_per_epoch=opt.val_num)
+    tloader = QuickLoader(dataset, 'train', train_config, True, flags.thread)
+    vloader = QuickLoader(dataset, 'val', train_config, False, flags.thread,
+                          batch=1,
+                          crop=opt.val_data_crop,
+                          steps_per_epoch=opt.val_num)
     t.fit([tloader, vloader], train_config)
     if opt.export:
       t.export(opt.export)

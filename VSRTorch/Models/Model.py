@@ -1,13 +1,12 @@
 #  Copyright (c): Wenyi Tang 2017-2019.
 #  Author: Wenyi Tang
 #  Email: wenyi.tang@intel.com
-#  Update Date: 2019/4/2 上午10:54
+#  Update Date: 2019/4/3 下午5:10
 
 import torch
 import logging
 
 from ..Framework.Trainer import SRTrainer
-from VSR.DataLoader.Loader import QuickLoader
 
 
 class BasicModel:
@@ -25,7 +24,6 @@ class BasicModel:
     self.opts = {}
     self.name = ''
     self._trainer = None
-    self._loader = None
 
   def __setattr__(self, key, value):
     if key in ('modules', 'opts',):
@@ -127,5 +125,3 @@ class SuperResolution(BasicModel):
     self.channel = channel
     # Default SR trainer
     self._trainer = SRTrainer
-    # Default SR loader
-    self._loader = QuickLoader

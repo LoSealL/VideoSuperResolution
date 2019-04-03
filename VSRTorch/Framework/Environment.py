@@ -1,7 +1,7 @@
 #  Copyright (c): Wenyi Tang 2017-2019.
 #  Author: Wenyi Tang
 #  Email: wenyi.tang@intel.com
-#  Update Date: 2019 - 3 - 14
+#  Update Date: 2019/4/3 下午5:10
 
 import logging
 from pathlib import Path
@@ -42,7 +42,7 @@ class Env:
     self._saved = Path(work_dir) / 'save'
     self._logd = Path(work_dir) / 'log'
     self._restored = False
-    self._logger = logging.getLogger("VSR.Trainer")
+    self._logger = logging.getLogger("VSR")
     self._logger.setLevel(log_level)
     self._pth = Path(pre_train_model or '')
 

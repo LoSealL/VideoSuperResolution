@@ -1,12 +1,12 @@
 #  Copyright (c): Wenyi Tang 2017-2019.
 #  Author: Wenyi Tang
 #  Email: wenyi.tang@intel.com
-#  Update Date: 2019/4/2 上午10:54
+#  Update Date: 2019/4/3 下午5:10
 
 import torch
 from torch import nn
 from torch.nn import functional as F
-from ..Arch import STN
+from ..video.motion import STN
 
 
 class RB(nn.Module):
@@ -70,7 +70,7 @@ class SRNet(nn.Module):
     super(SRNet, self).__init__()
     self.entry = nn.Conv2d(channel * depth, 64, 3, 1, 1)
     self.exit = nn.Conv2d(64, channel, 3, 1, 1)
-    self.body = nn.Sequential(RB(64, 64), RB(64, 64), RB(64, 64))
+    self.body = nn.Sequential(RB(64, 64), RB(64, 64), RB(64, 64), nn.ReLU(True))
     self.conv = nn.Conv2d(64, 64 * scale ** 2, 3, 1, 1)
     self.up = nn.PixelShuffle(scale)
 

@@ -1,7 +1,7 @@
 #  Copyright (c): Wenyi Tang 2017-2019.
 #  Author: Wenyi Tang
 #  Email: wenyi.tang@intel.com
-#  Update Date: 2019 - 3 - 14
+#  Update Date: 2019/4/3 下午5:10
 
 import time
 
@@ -44,13 +44,13 @@ def _ensemble_reduce_mean(outputs):
 
 
 def to_tensor(x, cuda=False):
-  x = torch.Tensor(x.copy())
-  if x.dim() == 4:
-    x = x.transpose(1, 2).transpose(1, 3).contiguous() / 255.0
-  elif x.dim() == 5:
-    x = x.transpose(2, 3).transpose(2, 4).contiguous() / 255.0
+  if x.ndim == 4:
+    x = x.transpose([0, 3, 1, 2]) / 255.0
+  elif x.ndim == 5:
+    x = x.transpose([0, 1, 4, 2, 3]) / 255.0
   else:
     raise ValueError(f"Tensor dimension error: {x.dim()} != 4 or 5")
+  x = torch.as_tensor(x, dtype=torch.float32)
   if cuda and torch.cuda.is_available():
     x = x.cuda()
   return x
