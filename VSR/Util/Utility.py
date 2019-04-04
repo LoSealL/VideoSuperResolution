@@ -293,7 +293,7 @@ def pop_dict_wo_keyerror(d, key):
   return value
 
 
-def summary_tensor_image(x: tf.Tensor, name, reshape=None):
+def summary_tensor_image(x, name, reshape=None):
   """summary a tensor
 
   split each channel and reshape into a huge image

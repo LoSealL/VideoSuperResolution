@@ -41,8 +41,8 @@ parser.add_argument("--epoch", type=int, default=None,
                          "will use the latest one if not specified.")
 parser.add_argument("--thread", type=int, default=8,
                     help="Specify loading threads number")
-parser.add_argument("--output_index", type=int, default=-1,
-                    help="specify access index of output array")
+parser.add_argument("--output_index", default='-1',
+                    help="specify access index of output array (slicable)")
 parser.add_argument("--seed", type=int, default=None, help="set random seed")
 parser.add_argument("--cuda", action="store_true")
 parser.add_argument("--auto_rename", action="store_true")

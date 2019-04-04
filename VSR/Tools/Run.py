@@ -33,9 +33,9 @@ tf.flags.DEFINE_integer('val_num', 10, lower_bound=1,
                         help="Number of validations in training.")
 tf.flags.DEFINE_integer('threads', 1, lower_bound=1,
                         help="number of threads to use while reading data")
-tf.flags.DEFINE_integer('output_index', -1,
-                        help="specify access index of output array")
 tf.flags.DEFINE_integer('seed', None, help="set random seed")
+tf.flags.DEFINE_string('output_index', '-1',
+                       help="specify access index of output array")
 tf.flags.DEFINE_string('c', None, help="specify a configure file")
 tf.flags.DEFINE_string('p', None,
                        help="specify a parameter file, "

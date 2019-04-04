@@ -8,7 +8,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from VSR.Util.Utility import to_list
-from VSRTorch.Util.Utility import nd_meshgrid, transpose, irtranspose
 
 
 def _get_act(name, *args, inplace=False):
@@ -122,8 +121,25 @@ class CascadeRdn(nn.Module):
 
 
 class _UpsampleNearest(nn.Module):
-  def forward(self, x, scale):
-    F.interpolate(x, scale_factor=scale)
+  def __init__(self, scale):
+    super(_UpsampleNearest, self).__init__()
+    self.scale = scale
+
+  def forward(self, x, scale=None):
+    scale = scale or self.scale
+    return F.interpolate(x, scale_factor=scale, align_corners=False)
+
+
+class _UpsampleLinear(nn.Module):
+  def __init__(self, scale):
+    super(_UpsampleLinear, self).__init__()
+    self._mode = ('linear', 'bilinear', 'trilinear')
+    self.scale = scale
+
+  def forward(self, x, scale=None):
+    scale = scale or self.scale
+    mode = self._mode[x.dim() - 3]
+    return F.interpolate(x, scale_factor=scale, mode=mode, align_corners=False)
 
 
 class Upsample(nn.Module):
@@ -134,7 +150,7 @@ class Upsample(nn.Module):
     self.scale = scale
     self.method = method.lower()
 
-    _allowed_methods = ('ps', 'nearest', 'deconv')
+    _allowed_methods = ('ps', 'nearest', 'deconv', 'linear')
     assert self.method in _allowed_methods
 
     samplers = []
@@ -152,12 +168,35 @@ class Upsample(nn.Module):
         nn.Conv2d(self.channel, self.channel * scale * scale, 3, 1, 1),
         nn.PixelShuffle(scale))
     if method == 'deconv':
-      return nn.ConvTranspose2d(self.channel, self.channel, 3, scale, 1)
+      return nn.ConvTranspose2d(self.channel, self.channel, 4, scale, 1)
     if method == 'nearest':
-      return _UpsampleNearest()
+      return _UpsampleNearest(scale)
+    if method == 'linear':
+      return _UpsampleLinear(scale)
 
   def forward(self, inputs):
     return self.body(inputs)
 
   def extra_repr(self):
     return f"{self.name}: scale={self.scale}"
+
+
+class SpaceToDepth(nn.Module):
+  def __init__(self, block_size):
+    super(SpaceToDepth, self).__init__()
+    self.block_size = block_size
+    self.block_size_sq = block_size * block_size
+
+  def forward(self, input):
+    output = input.permute(0, 2, 3, 1)
+    (batch_size, s_height, s_width, s_depth) = output.size()
+    d_depth = s_depth * self.block_size_sq
+    d_width = int(s_width / self.block_size)
+    d_height = int(s_height / self.block_size)
+    t_1 = output.split(self.block_size, 2)
+    stack = [t_t.contiguous().reshape(batch_size, d_height, d_depth) for t_t in
+             t_1]
+    output = torch.stack(stack, 1)
+    output = output.permute(0, 2, 1, 3)
+    output = output.permute(0, 3, 1, 2)
+    return output
