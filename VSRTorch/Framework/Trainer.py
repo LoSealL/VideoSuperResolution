@@ -1,7 +1,7 @@
 #  Copyright (c): Wenyi Tang 2017-2019.
 #  Author: Wenyi Tang
 #  Email: wenyi.tang@intel.com
-#  Update Date: 2019/4/3 下午8:28
+#  Update Date: 2019/4/4 下午2:42
 
 import time
 
@@ -113,7 +113,7 @@ class SRTrainer(Env):
       v.epoch = epoch
       train_iter = v.train_loader.make_one_shot_iterator(mem, shuffle=True)
       if hasattr(v.train_loader, 'prefetch'):
-        v.train_loader.prefetch(v.memory_limit)
+        v.train_loader.prefetch(mem)
       date = time.strftime('%Y-%m-%d %T', time.localtime())
       v.avg_meas = {}
       if v.lr_schedule and callable(v.lr_schedule):

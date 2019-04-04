@@ -1,7 +1,7 @@
 #  Copyright (c): Wenyi Tang 2017-2019.
 #  Author: Wenyi Tang
 #  Email: wenyi.tang@intel.com
-#  Update Date: 2019 - 3 - 14
+#  Update Date: 2019/4/4 下午2:42
 
 import argparse
 import logging
@@ -92,7 +92,7 @@ def main():
     for pattern in flags.test:
       test_data = Dataset(test=_glob_absolute_pattern(pattern),
                           mode='pil-image1', modcrop=False)
-      father = Path(flags.test)
+      father = Path(pattern)
       while not father.is_dir():
         if father.parent == father:
           break
