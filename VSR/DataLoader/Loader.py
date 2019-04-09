@@ -19,7 +19,7 @@ changelog 2018-8-29
 #  Copyright (c): Wenyi Tang 2017-2019.
 #  Author: Wenyi Tang
 #  Email: wenyi.tang@intel.com
-#  Update Date: 2019/4/3 下午8:28
+#  Update Date: 2019/4/4 下午2:42
 
 import importlib
 import threading as th
@@ -289,6 +289,8 @@ class BasicLoader:
     self._prefetch(memory_usage, 1, 0)
     grids = self._generate_crop_grid(self.frames, self.patches_per_epoch,
                                      shuffle=shuffle)
+    if not (self.loaded == 1):
+      self.frames.clear()
     return EpochIterator(self, grids)
 
 
@@ -377,4 +379,6 @@ class QuickLoader(BasicLoader):
     grids = self._generate_crop_grid(self.frames,
                                      self.patches_per_epoch,
                                      shuffle=shuffle)
+    if not (self.loaded & 0xFFFF):
+      self.frames.clear()
     return EpochIterator(self, grids)

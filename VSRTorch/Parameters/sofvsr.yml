@@ -2,3 +2,11 @@ sofvsr:
   channel: 1
   scale: 4
   depth: 3
+
+batch: 16
+patch_size: 64
+lr: 1.0e-4
+lr_decay:
+  method: multistep
+  decay_step: [200, 400]
+  decay_rate: 0.1

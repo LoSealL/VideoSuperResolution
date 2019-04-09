@@ -82,8 +82,8 @@ def main():
       opt.update(Config(str(model_config_file)))
 
   model_params = opt.get(opt.model, {})
-  opt.update(model_params)
   suppress_opt_by_args(model_params, *args)
+  opt.update(model_params)
   model = get_model(flags.model)(**model_params)
   if flags.cuda:
     model.cuda()

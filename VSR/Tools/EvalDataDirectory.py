@@ -33,7 +33,7 @@ def load_folder(path1, path2=None):
     images2 = _glob_absolute_pattern(path2)
   else:
     images2 = path2
-  return Dataset(test=images, test_pair=images2)
+  return Dataset(test=images, test_pair=images2, parser='custom_pairs')
 
 
 def evaluate(*args):

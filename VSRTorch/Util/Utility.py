@@ -25,7 +25,7 @@ def pad_if_divide(x: torch.Tensor, value, mode='constant'):
   w = shape[-1]
   dh = h + (value - h % value) % value - h
   dw = w + (value - w % value) % value - w
-  pad = (dw // 2, dw - dw // 2, dh // 2, dh - dh // 2)
+  pad = [dw // 2, dw - dw // 2, dh // 2, dh - dh // 2]
   return F.pad(x, pad, mode)
 
 

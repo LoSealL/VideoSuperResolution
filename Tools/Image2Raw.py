@@ -1,7 +1,7 @@
 #  Copyright (c): Wenyi Tang 2017-2019.
 #  Author: Wenyi Tang
 #  Email: wenyi.tang@intel.com
-#  Update Date: 2019/4/3 下午5:03
+#  Update Date: 2019/4/4 下午2:42
 
 import argparse
 import io
@@ -62,7 +62,9 @@ class YUVConverter:
 
   def to_nv12(self):
     # YUV -> NV12
-    y = self.data[:, 0, :-(self.height % 2), :-(self.width % 2)]
+    h_tail = -1 if self.height % 2 else None
+    w_tail = -1 if self.width % 2 else None
+    y = self.data[:, 0, :h_tail, :w_tail]
     u = self.data[:, 1, ::2, ::2]
     v = self.data[:, 2, ::2, ::2]
     buffer = io.BytesIO()
@@ -79,7 +81,9 @@ class YUVConverter:
 
   def to_nv21(self):
     # YUV -> NV21
-    y = self.data[:, 0]
+    h_tail = -1 if self.height % 2 else None
+    w_tail = -1 if self.width % 2 else None
+    y = self.data[:, 0, :h_tail, :w_tail]
     u = self.data[:, 2, ::2, ::2]
     v = self.data[:, 1, ::2, ::2]
     buffer = io.BytesIO()
@@ -110,8 +114,8 @@ def main():
     for fp in r:
       data = read_video_frames(fp)
       r.set_postfix({"name": data['name']})
-      save_path = root / f"{data['name']}_{data['width']}x{data[
-        'height']}.{FLAGS.color_fmt}"
+      nm = f"{data['name']}_{data['width']}x{data['height']}.{FLAGS.color_fmt}"
+      save_path = root / nm
       if FLAGS.color_fmt in _YUV_COLOR:
         cvt = YUVConverter(data['data'])
       else:

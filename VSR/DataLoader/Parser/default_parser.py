@@ -34,19 +34,20 @@ class Parser(object):
                       'Unknown format {}'.format(config.convert_to))
       self.color_format = 'L'
     # calculate index range
-    if self.method in ('test', 'infer') and self.depth > 1:
+    depth = self.depth
+    if self.method in ('test', 'infer') and depth > 1:
       # padding head and tail
       for vf in self.file_objects:
-        vf.pad([self.depth // 2, self.depth // 2])
-    if self.depth < 0:
-      self.depth = 2 ** 31 - 1
+        vf.pad([depth // 2, depth // 2])
+    if depth < 0:
+      depth = 2 ** 31 - 1
     n_frames = []
     for _f in self.file_objects:
       l = _f.frames
-      if l < self.depth:
+      if l < depth:
         n_frames.append(1)
       else:
-        n_frames.append(l - self.depth + 1)
+        n_frames.append(l - depth + 1)
     index = np.arange(int(np.sum(n_frames)))
     self.index = [parse_index(i, n_frames) for i in index]
 
@@ -70,7 +71,7 @@ class Parser(object):
 
     _logger.debug(f'Prefetching {vf.name} @{index}')
     # vf.reopen()
-    depth = self.depth
+    depth = self.depth if self.depth > 0 else vf.frames
     depth = min(depth, vf.frames)
     vf.seek(index)
     hr = [shrink_to_multiple_scale(img, self.scale)
@@ -86,7 +87,8 @@ class Parser(object):
   @property
   def capacity(self):
     # bytes per pixel
-    bpp = 3 * (1 + np.reciprocal(self.scale, dtype='float32'))
+    depth = 1 if self.depth < 1 else self.depth
+    bpp = 3 * (1 + np.reciprocal(self.scale, dtype='float32')) * depth
     # NOTE use uint64 to prevent sum overflow
     return np.sum([np.prod((*vf.shape, vf.frames, bpp), dtype=np.uint64)
                    for vf in self.file_objects])

@@ -32,48 +32,64 @@ def _save_model_predicted_images(output, index, mode, cols=1, **kwargs):
   sub_dir = kwargs.get('subdir') or '.'
   names = kwargs.get('name', [('image', 0, 0)])
   suffix = kwargs.get('suffix')
-  img = output[index] if isinstance(output, list) else output
-  img = _to_normalized_image(img, mode)
-  if len(img) != len(names):
-    names = [names[0]] * len(img)
-  path = Path(save_dir) / sub_dir
-  if cols > 1:
-    canvas = np.stack([img_to_array(x) for x in img])
-    batch = canvas.shape[0]
-    rows = int(np.ceil(batch / cols))
-    if batch % cols != 0:
-      pad = [np.zeros_like(canvas[0])] * (rows * cols - batch)
-      canvas = np.concatenate([canvas] + pad, axis=0)
-    shape = canvas.shape
-    x = canvas.reshape([rows, cols, shape[1], shape[2], shape[3]])
-    x = x.transpose([0, 2, 1, 3, 4])
-    x = x.reshape([shape[1] * rows, shape[2] * cols, shape[3]])
-    img = [array_to_img(x, mode)]
-  for i, j in zip(img, names):
-    name, seq, frames = j
-    seq = int(seq)
-    frames = int(frames)
-    rep = 0
-    if frames > 1:
-      if suffix:
-        path_1 = path / '{}/{:04d}_PR_{:04d}.png'.format(name, seq, rep)
-      else:
-        path_1 = path / '{}/{:04d}.png'.format(name, seq)
+  _output = output if isinstance(output, list) else [output]
+  index = index.split(':')
+  if len(index) == 1:
+    ind = int(index[0])
+    if ind < 0:
+      sl = slice(ind, None, None)
     else:
-      if suffix:
-        path_1 = path / '{}_PR_{:04d}.png'.format(name, rep)
-      else:
-        path_1 = path / '{}.png'.format(name)
-    path_1.parent.mkdir(parents=True, exist_ok=True)
-    while path_1.exists():
-      if not suffix:
-        break
-      rep += 1
+      sl = slice(ind, ind + 1)
+  else:
+    def _maybe_int(x):
+      try:
+        return int(x)
+      except ValueError:
+        return None
+
+    sl = slice(*(_maybe_int(i) for i in index))
+  for img in _output[sl]:
+    img = _to_normalized_image(img, mode)
+    if len(img) != len(names):
+      names = [names[0]] * len(img)
+    path = Path(save_dir) / sub_dir
+    if cols > 1:
+      canvas = np.stack([img_to_array(x) for x in img])
+      batch = canvas.shape[0]
+      rows = int(np.ceil(batch / cols))
+      if batch % cols != 0:
+        pad = [np.zeros_like(canvas[0])] * (rows * cols - batch)
+        canvas = np.concatenate([canvas] + pad, axis=0)
+      shape = canvas.shape
+      x = canvas.reshape([rows, cols, shape[1], shape[2], shape[3]])
+      x = x.transpose([0, 2, 1, 3, 4])
+      x = x.reshape([shape[1] * rows, shape[2] * cols, shape[3]])
+      img = [array_to_img(x, mode)]
+    for i, j in zip(img, names):
+      name, seq, frames = j
+      seq = int(seq)
+      frames = int(frames)
+      rep = 0
       if frames > 1:
-        path_1 = path / '{}/{:04d}_PR_{:04d}.png'.format(name, seq, rep)
+        if suffix:
+          path_1 = path / '{}/{:04d}_PR_{:04d}.png'.format(name, seq, rep)
+        else:
+          path_1 = path / '{}/{:04d}.png'.format(name, seq)
       else:
-        path_1 = path / '{}_PR_{:04d}.png'.format(name, rep)
-    i.convert('RGB').save(str(path_1))
+        if suffix:
+          path_1 = path / '{}_PR_{:04d}.png'.format(name, rep)
+        else:
+          path_1 = path / '{}.png'.format(name)
+      path_1.parent.mkdir(parents=True, exist_ok=True)
+      while path_1.exists():
+        if not suffix:
+          break
+        rep += 1
+        if frames > 1:
+          path_1 = path / '{}/{:04d}_PR_{:04d}.png'.format(name, seq, rep)
+        else:
+          path_1 = path / '{}_PR_{:04d}.png'.format(name, rep)
+      i.convert('RGB').save(str(path_1))
   return output
 
 
