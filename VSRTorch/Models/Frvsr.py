@@ -15,7 +15,7 @@ from .Model import SuperResolution
 from ..Framework.Trainer import SRTrainer, to_tensor, from_tensor
 from ..Framework.Summary import get_writer
 from ..Util import Metrics
-from ..Util.Metrics import total_variance
+from ..Util.Utility import pad_if_divide
 
 
 class FRNet(nn.Module):
@@ -40,13 +40,13 @@ class FRNet(nn.Module):
     flow2 = F.interpolate(flow * self.scale, scale_factor=self.scale,
                           mode='bilinear', align_corners=False)
     hw = self.warp(self.last_sr, flow2[:, 0], flow2[:, 1], normalized=False)
-    lw = self.warp(x, flow[:, 0], flow[:, 1], normalized=False)
+    lw = self.warp(self.last_lr, flow[:, 0], flow[:, 1], normalized=False)
     # TODO space-to-depth
     hws = self.space_to_depth(hw)
     y = self.snet(hws, x)
     self.last_lr = x.detach()
     self.last_sr = y.detach()
-    return y, lw, flow
+    return y, hw, lw, flow2
 
 
 class FRVSR(SuperResolution):
@@ -63,13 +63,18 @@ class FRVSR(SuperResolution):
     flow_loss = 0
     image_loss = 0
     self.frvsr.reset()
+    last_hq = None
     for lq, hq in zip(frames, labels):
       lq = lq.squeeze(1)
       hq = hq.squeeze(1)
-      y, lqw, flow = self.frvsr(lq)
+      y, hqw, lqw, flow = self.frvsr(lq)
       l2_image = F.mse_loss(hq, y)
       l2_warp = F.mse_loss(lqw, lq)
-      loss = l2_image + l2_warp
+      if last_hq is not None:
+        hqw = self.frvsr.warp(last_hq, flow[:, 0], flow[:, 1], False)
+        l2_warp += F.mse_loss(hqw, hq)
+        last_hq = hq
+      loss = l2_image + l2_warp * 0.5
       if learning_rate:
         for param_group in self.adam.param_groups:
           param_group["lr"] = learning_rate
@@ -92,11 +97,12 @@ class FRVSR(SuperResolution):
     predicts = []
     for lq in frames:
       lq = lq.squeeze(1)
-      y, lqw, flow = self.frvsr(lq)
+      lq = pad_if_divide(lq, 8, 'reflect')
+      y, hqw, lqw, flow = self.frvsr(lq)
       predicts.append(y.cpu().detach().numpy())
     if labels is not None:
       targets = torch.split(labels[0], 1, dim=1)
-      targets = [t.squeeze(1) for t in targets]
+      targets = [pad_if_divide(t.squeeze(1), 8 * self.scale) for t in targets]
       psnr = [Metrics.psnr(x, y) for x, y in zip(predicts, targets)]
       metrics['psnr'] = np.mean(psnr)
       writer = get_writer(self.name)

@@ -289,7 +289,8 @@ class BasicLoader:
     self._prefetch(memory_usage, 1, 0)
     grids = self._generate_crop_grid(self.frames, self.patches_per_epoch,
                                      shuffle=shuffle)
-    self.frames.clear()
+    if not (self.loaded == 1):
+      self.frames.clear()
     return EpochIterator(self, grids)
 
 
@@ -378,5 +379,6 @@ class QuickLoader(BasicLoader):
     grids = self._generate_crop_grid(self.frames,
                                      self.patches_per_epoch,
                                      shuffle=shuffle)
-    self.frames.clear()
+    if not (self.loaded & 0xFFFF):
+      self.frames.clear()
     return EpochIterator(self, grids)
