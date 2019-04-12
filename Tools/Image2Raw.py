@@ -150,6 +150,46 @@ class YUVConverter:
       self.height = y.shape[1]
     return buffer
 
+  def to_yv12(self):
+    h_tail = -1 if self.height % 2 else None
+    w_tail = -1 if self.width % 2 else None
+    y = self.data[:, 0, :h_tail, :w_tail]
+    u = self.data[:, 1, ::2, ::2]
+    v = self.data[:, 2, ::2, ::2]
+    buffer = io.BytesIO()
+    for i in range(self.length):
+      plain = y[i].flatten().astype('uint8').tobytes()
+      buffer.write(plain)
+      plain = u[i].flatten().astype('uint8').tobytes()
+      buffer.write(plain)
+      plain = v[i].flatten().astype('uint8').tobytes()
+      buffer.write(plain)
+    if buffer.tell() != np.prod(self.data.shape) // 2:
+      print(" [$] warning: even frame size, crop 1 pixel out")
+      assert buffer.tell() == np.prod(y.shape) + np.prod(u.shape) + np.prod(
+        v.shape)
+    return buffer
+
+  def to_yv21(self):
+    h_tail = -1 if self.height % 2 else None
+    w_tail = -1 if self.width % 2 else None
+    y = self.data[:, 0, :h_tail, :w_tail]
+    u = self.data[:, 1, ::2, ::2]
+    v = self.data[:, 2, ::2, ::2]
+    buffer = io.BytesIO()
+    for i in range(self.length):
+      plain = y[i].flatten().astype('uint8').tobytes()
+      buffer.write(plain)
+      plain = v[i].flatten().astype('uint8').tobytes()
+      buffer.write(plain)
+      plain = u[i].flatten().astype('uint8').tobytes()
+      buffer.write(plain)
+    if buffer.tell() != np.prod(self.data.shape) // 2:
+      print(" [$] warning: even frame size, crop 1 pixel out")
+      assert buffer.tell() == np.prod(y.shape) + np.prod(u.shape) + np.prod(
+        v.shape)
+    return buffer
+
   def to(self, fmt):
     func_name = 'to_' + fmt.lower()
     if hasattr(self, func_name):
