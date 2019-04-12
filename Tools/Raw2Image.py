@@ -59,7 +59,12 @@ def encode(file, save_dir):
 
 
 def main():
-  raw_videos = filter(lambda f: f.is_file(), Path(FLAGS.input_dir).rglob('*'))
+  input_dir = Path(FLAGS.input_dir)
+  if input_dir.is_dir():
+    raw_videos = filter(lambda f: f.is_file(), input_dir.rglob('*'))
+  else:
+    assert input_dir.is_file()
+    raw_videos = [input_dir]
   raw_videos = sorted(raw_videos)
   save_dir = Path(FLAGS.output_dir)
   save_dir.mkdir(exist_ok=True, parents=True)
