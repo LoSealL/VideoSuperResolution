@@ -10,43 +10,33 @@ jobs:
 
 - job: 'Test'
   pool:
-    vmImage: 'Ubuntu-18.04'
-  strategy:
-    matrix:
-      Python36:
-        python.version: '3.6'
-    maxParallel: 4
+    vmImage: 'Ubuntu-16.04'
 
   steps:
   - task: UsePythonVersion@0
     inputs:
-      versionSpec: '$(python.version)'
+      versionSpec: '3.6'
       architecture: 'x64'
 
-  - script: python -m pip install --upgrade pip && pip install -e -U .
+  - script: |
+      python -m pip install --upgrade pip
+      pip install -q tensorflow google-api-python-client oauth2client
+      pip install -q https://download.pytorch.org/whl/cpu/torch-1.0.1.post2-cp36-cp36m-linux_x86_64.whl
+      pip install -U -q -e .
     displayName: 'Install dependencies'
 
   - script: |
-      pip install pytest
-      pytest UTest
-    displayName: 'pytest'
+      pytest -v UTest/correlation_test.py UTest/dataset_test.py UTest/virtualfile_test.py --disable-warnings
+      pytest -v UTest/image_test.py --disable-warnings
+      pytest -v UTest/loader_test.py --disable-warnings
+      pytest -v UTest/motion_test.py --disable-warnings
+      pytest -v UTest/noise_test.py --disable-warnings
+      pytest -v UTest/vgg_test.py --disable-warnings
+    displayName: 'test with pytest'
 
   - task: PublishTestResults@2
     inputs:
       testResultsFiles: '**/test-results.xml'
       testRunTitle: 'Python $(python.version)'
     condition: succeededOrFailed()
-
-- job: 'Publish'
-  dependsOn: 'Test'
-  pool:
-    vmImage: 'Ubuntu-16.04'
-
-  steps:
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '3.x'
-      architecture: 'x64'
-
-  - script: python setup.py sdist
-    displayName: 'Build sdist'
+    enabled: false
