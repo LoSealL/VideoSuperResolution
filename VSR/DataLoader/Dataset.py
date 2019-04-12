@@ -16,6 +16,11 @@ import yaml
 from ..Util.Config import Config
 from ..Util.Utility import to_list
 
+try:
+  from yaml import FullLoader as _Loader
+except ImportError:
+  from yaml import Loader as _Loader
+
 
 class Dataset(Config):
   """Dataset provides training/validation/testing data for neural network.
@@ -85,7 +90,7 @@ def load_datasets(describe_file):
 
   datasets = {}
   with open(describe_file, 'r') as fd:
-    config = yaml.load(fd)
+    config = yaml.load(fd, Loader=_Loader)
     root = Path(config["Root"])
     if not root.is_absolute():
       # make `root` relative to the file
