@@ -65,7 +65,7 @@ class STTN(nn.Module):
       _d = d / t * 2
       _u = u / w * 2
       _v = v / h * 2
-    st_flow = torch.stack([u, v, d], dim=-1)
+    st_flow = torch.stack([_u, _v, _d], dim=-1)
     st_flow = torch.stack([st_flow] * t, dim=1)
     assert st_flow.shape == mesh.shape
     mesh = mesh.to(device)
