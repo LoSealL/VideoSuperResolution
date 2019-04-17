@@ -179,7 +179,7 @@ class Upsample(nn.Module):
         samplers.append(self.upsampler(self.method, scale))
         break
       else:
-        samplers.append(self.upsampler(self.method, 2, Activation(act)))
+        samplers.append(self.upsampler(self.method, 2, act))
         scale //= 2
     self.body = nn.Sequential(*samplers)
 
@@ -192,22 +192,22 @@ class Upsample(nn.Module):
       body = [nn.Conv2d(self.channel, self.channel * scale * scale, k, s, p),
               nn.PixelShuffle(scale)]
       if activation:
-        body.insert(1, activation)
+        body.insert(1, Activation(activation))
     if method == 'deconv':
       q = k % 2  # output padding
       p = (k + q) // 2 - 1  # padding
       s = scale  # strides
       body = [nn.ConvTranspose2d(self.channel, self.channel, k, s, p, q)]
       if activation:
-        body.insert(1, activation)
+        body.insert(1, Activation(activation))
     if method == 'nearest':
       body = [_UpsampleNearest(scale)]
       if activation:
-        body.insert(1, activation)
+        body.insert(1, Activation(activation))
     if method == 'linear':
       body = [_UpsampleLinear(scale)]
       if activation:
-        body.insert(1, activation)
+        body.insert(1, Activation(activation))
     return nn.Sequential(*body)
 
   def forward(self, inputs):

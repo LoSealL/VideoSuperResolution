@@ -15,6 +15,8 @@ class Parser(object):
   def __init__(self, dataset, config):
     urls = dataset.get(config.method, [])
     pair = getattr(dataset, '{}_pair'.format(config.method))
+    if not pair:
+      pair = []
     urls = sorted(urls)
     pair = sorted(pair)
     self.files = [ImageFile(fp).attach_pair(p) for fp, p in zip(urls, pair)]
@@ -64,6 +66,7 @@ class Parser(object):
     frames = []
     for i in index[:clips]:
       vf.seek(i)
+      vf.pair.seek(i)
       hr = [img for img in vf.read_frame(depth)]
       lr = [img for img in vf.pair.read_frame(depth)]
       hr = [img.convert(self.color_format) for img in hr]

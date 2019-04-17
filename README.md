@@ -43,6 +43,8 @@ All these models are implemented in **ONE** framework.
 |NLRN|[NIPS18](https://papers.nips.cc/paper/7439-non-local-recurrent-network-for-image-restoration.pdf)|[Tensorflow](https://github.com/Ding-Liu/NLRN)|T|-| Non-local, Recurrent ||
 |SRCliqueNet|[NIPS18](https://arxiv.org/abs/1809.04508)|-|-|-| Wavelet ||
 |CBDNet|[arXiv](https://arxiv.org/abs/1807.04686)|[Matlab](https://github.com/GuoShi28/CBDNet)|T|-| Blind-denoise ||
+|TecoGAN|[arXiv](http://arxiv.org/abs/1811.09393)|[Tensorflow](https://github.com/thunil/TecoGAN)|-|-| VideoSR GAN||
+|RBPN|[CVPR19](https://arxiv.org/abs/1903.10128)|[PyTorch](https://github.com/alterzero/RBPN-PyTorch)|-|-| VideoSR ||
 
 \*The 1st repo is by paper author.
 
@@ -76,6 +78,7 @@ You can download pre-trained weights through [`prepare_data`](./prepare_data.py)
 |NC|Test|60|[website](http://demo.ipol.im/demo/125/)|Noisy photos|
 |SIDD(M)|Train/Val|200|[download]()|NTIRE 2019 Real Denoise|
 |RSR|Train/Val|80|[download]()|NTIRE 2019 Real SR|
+|Vimeo-90k|Train/Test|89800|[website](http://toflow.csail.mit.edu/)|90k HQ videos|
 
 Other open datasets:
 [Kaggle](https://www.kaggle.com/datasets)

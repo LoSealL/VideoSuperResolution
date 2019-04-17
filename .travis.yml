@@ -14,4 +14,4 @@ script:
   - pytest -v UTest/motion_test.py --disable-warnings
   - pytest -v UTest/noise_test.py --disable-warnings
   - pytest -v UTest/vgg_test.py --disable-warnings
-  - bash UTest/training_test.sh
+  - pytest -v UTest/training_test.py --disable-warnings

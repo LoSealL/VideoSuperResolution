@@ -32,6 +32,7 @@ jobs:
       pytest -v UTest/motion_test.py --disable-warnings
       pytest -v UTest/noise_test.py --disable-warnings
       pytest -v UTest/vgg_test.py --disable-warnings
+      pytest -v UTest/training_test.py --disable-warnings
     displayName: 'test with pytest'
 
   - task: PublishTestResults@2

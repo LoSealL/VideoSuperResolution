@@ -11,7 +11,7 @@ import numpy as np
 import tqdm
 from PIL import Image
 
-_YUV_COLOR = ("NV12", "NV21")
+_YUV_COLOR = ("NV12", "NV21", "YV12", "YV21")
 _RGB_COLOR = ("RGBA",)
 
 parser = argparse.ArgumentParser(
@@ -62,9 +62,10 @@ class YUVConverter:
 
   def to_nv12(self):
     # YUV -> NV12
-    h_tail = -1 if self.height % 2 else None
-    w_tail = -1 if self.width % 2 else None
-    y = self.data[:, 0, :h_tail, :w_tail]
+    h_tail = self.height % 2
+    w_tail = self.width % 2
+    y = np.pad(self.data[:, 0], [[0, 0], [0, h_tail], [0, w_tail]],
+               mode='reflect')
     u = self.data[:, 1, ::2, ::2]
     v = self.data[:, 2, ::2, ::2]
     buffer = io.BytesIO()
@@ -77,13 +78,16 @@ class YUVConverter:
       print(" [$] warning: even frame size, crop 1 pixel out")
       assert buffer.tell() == np.prod(y.shape) + np.prod(u.shape) + np.prod(
         v.shape)
+      self.width = y.shape[2]
+      self.height = y.shape[1]
     return buffer
 
   def to_nv21(self):
     # YUV -> NV21
-    h_tail = -1 if self.height % 2 else None
-    w_tail = -1 if self.width % 2 else None
-    y = self.data[:, 0, :h_tail, :w_tail]
+    h_tail = self.height % 2
+    w_tail = self.width % 2
+    y = np.pad(self.data[:, 0], [[0, 0], [0, h_tail], [0, w_tail]],
+               mode='reflect')
     u = self.data[:, 2, ::2, ::2]
     v = self.data[:, 1, ::2, ::2]
     buffer = io.BytesIO()
@@ -91,6 +95,94 @@ class YUVConverter:
       plain = y[i].flatten().astype('uint8').tobytes()
       buffer.write(plain)
       plain = np.stack([u[i], v[i]], -1).flatten().astype('uint8').tobytes()
+      buffer.write(plain)
+    if buffer.tell() != np.prod(self.data.shape) // 2:
+      print(" [$] warning: even frame size, crop 1 pixel out")
+      assert buffer.tell() == np.prod(y.shape) + np.prod(u.shape) + np.prod(
+        v.shape)
+      self.width = y.shape[2]
+      self.height = y.shape[1]
+    return buffer
+
+  def to_yv12(self):
+    h_tail = self.height % 2
+    w_tail = self.width % 2
+    y = np.pad(self.data[:, 0], [[0, 0], [0, h_tail], [0, w_tail]],
+               mode='reflect')
+    u = self.data[:, 1, ::2, ::2]
+    v = self.data[:, 2, ::2, ::2]
+    buffer = io.BytesIO()
+    for i in range(self.length):
+      plain = y[i].flatten().astype('uint8').tobytes()
+      buffer.write(plain)
+      plain = u[i].flatten().astype('uint8').tobytes()
+      buffer.write(plain)
+      plain = v[i].flatten().astype('uint8').tobytes()
+      buffer.write(plain)
+    if buffer.tell() != np.prod(self.data.shape) // 2:
+      print(" [$] warning: even frame size, crop 1 pixel out")
+      assert buffer.tell() == np.prod(y.shape) + np.prod(u.shape) + np.prod(
+        v.shape)
+      self.width = y.shape[2]
+      self.height = y.shape[1]
+    return buffer
+
+  def to_yv21(self):
+    h_tail = self.height % 2
+    w_tail = self.width % 2
+    y = np.pad(self.data[:, 0], [[0, 0], [0, h_tail], [0, w_tail]],
+               mode='reflect')
+    u = self.data[:, 1, ::2, ::2]
+    v = self.data[:, 2, ::2, ::2]
+    buffer = io.BytesIO()
+    for i in range(self.length):
+      plain = y[i].flatten().astype('uint8').tobytes()
+      buffer.write(plain)
+      plain = v[i].flatten().astype('uint8').tobytes()
+      buffer.write(plain)
+      plain = u[i].flatten().astype('uint8').tobytes()
+      buffer.write(plain)
+    if buffer.tell() != np.prod(self.data.shape) // 2:
+      print(" [$] warning: even frame size, crop 1 pixel out")
+      assert buffer.tell() == np.prod(y.shape) + np.prod(u.shape) + np.prod(
+        v.shape)
+      self.width = y.shape[2]
+      self.height = y.shape[1]
+    return buffer
+
+  def to_yv12(self):
+    h_tail = -1 if self.height % 2 else None
+    w_tail = -1 if self.width % 2 else None
+    y = self.data[:, 0, :h_tail, :w_tail]
+    u = self.data[:, 1, ::2, ::2]
+    v = self.data[:, 2, ::2, ::2]
+    buffer = io.BytesIO()
+    for i in range(self.length):
+      plain = y[i].flatten().astype('uint8').tobytes()
+      buffer.write(plain)
+      plain = u[i].flatten().astype('uint8').tobytes()
+      buffer.write(plain)
+      plain = v[i].flatten().astype('uint8').tobytes()
+      buffer.write(plain)
+    if buffer.tell() != np.prod(self.data.shape) // 2:
+      print(" [$] warning: even frame size, crop 1 pixel out")
+      assert buffer.tell() == np.prod(y.shape) + np.prod(u.shape) + np.prod(
+        v.shape)
+    return buffer
+
+  def to_yv21(self):
+    h_tail = -1 if self.height % 2 else None
+    w_tail = -1 if self.width % 2 else None
+    y = self.data[:, 0, :h_tail, :w_tail]
+    u = self.data[:, 1, ::2, ::2]
+    v = self.data[:, 2, ::2, ::2]
+    buffer = io.BytesIO()
+    for i in range(self.length):
+      plain = y[i].flatten().astype('uint8').tobytes()
+      buffer.write(plain)
+      plain = v[i].flatten().astype('uint8').tobytes()
+      buffer.write(plain)
+      plain = u[i].flatten().astype('uint8').tobytes()
       buffer.write(plain)
     if buffer.tell() != np.prod(self.data.shape) // 2:
       print(" [$] warning: even frame size, crop 1 pixel out")
@@ -114,14 +206,15 @@ def main():
     for fp in r:
       data = read_video_frames(fp)
       r.set_postfix({"name": data['name']})
-      nm = f"{data['name']}_{data['width']}x{data['height']}.{FLAGS.color_fmt}"
-      save_path = root / nm
       if FLAGS.color_fmt in _YUV_COLOR:
         cvt = YUVConverter(data['data'])
+        bytes = cvt.to(FLAGS.color_fmt).getbuffer().tobytes()
       else:
         raise NotImplementedError
+      nm = f"{data['name']}_{cvt.width}x{cvt.height}.{FLAGS.color_fmt}"
+      save_path = root / nm
       with save_path.open('wb') as fd:
-        fd.write(cvt.to(FLAGS.color_fmt).getbuffer().tobytes())
+        fd.write(bytes)
 
 
 if __name__ == '__main__':

@@ -124,7 +124,8 @@ class FRTrainer(SRTrainer):
       label = fn(label, name=name)
     feature = to_tensor(feature, v.cuda)
     label = to_tensor(label, v.cuda)
-    outputs, metrics = self.model.eval([feature], [label], epoch=v.epoch)
+    with torch.set_grad_enabled(False):
+      outputs, metrics = self.model.eval([feature], [label], epoch=v.epoch)
     for _k, _v in metrics.items():
       if _k not in v.mean_metrics:
         v.mean_metrics[_k] = []
