@@ -47,8 +47,23 @@ def maybe_checkpoint(path):
 
 def get_outputs(outputs, config, **kwargs):
   index = config.output_index
-  imgs = outputs[index] if isinstance(outputs, list) else outputs
-  config.data.append(imgs)
+  index = index.split(':')
+  if len(index) == 1:
+    ind = int(index[0])
+    if ind < 0:
+      sl = slice(ind, None, None)
+    else:
+      sl = slice(ind, ind + 1)
+  else:
+    def _maybe_int(x):
+      try:
+        return int(x)
+      except ValueError:
+        return None
+
+    sl = slice(*(_maybe_int(i) for i in index))
+  _outputs = outputs[sl] if isinstance(outputs, list) else [outputs]
+  config.data.extend(_outputs)
 
 
 def evaluate(*args):

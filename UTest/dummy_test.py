@@ -1,3 +1,8 @@
+import os
+
+if not os.getcwd().endswith('UTest'):
+  os.chdir('UTest')
+
 from VSR.Framework.Callbacks import save_batch_image
 from VSR.Util import Utility as U
 from VSR.Util.Config import Config
@@ -30,5 +35,35 @@ def dummy_test_save_batch_image():
   fn(data[:64])
 
 
+import torchvision, torch
+from torch.nn import PixelShuffle
+from PIL import Image
+from VSRTorch.Models.Arch import SpaceToDim
+import numpy as np
+
+
+def dummy_test_space_to_depth():
+  f1 = SpaceToDim(2, dim=1)
+  ff = PixelShuffle(2)
+  x = Image.open('data/set5_x2/img_001_SRF_2_LR.png')
+  g = torchvision.transforms.ToTensor()
+  h = torchvision.transforms.ToPILImage()
+  z = f1(g(x).unsqueeze(0))
+  y = h(ff(z)[0])
+  assert np.all(np.array(x) == np.array(y))
+
+
+def dummy_test_space_to_x():
+  f1 = SpaceToDim(2, (1, 2), dim=3)
+  x = torch.ones(1, 4, 4, 3)
+  y = f1(x)
+  assert y.shape == torch.Size([1, 2, 2, 12])
+  f2 = SpaceToDim(2, (1, 2), dim=0)
+  y = f2(x)
+  assert y.shape == torch.Size([4, 2, 2, 3])
+
+
 if __name__ == '__main__':
-  dummy_test_save_batch_image()
+  dummy_test_space_to_depth()
+  dummy_test_space_to_x()
+  exit(0)

@@ -188,7 +188,8 @@ class SRTrainer(Env):
       label = fn(label, name=name)
     feature = to_tensor(feature, v.cuda)
     label = to_tensor(label, v.cuda)
-    outputs, metrics = self.model.eval([feature], [label], epoch=v.epoch)
+    with torch.set_grad_enabled(False):
+      outputs, metrics = self.model.eval([feature], [label], epoch=v.epoch)
     for _k, _v in metrics.items():
       if _k not in v.mean_metrics:
         v.mean_metrics[_k] = []
@@ -228,23 +229,24 @@ class SRTrainer(Env):
     origin_feat = feature
     for fn in v.feature_callbacks:
       feature = fn(feature, name=name)
-    if v.ensemble:
-      # add self-ensemble boosting metric score
-      feature_ensemble = _ensemble_expand(feature)
-      outputs_ensemble = []
-      for f in feature_ensemble:
-        f = to_tensor(f, v.cuda)
-        y, _ = self.model.eval([f])
-        y = [from_tensor(x) for x in y]
-        outputs_ensemble.append(y)
-      outputs = []
-      for i in range(len(outputs_ensemble[0])):
-        outputs.append([j[i] for j in outputs_ensemble])
-      outputs = _ensemble_reduce_mean(outputs)
-    else:
-      feature = to_tensor(feature, v.cuda)
-      outputs, _ = self.model.eval([feature])
-      outputs = [from_tensor(x) for x in outputs]
+    with torch.set_grad_enabled(False):
+      if v.ensemble:
+        # add self-ensemble boosting metric score
+        feature_ensemble = _ensemble_expand(feature)
+        outputs_ensemble = []
+        for f in feature_ensemble:
+          f = to_tensor(f, v.cuda)
+          y, _ = self.model.eval([f])
+          y = [from_tensor(x) for x in y]
+          outputs_ensemble.append(y)
+        outputs = []
+        for i in range(len(outputs_ensemble[0])):
+          outputs.append([j[i] for j in outputs_ensemble])
+        outputs = _ensemble_reduce_mean(outputs)
+      else:
+        feature = to_tensor(feature, v.cuda)
+        outputs, _ = self.model.eval([feature])
+        outputs = [from_tensor(x) for x in outputs]
     for fn in v.output_callbacks:
       outputs = fn(outputs, input=origin_feat, name=name, subdir=v.subdir,
                    mode=v.color_format)

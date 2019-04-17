@@ -4,6 +4,7 @@
 #  Update Date: 2019/4/3 下午5:03
 
 import argparse
+import multiprocessing as mp
 import re
 from pathlib import Path
 
@@ -56,6 +57,7 @@ def encode(file, save_dir):
   frames = fd.read_frame(fd.frames)
   for i, f in enumerate(frames):
     f.convert('RGB').save(f'{str(save_dir)}/{i:05d}.png')
+  return file.stem
 
 
 def main():
@@ -68,10 +70,16 @@ def main():
   raw_videos = sorted(raw_videos)
   save_dir = Path(FLAGS.output_dir)
   save_dir.mkdir(exist_ok=True, parents=True)
-  with tqdm.tqdm(raw_videos, ascii=True, unit=' video') as r:
-    for fp in r:
-      r.set_postfix({'name': fp.stem})
-      encode(fp, save_dir)
+  pool = mp.pool.ThreadPool()
+  results = []
+  for fp in raw_videos:
+    results.append(pool.apply_async(encode, (fp, save_dir)))
+  with tqdm.tqdm(results, ascii=True, unit='image') as r:
+    for i in r:
+      name = i.get()
+      r.set_postfix({'name': name})
+  pool.close()
+  pool.join()
 
 
 if __name__ == '__main__':
