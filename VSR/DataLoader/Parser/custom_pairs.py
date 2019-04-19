@@ -57,6 +57,7 @@ class Parser(object):
     if self.method in ('test', 'infer') and depth > 1:
       # padding head and tail
       vf.pad([depth // 2, depth // 2])
+      vf.pair.pad([depth // 2, depth // 2])
     # read all frames if depth is set to -1
     if depth == -1:
       depth = vf.frames

@@ -113,9 +113,10 @@ def _to_normalized_image(img, mode):
   for single_img in img:
     if single_img.shape[-1] == 2:
       # treat 2 channels image as optical flow
-      return_img.append(_flow_to_image(img, mode))
-    single_img = np.clip(single_img, 0, 255)
-    return_img.append(array_to_img(single_img, mode))
+      return_img.append(_flow_to_image(single_img, mode))
+    else:
+      single_img = np.clip(single_img, 0, 255)
+      return_img.append(array_to_img(single_img, mode))
   return return_img
 
 
