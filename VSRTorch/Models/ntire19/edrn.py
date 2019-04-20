@@ -3,8 +3,14 @@
 #  Email: wenyi.tang@intel.com
 #  Update Date: 2019/4/11 下午7:35
 
+import logging
+
 import torch
 import torch.nn as nn
+
+_logger = logging.getLogger("VSR.EDRN")
+_logger.info("LICENSE: EDRN is implemented by IVIP-Lab. "
+             "@yyknight https://github.com/yyknight/NTIRE2019_EDRN")
 
 
 class CALayer(nn.Module):

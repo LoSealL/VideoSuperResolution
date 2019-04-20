@@ -1,0 +1,62 @@
+---
+frn:
+  scale: 1
+  channel: 3
+  rgb_range: 255
+  n_resgroups: 10
+  n_resblocks: 10
+  n_feats: 64
+  reduction: 0.1
+  res_scale: 1
+  px: 1
+
+---
+ran2:
+  scale: 1
+  channel: 3
+  rgb_range: 255
+  n_feats: 64
+  n_resgroups: 10
+  n_resblocks: 10
+  nvis: false
+
+---
+edrn:
+  scale: 1
+  channel: 3
+  G0: 64
+  EDRNkSize: 3
+  EDRNconfig: B
+  rgb_range: 255
+
+---
+didn:
+  channel: 3
+  filters: 64
+  umodule: 8
+
+---
+dhdn:
+  channel: 3
+  filters: 128
+
+---
+grdn:
+  channel: 3
+  filters: 64
+  grdb: 10
+  rdb: 4
+
+---
+resunet:
+  channel: 3
+  filters: 128
+  rb: 10
+
+batch: 16
+patch_size: 128
+lr: 1.0e-4
+lr_decay:
+  method: multistep
+  decay_step: [200, 300]
+  decay_rate: 0.1

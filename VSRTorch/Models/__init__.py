@@ -18,11 +18,18 @@ models = {
   'msrn': ('Msrn', 'MSRN'),
   'rsr': ('Rsr', 'RSR'),
   'drn': ('Drn', 'DRN'),
-  'edrn': ('Edrn', 'EDRN'),
   'sofvsr': ('Sofvsr', 'SOFVSR'),
   'vespcn': ('Vespcn', 'VESPCN'),
   'frvsr': ('Frvsr', 'FRVSR'),
   'qprn': ('Qprn', 'QPRN'),
+  # NTIRE 2019 Collections
+  'didn': ('NTIRE19', 'DIDN'),
+  'dhdn': ('NTIRE19', 'DHDN'),
+  'grdn': ('NTIRE19', 'GRDN'),
+  'resunet': ('NTIRE19', 'ResUNet'),
+  'edrn': ('NTIRE19', 'EDRN'),
+  'frn': ('NTIRE19', 'FRN'),
+  'ran': ('NTIRE19', 'RAN'),
 }
 
 def get_model(name):
