@@ -10,7 +10,6 @@ frn:
   res_scale: 1
   px: 1
 
----
 ran2:
   scale: 1
   channel: 3
@@ -20,7 +19,6 @@ ran2:
   n_resblocks: 10
   nvis: false
 
----
 edrn:
   scale: 1
   channel: 3
@@ -29,26 +27,26 @@ edrn:
   EDRNconfig: B
   rgb_range: 255
 
----
 didn:
+  scale: 1
   channel: 3
   filters: 64
   umodule: 8
 
----
 dhdn:
+  scale: 1
   channel: 3
   filters: 128
 
----
 grdn:
+  scale: 1
   channel: 3
   filters: 64
   grdb: 10
   rdb: 4
 
----
 resunet:
+  scale: 1
   channel: 3
   filters: 128
   rb: 10

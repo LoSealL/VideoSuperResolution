@@ -15,7 +15,6 @@ from ..Util import Metrics
 class L1Optimizer(SuperResolution):
   def __init__(self, channel, scale=1):
     super(L1Optimizer, self).__init__(scale, channel)
-    self.adam = torch.optim.Adam(self.trainable_variables(), 1e-4)
 
   def fn(self, x):
     raise NotImplementedError
@@ -50,6 +49,7 @@ class EDRN(L1Optimizer):
     args.n_colors = channel
     self.rgb_range = args.rgb_range
     self.edrn = edrn.EDRN(args)
+    self.adam = torch.optim.Adam(self.trainable_variables(), 1e-4)
 
   def fn(self, x):
     return self.edrn(x * self.rgb_range) / self.rgb_range
@@ -63,6 +63,7 @@ class FRN(L1Optimizer):
     args.n_colors = channel
     self.rgb_range = args.rgb_range
     self.frn = frn.FRN_UPDOWN(args)
+    self.adam = torch.optim.Adam(self.trainable_variables(), 1e-4)
 
   def fn(self, x):
     return self.frn(x * self.rgb_range) / self.rgb_range
@@ -76,42 +77,47 @@ class RAN(L1Optimizer):
     args.n_colors = channel
     self.rgb_range = args.rgb_range
     self.ran = ran2.RAN(args)
+    self.adam = torch.optim.Adam(self.trainable_variables(), 1e-4)
 
   def fn(self, x):
     return self.ran(x * self.rgb_range) / self.rgb_range
 
 
 class DIDN(L1Optimizer):
-  def __init__(self, channel, filters, umodule):
+  def __init__(self, channel, filters, umodule, scale):
     super(DIDN, self).__init__(channel=channel)
     self.didn = denoise.EraserTeam.DIDN(channel, filters, umodule)
+    self.adam = torch.optim.Adam(self.trainable_variables(), 1e-4)
 
   def fn(self, x):
     return self.didn(x)
 
 
 class DHDN(L1Optimizer):
-  def __init__(self, channel, filters):
+  def __init__(self, channel, filters, scale):
     super(DHDN, self).__init__(channel=channel)
     self.dhdn = denoise.EraserTeam.DHDN(channel, filters)
+    self.adam = torch.optim.Adam(self.trainable_variables(), 1e-4)
 
   def fn(self, x):
     return self.dhdn(x)
 
 
 class GRDN(L1Optimizer):
-  def __init__(self, channel, filters, grdb, rdb):
+  def __init__(self, channel, filters, grdb, rdb, scale):
     super(GRDN, self).__init__(channel=channel)
     self.grdn = denoise.DGUTeam.GRDN(channel, filters, grdb, rdb)
+    self.adam = torch.optim.Adam(self.trainable_variables(), 1e-4)
 
   def fn(self, x):
     return self.grdn(x)
 
 
 class ResUNet(L1Optimizer):
-  def __init__(self, channel, filters, rb):
+  def __init__(self, channel, filters, rb, scale):
     super(ResUNet, self).__init__(channel=channel)
     self.resunet = denoise.HITVPCTeam.ResUNet(channel, filters, rb)
+    self.adam = torch.optim.Adam(self.trainable_variables(), 1e-4)
 
   def fn(self, x):
     return self.resunet(x)

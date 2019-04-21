@@ -127,6 +127,8 @@ class Activation(nn.Module):
     in_place = kwargs.get('in_place', True)
     if self.name == 'relu':
       self.f = nn.ReLU(in_place)
+    elif self.name == 'prelu':
+      self.f = nn.PReLU()
     elif self.name in ('lrelu', 'leaky', 'leakyrelu'):
       self.f = nn.LeakyReLU(*args, inplace=in_place)
     elif self.name == 'tanh':
