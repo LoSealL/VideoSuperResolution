@@ -8,7 +8,7 @@ import logging
 import torch
 import torch.nn as nn
 
-from ..Arch import Activation, Rdb, SpaceToDepth
+from ..Arch import Activation, Rdb, SpaceToDepth, CBAM
 
 _logger = logging.getLogger("VSR.NTIRE2019.Denoise")
 
@@ -158,10 +158,6 @@ class DGUTeam:
         rdb_o.append(getattr(self, f'rdb_{i:02d}')(rdb_o[-1]))
       return x + self.conv(torch.cat(rdb_o[1:], dim=1))
 
-  class CBAM(nn.Module):
-    def __init__(self):
-      super(DGUTeam.CBAM, self).__init__()
-
   class GRDN(nn.Module):
     def __init__(self, channels, filters=64, n_grdb=10, n_rdb=4):
       _logger.info("GRDN was introduced by Seung-Won Jung @Dongguk University, "
@@ -172,12 +168,13 @@ class DGUTeam:
         nets.append(DGUTeam.GRDB(n_rdb, filters))
       nets.append(nn.ConvTranspose2d(filters, filters, 3, 2, 1, 1))
       self.head = nn.Sequential(*nets)
-      self.cbam = DGUTeam.CBAM()
+      self.cbam = CBAM(filters)
       self.tail = nn.Conv2d(filters, channels, 3, 1, 1)
 
     def forward(self, inputs):
       c0 = inputs
       x = self.head(c0)
+      x = self.cbam(x)
       x = self.tail(x)
       return x + c0
 

@@ -272,3 +272,57 @@ class SpaceToBatch(nn.Module):
 
   def forward(self, x):
     return self.body(x)
+
+
+class CBAM(nn.Module):
+  """Convolutional Block Attention Module (ECCV 18)
+  - CA: channel attention module
+  - SA: spatial attention module
+
+  Args:
+    channels: input channel of tensors
+    channel_reduction: reduction ratio in `CA`
+    spatial_first: put SA ahead of CA (default: CA->SA)
+  """
+
+  class CA(nn.Module):
+    def __init__(self, channels, ratio=16):
+      super(CBAM.CA, self).__init__()
+      self.max_pool = nn.AdaptiveMaxPool2d(1)
+      self.avg_pool = nn.AdaptiveAvgPool2d(1)
+      self.mlp = nn.Sequential(
+        nn.Conv2d(channels, channels // ratio, 1),
+        nn.ReLU(),
+        nn.Conv2d(channels // ratio, channels, 1))
+
+    def forward(self, x):
+      maxpool = self.max_pool(x)
+      avgpool = self.avg_pool(x)
+      att = F.sigmoid(self.mlp(maxpool) + self.mlp(avgpool))
+      return att * x
+
+  class SA(nn.Module):
+    def __init__(self, kernel_size=7):
+      super(CBAM.SA, self).__init__()
+      self.conv = nn.Conv2d(2, 1, kernel_size, 1, kernel_size // 2)
+
+    def forward(self, x):
+      max_c_pool = x.max(dim=1, keepdim=True)
+      avg_c_pool = x.mean(dim=1, keepdim=True)
+      y = torch.cat([max_c_pool, avg_c_pool], dim=1)
+      att = F.sigmoid(self.conv(y))
+      return att * x
+
+  def __init__(self, channels, channel_reduction=16, spatial_first=None):
+    super(CBAM, self).__init__()
+    self.channel_attention = CBAM.CA(channels, ratio=channel_reduction)
+    self.spatial_attention = CBAM.SA(7)
+    self.spatial_first = spatial_first
+
+  def forward(self, inputs):
+    if self.spatial_first:
+      x = self.spatial_attention(inputs)
+      return self.channel_attention(x)
+    else:
+      x = self.channel_attention(inputs)
+      return self.spatial_attention(x)

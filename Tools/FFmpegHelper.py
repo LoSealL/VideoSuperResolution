@@ -68,6 +68,9 @@ def decode(file, output_dir, name, fmt):
 def main():
   _check_ffmpeg()
   raw_videos = filter(lambda f: f.is_file(), Path(FLAGS.input_dir).rglob('*'))
+  raw_videos = list(raw_videos)
+  if not raw_videos:
+    raw_videos = filter(lambda f: f.is_file(), [Path(FLAGS.input_dir)])
   tmp_dir = Path('/tmp/vsr/tools/_ffmpeg')
   tmp_dir.mkdir(exist_ok=True, parents=True)
   save_dir = Path(FLAGS.output_dir)
