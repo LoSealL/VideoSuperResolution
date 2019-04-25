@@ -9,8 +9,6 @@ import torch
 import torch.nn as nn
 
 _logger = logging.getLogger("VSR.EDRN")
-_logger.info("LICENSE: EDRN is implemented by IVIP-Lab. "
-             "@yyknight https://github.com/yyknight/NTIRE2019_EDRN")
 
 
 class CALayer(nn.Module):
@@ -79,6 +77,8 @@ class RG(nn.Module):
 
 class EDRN(nn.Module):
   def __init__(self, args):
+    _logger.info("LICENSE: EDRN is implemented by IVIP-Lab. "
+                 "@yyknight https://github.com/yyknight/NTIRE2019_EDRN")
     super(EDRN, self).__init__()
     r = args.scale[0]
     G0 = args.G0

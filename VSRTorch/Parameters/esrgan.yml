@@ -9,3 +9,6 @@ esrgan:
   mode: 'CNA'
   res_scale: 1
   upsample_mode: 'upconv'
+  patch_size: 128
+  use_gan: true
+  weights: [1, 1]

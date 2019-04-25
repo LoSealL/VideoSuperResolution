@@ -31,6 +31,7 @@ models = {
   'srfeat': ('SRFeat', 'SRFEAT'),
   'nlrn': ('Nlrn', 'NLRN'),
   'crdn': ('Crdn', 'CRDN'),
+  'ffdnet': ('FFDNet', 'FFDNet'),
 }
 
 _generative_models = {

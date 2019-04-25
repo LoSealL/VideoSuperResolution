@@ -10,15 +10,60 @@ import torch.nn.functional as F
 from VSR.Util.Utility import to_list
 
 
-def _get_act(name, *args, inplace=False):
-  if name.lower() == 'relu':
-    return nn.ReLU(inplace)
-  if name.lower() in ('lrelu', 'leaky', 'leakyrelu'):
-    return nn.LeakyReLU(*args, inplace=inplace)
-  if name.lower() == 'prelu':
-    return nn.PReLU(*args)
+class EasyConv2d(nn.Module):
+  def __init__(self, in_channels, out_channels, kernel_size,
+               stride=1, padding='same', dilation=1, groups=1,
+               activation=None, use_bias=True, use_bn=False, use_sn=False):
+    super(EasyConv2d, self).__init__()
+    assert padding.lower() in ('same', 'valid')
+    if padding == 'same':
+      padding_ = (kernel_size - 1) // 2
+    else:
+      padding_ = 0
+    net = [nn.Conv2d(in_channels, out_channels, kernel_size, stride,
+                     padding_, dilation, groups, use_bias)]
+    if use_sn:
+      net[0] = nn.utils.spectral_norm(net[0])
+    if use_bn:
+      net += [nn.BatchNorm2d(out_channels)]
+    if activation:
+      net += [Activation(activation, in_place=True)]
+    self.body = nn.Sequential(*net)
 
-  raise TypeError("Unknown activation name!")
+  def forward(self, x):
+    return self.body(x)
+
+
+class RB(nn.Module):
+  def __init__(self, channels, kernel_size, activation=None, use_bias=True,
+               use_bn=False, use_sn=False, act_first=None):
+    super(RB, self).__init__()
+    in_c, out_c = to_list(channels, 2)
+    conv1 = nn.Conv2d(
+      in_c, out_c, kernel_size, 1, kernel_size // 2, bias=use_bias)
+    conv2 = nn.Conv2d(
+      out_c, out_c, kernel_size, 1, kernel_size // 2, bias=use_bias)
+    if use_sn:
+      conv1 = nn.utils.spectral_norm(conv1)
+      conv2 = nn.utils.spectral_norm(conv2)
+    net = [conv1, Activation(activation, in_place=True), conv2]
+    if use_bn:
+      net.insert(1, nn.BatchNorm2d(out_c))
+      if act_first:
+        net = [nn.BatchNorm2d(in_c), Activation(activation, in_place=True)] + \
+              net
+      else:
+        net.append(nn.BatchNorm2d(out_c))
+    self.body = nn.Sequential(*net)
+    if in_c != out_c:
+      self.shortcut = nn.Conv2d(in_c, out_c, 1)
+
+  def forward(self, x):
+    out = self.body(x)
+    if hasattr(self, 'shortcut'):
+      sc = self.shortcut(x)
+      return out + sc
+    return out + x
 
 
 class Rdb(nn.Module):
@@ -123,6 +168,8 @@ class CascadeRdn(nn.Module):
 class Activation(nn.Module):
   def __init__(self, name, *args, **kwargs):
     super(Activation, self).__init__()
+    if name is None:
+      self.f = lambda t: t
     self.name = name.lower()
     in_place = kwargs.get('in_place', True)
     if self.name == 'relu':
