@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from VSR.Util.Config import Config
 from .Model import SuperResolution
 from .ntire19 import denoise, edrn, frn, ran2
-from ..Util import Metrics
+from ..Util import Metrics, Utility
 
 
 class L1Optimizer(SuperResolution):
@@ -32,7 +32,13 @@ class L1Optimizer(SuperResolution):
 
   def eval(self, inputs, labels=None, **kwargs):
     metrics = {}
-    sr = self.fn(inputs[0])
+    _lr = inputs[0]
+    lr = Utility.pad_if_divide(_lr, 32)
+    a = lr.size(2) - _lr.size(2)
+    b = lr.size(3) - _lr.size(3)
+    slice_h = slice(None) if a == 0 else slice(a // 2, -a // 2)
+    slice_w = slice(None) if b == 0 else slice(b // 2, -b // 2)
+    sr = self.fn(lr)[..., slice_h, slice_w]
     sr = sr.cpu().detach()
     if labels is not None:
       metrics['psnr'] = Metrics.psnr(sr.numpy(), labels[0].cpu().numpy())

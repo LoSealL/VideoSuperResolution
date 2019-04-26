@@ -9,7 +9,10 @@ __all__ = ['get_model', 'list_supported_models']
 
 models = {
   # alias: (file, class)
-  'espcn': ('Espcn', 'ESPCN'),
+  'espcn': ('Classic', 'ESPCN'),
+  'srcnn': ('Classic', 'SRCNN'),
+  'vdsr': ('Classic', 'VDSR'),
+  'dncnn': ('Classic', 'DNCNN'),
   'edsr': ('Edsr', 'EDSR'),
   'carn': ('Carn', 'CARN'),
   'dbpn': ('Dbpn', 'DBPN'),
