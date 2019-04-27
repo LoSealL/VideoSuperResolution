@@ -1,0 +1,7 @@
+tecogan:
+  scale: 4
+  channel: 3
+
+batch: 16
+patch_size: 96
+lr: 1.0e-4
