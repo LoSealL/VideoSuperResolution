@@ -66,6 +66,10 @@ class TeCoGAN(SuperResolution):
     self.gopt = torch.optim.Adam(self.trainable_variables('gnet'), 1e-4)
     self.dopt = torch.optim.Adam(self.trainable_variables('dnet'), 1e-4)
 
+  def cuda(self):
+    super(TeCoGAN, self).cuda()
+    self.vgg[0].cuda()
+
   def train(self, inputs, labels, learning_rate=None):
     frames = [self.norm(x.squeeze(1)) for x in inputs[0].split(1, dim=1)]
     labels = [self.norm(x.squeeze(1)) for x in labels[0].split(1, dim=1)]

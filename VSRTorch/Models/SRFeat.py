@@ -39,6 +39,10 @@ class SRFEAT(SuperResolution):
       self.dopt2 = torch.optim.Adam(self.trainable_variables('dnet2'), 1e-4)
     self.w = weights
 
+  def cuda(self):
+    super(SRFEAT, self).cuda()
+    self.vgg[0].cuda()
+
   def train(self, inputs, labels, learning_rate=None):
     sr = self.srfeat(self.norm(inputs[0]))
     for opt in self.opts.values():
