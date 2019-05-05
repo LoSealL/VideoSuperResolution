@@ -22,6 +22,36 @@ def total_variance(x, dims=(2, 3), reduction='mean'):
   return tot_var / reduce
 
 
+def gan_bce_loss(x, as_real: bool):
+  """vanilla GAN binary cross entropy loss"""
+  if as_real:
+    return F.binary_cross_entropy_with_logits(x, torch.ones_like(x))
+  else:
+    return F.binary_cross_entropy_with_logits(x, torch.zeros_like(x))
+
+
+def rgan_bce_loss(x, y, x_real_than_y: bool = True):
+  """relativistic GAN loss"""
+  if x_real_than_y:
+    return F.binary_cross_entropy_with_logits(x - y, torch.ones_like(x))
+  else:
+    return F.binary_cross_entropy_with_logits(y - x, torch.ones_like(x))
+
+
+def ragan_bce_loss(x, y, x_real_than_y: bool = True):
+  """relativistic average GAN loss"""
+  if x_real_than_y:
+    return F.binary_cross_entropy_with_logits(x - y.mean(1, keepdim=True),
+                                              torch.ones_like(x)) + \
+           F.binary_cross_entropy_with_logits(y - x.mean(1, keepdim=True),
+                                              torch.zeros_like(y))
+  else:
+    return F.binary_cross_entropy_with_logits(y - x.mean(1, keepdim=True),
+                                              torch.ones_like(x)) + \
+           F.binary_cross_entropy_with_logits(x - y.mean(1, keepdim=True),
+                                              torch.zeros_like(y))
+
+
 class VggFeatureLoss(nn.Module):
   # layer name stick to keras model
   _LAYER_NAME = {

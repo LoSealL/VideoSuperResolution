@@ -1,0 +1,10 @@
+srfeat:
+  channel: 3
+  scale: 4
+  filters: 64
+  num_residualblocks: 16
+  weights: [1, 0.01, 0.01]
+  patch_size: 64
+
+batch: 16
+lr: 1.0e-4

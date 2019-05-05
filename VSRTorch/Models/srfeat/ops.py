@@ -3,6 +3,7 @@
 #  Email: wenyi.tang@intel.com
 #  Update Date: 2019/4/27 下午11:06
 
+import torch
 import torch.nn as nn
 
 from ..Arch import RB, Upsample
@@ -24,13 +25,11 @@ class Generator(nn.Module):
       nn.Conv2d(filters, channel, 3, 1, 1))
     self.num_rb = num_rb
 
-  def forward(self, x):
-    x = self.head(x)
+  def forward(self, inputs):
+    x = self.head(inputs)
     feat = []
     for i in range(self.num_rb):
       x = getattr(self, f'rb_{i:02d}')(x)
       feat.append(getattr(self, f'merge_{i:02d}')(x))
-    for _feat in feat:
-      x += _feat
-    x = self.tail(x)
+    x = self.tail(x + torch.stack(feat, dim=0).sum(0).squeeze(0))
     return x

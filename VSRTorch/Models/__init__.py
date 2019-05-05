@@ -17,6 +17,7 @@ models = {
   'carn': ('Carn', 'CARN'),
   'dbpn': ('Dbpn', 'DBPN'),
   'rcan': ('Rcan', 'RCAN'),
+  'srfeat': ('SRFeat', 'SRFEAT'),
   'esrgan': ('Esrgan', 'ESRGAN'),
   'msrn': ('Msrn', 'MSRN'),
   'rsr': ('Rsr', 'RSR'),
@@ -25,6 +26,7 @@ models = {
   'vespcn': ('Vespcn', 'VESPCN'),
   'frvsr': ('Frvsr', 'FRVSR'),
   'qprn': ('Qprn', 'QPRN'),
+  'tecogan': ('TecoGAN', 'TeCoGAN'),
   # NTIRE 2019 Collections
   'didn': ('NTIRE19', 'DIDN'),
   'dhdn': ('NTIRE19', 'DHDN'),
