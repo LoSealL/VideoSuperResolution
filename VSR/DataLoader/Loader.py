@@ -245,7 +245,7 @@ class BasicLoader:
     # check memory usage
     if isinstance(memory_usage, str):
       memory_usage = Utility.str_to_bytes(memory_usage)
-    free_memory = virtual_memory().free
+    free_memory = virtual_memory().available
     if not memory_usage:
       memory_usage = free_memory
     memory_usage = np.min(

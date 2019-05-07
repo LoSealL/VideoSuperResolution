@@ -57,7 +57,7 @@ class BasicModel:
       name: module name. Will return all trainable variables if no name given.
     """
 
-    _m = self.modules.get(name) if name else self.modules.values()
+    _m = [self.modules.get(name)] if name else self.modules.values()
     _var = []
     for i in _m:
       _var += filter(lambda p: p.requires_grad, i.parameters())

@@ -9,20 +9,32 @@ __all__ = ['get_model', 'list_supported_models']
 
 models = {
   # alias: (file, class)
-  'espcn': ('Espcn', 'ESPCN'),
+  'espcn': ('Classic', 'ESPCN'),
+  'srcnn': ('Classic', 'SRCNN'),
+  'vdsr': ('Classic', 'VDSR'),
+  'dncnn': ('Classic', 'DNCNN'),
   'edsr': ('Edsr', 'EDSR'),
   'carn': ('Carn', 'CARN'),
   'dbpn': ('Dbpn', 'DBPN'),
   'rcan': ('Rcan', 'RCAN'),
+  'srfeat': ('SRFeat', 'SRFEAT'),
   'esrgan': ('Esrgan', 'ESRGAN'),
   'msrn': ('Msrn', 'MSRN'),
   'rsr': ('Rsr', 'RSR'),
   'drn': ('Drn', 'DRN'),
-  'edrn': ('Edrn', 'EDRN'),
   'sofvsr': ('Sofvsr', 'SOFVSR'),
   'vespcn': ('Vespcn', 'VESPCN'),
   'frvsr': ('Frvsr', 'FRVSR'),
   'qprn': ('Qprn', 'QPRN'),
+  'tecogan': ('TecoGAN', 'TeCoGAN'),
+  # NTIRE 2019 Collections
+  'didn': ('NTIRE19', 'DIDN'),
+  'dhdn': ('NTIRE19', 'DHDN'),
+  'grdn': ('NTIRE19', 'GRDN'),
+  'resunet': ('NTIRE19', 'ResUNet'),
+  'edrn': ('NTIRE19', 'EDRN'),
+  'frn': ('NTIRE19', 'FRN'),
+  'ran': ('NTIRE19', 'RAN'),
 }
 
 def get_model(name):

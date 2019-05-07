@@ -62,8 +62,8 @@ def main():
     # apply a 2-stage (or master-slave) configuration, master can be
     # override by slave
     model_config_root = Path('Parameters/root.{}'.format(_ext))
-    if opt.p:
-      model_config_file = Path(opt.p)
+    if opt.parameter:
+      model_config_file = Path(opt.parameter)
     else:
       model_config_file = Path('Parameters/{}.{}'.format(opt.model, _ext))
     if model_config_root.exists():

@@ -1,6 +1,8 @@
 espcn:
   scale: 4
   channel: 3
+  image_weight: 1
+  feature_weight: 0.1  # perceptual loss
 
 batch: 64
 patch_size: 96

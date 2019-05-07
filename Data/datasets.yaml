@@ -137,3 +137,22 @@ Dataset:
 #  CIFAR10:  # well-known cifar-10
 #    param:
 #      parser: cifar10
+
+  VIMEO:
+    train: "vimeo/vimeo_septuplet/train.hdf"
+    val: "vimeo/vimeo_septuplet/test.hdf"
+    param:
+      parser: vimeo
+
+  DAVIS-VQP:
+    train: "davis/png_images_gop1"
+    val: "davis/test_images"
+    param:
+      parser: vqp
+
+  LOWQP:
+    train: "lowqp/train"
+    val: "lowqp/val"
+    test: "lowqp/test"
+    param:
+      parser: cqp

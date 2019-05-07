@@ -9,3 +9,12 @@ esrgan:
   mode: 'CNA'
   res_scale: 1
   upsample_mode: 'upconv'
+  weights: [1, 0.05, 5.0e-3]
+  patch_size: 128
+
+batch_size: 16
+lr: 1.0e-4
+lr_decay:
+  method: multistep
+  decay_step: [250, 500, 1000, 1500]
+  decay_rate: 0.5

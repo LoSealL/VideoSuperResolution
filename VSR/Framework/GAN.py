@@ -140,8 +140,7 @@ def loss_relative_bce_gan(y_real, y_fake, average=False):
     g_loss = bce(tf.ones_like(y_fake), y_fake - tf.reduce_mean(y_real)) + \
              bce(tf.zeros_like(y_real), y_real - tf.reduce_mean(y_fake))
   else:
-    d_loss = bce(tf.ones_like(y_real), y_real - y_fake) + \
-             bce(tf.zeros_like(y_fake), y_fake - y_real)
+    d_loss = bce(tf.ones_like(y_real), y_real - y_fake)
 
     g_loss = bce(tf.ones_like(y_fake), y_fake - y_real)
   return g_loss, d_loss
