@@ -1,7 +1,7 @@
 #  Copyright (c): Wenyi Tang 2017-2019.
 #  Author: Wenyi Tang
 #  Email: wenyi.tang@intel.com
-#  Update Date: 2019/4/3 下午5:10
+#  Update Date: 2019/5/7 下午5:21
 
 import logging
 from pathlib import Path
@@ -92,12 +92,15 @@ class Env:
       else:
         fp = pth
       if fp:
-        self._logger.info("Restoring params from %s", str(fp))
+        self._logger.info(f"Restoring params for {key} from {fp}.")
         try:
           last_epoch = max(_parse_ckpt_name(str(fp)), last_epoch)
         except ValueError:
           last_epoch = 0
-        model.load_state_dict(torch.load(str(fp), map_location=map_location))
+        try:
+          model.load_state_dict(torch.load(str(fp), map_location=map_location))
+        except RuntimeError:
+          self._logger.warning(f"Couldn't restore state for {key} from {fp}.")
     if pth is None:
       for key, opt in self.model.opts.items():
         fp = self._saved / f'{key}.pth'
