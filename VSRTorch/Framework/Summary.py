@@ -1,9 +1,13 @@
 #  Copyright (c): Wenyi Tang 2017-2019.
 #  Author: Wenyi Tang
 #  Email: wenyi.tang@intel.com
-#  Update Date: 2019/4/2 上午10:54
+#  Update Date: 2019/5/7 下午5:21
 
-from tensorboardX import SummaryWriter
+try:
+  # torch >= 1.1.0
+  from torch.utils.tensorboard import SummaryWriter
+except ImportError:
+  from tensorboardX import SummaryWriter
 
 _writer_container = {}
 

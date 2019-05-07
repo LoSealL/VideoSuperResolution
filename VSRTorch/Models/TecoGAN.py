@@ -106,6 +106,7 @@ class TeCoGAN(SuperResolution):
           param_group["lr"] = learning_rate
     # For ping-pong loss
     frames_rev = frames.copy()
+    frames_rev.reverse()
     last_lr = frames_rev[0]
     last_sr = F.interpolate(
       last_lr, scale_factor=self.scale, mode='bilinear', align_corners=False)

@@ -34,10 +34,10 @@ REQUIRED_PACKAGES = [
 try:
   import torch
 
+  # tensorboardX is absorbed into 1.1.0 now
   REQUIRED_PACKAGES.extend([
-    'torch >= 1.0.0',
+    'torch >= 1.1.0',
     'torchvision',
-    'tensorboardX',
   ])
 except ImportError:
   pass
