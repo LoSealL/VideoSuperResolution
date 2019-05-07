@@ -8,9 +8,9 @@ Updated Date: May 24th 2018
 offline dataset collector
 support random crop
 """
+import logging
 from pathlib import Path
 
-import tensorflow as tf
 import yaml
 
 from ..Util.Config import Config
@@ -20,6 +20,8 @@ try:
   from yaml import FullLoader as _Loader
 except ImportError:
   from yaml import Loader as _Loader
+
+_logger = logging.getLogger("VSR.Dataset")
 
 
 class Dataset(Config):
@@ -49,7 +51,7 @@ class Dataset(Config):
       return self[item]
     except KeyError:
       if item in ('train', 'val', 'test', 'infer',):
-        tf.logging.debug('The {} files is empty!'.format(item))
+        _logger.debug('The {} files is empty!'.format(item))
         return []
       return None
 

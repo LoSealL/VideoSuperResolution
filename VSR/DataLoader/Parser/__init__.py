@@ -62,6 +62,17 @@ def random_select(vfs, probability, n_frames):
 
 
 def parse_index(index, frames):
+  """generate (video-id, frame-id), where video-id is the order of videos, and
+    frame-id is the order of frames of each video.
+
+  Args:
+    index: an integer, representing an order from **ALL** frames;
+    frames: a list of integers, representing total frame numbers for each video
+
+  I.E:
+  >>> parse_index(1, [3, 4, 5]) -> (0, 1)  # the 2nd frame of video 0
+  >>> parse_index(7, [3, 4, 5]) -> (2, 0)  # the 1st frame of video 2
+  """
   for key, i in enumerate(np.cumsum(frames)):
     if index < i:
       seq = (index - np.sum(frames[:key])) % frames[key]

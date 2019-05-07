@@ -226,6 +226,9 @@ def suppress_opt_by_args(opt, *args):
         if not value.endswith(']') and not value.endswith(')'):
           raise TypeError("Invalid list syntax: {}".format(value))
         values = value[1:-1].split(',')
+        if len(values) == 1 and values[0] == '':
+          # empty list
+          values = []
         new_v = [cross_type_assign(nv, type(ov)) for ov, nv in
                  zip(old_v, values)]
         opt[keys[0]] = new_v

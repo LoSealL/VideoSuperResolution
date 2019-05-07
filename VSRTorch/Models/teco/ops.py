@@ -6,7 +6,7 @@
 import torch
 from torch import nn
 
-from ..Arch import Upsample, RB
+from ..Arch import EasyConv2d, RB, Upsample
 
 
 class TecoGenerator(nn.Module):
@@ -40,5 +40,26 @@ class TecoGenerator(nn.Module):
 
 
 class TecoDiscriminator(nn.Module):
-  def __init__(self):
+  def __init__(self, channel, filters):
     super(TecoDiscriminator, self).__init__()
+    f = filters
+    self.conv0 = EasyConv2d(channel * 8, f, 3, activation='leaky')
+    self.conv1 = EasyConv2d(f, f, 4, 2, activation='leaky', use_bn=True)
+    self.conv2 = EasyConv2d(f, f, 4, 2, activation='leaky', use_bn=True)
+    self.conv3 = EasyConv2d(f, f * 2, 4, 2, activation='leaky', use_bn=True)
+    self.conv4 = EasyConv2d(f * 2, f * 4, 4, 2, activation='leaky', use_bn=True)
+    self.pool = nn.AdaptiveAvgPool2d(1)
+    self.linear = nn.Linear(f * 4, 1)
+
+  def forward(self, x):
+    """The inputs `x` is the concat of 8 tensors.
+      Note that we remove the duplicated gt/yt in paper (9 - 1 = 8).
+    """
+    l0 = self.conv0(x)
+    l1 = self.conv1(l0)
+    l2 = self.conv2(l1)
+    l3 = self.conv3(l2)
+    l4 = self.conv4(l3)
+    y = self.pool(l4)
+    y = self.linear(y.flatten(1))
+    return y, (l1, l2, l3, l4)

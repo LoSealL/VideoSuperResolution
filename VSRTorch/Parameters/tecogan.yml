@@ -1,7 +1,18 @@
+---
 tecogan:
   scale: 4
   channel: 3
+  depth: 7
+  # L2, Flow, Ping-pong, GAN
+  weights: [1, 1, 0.5, 1.0e-3]
+  vgg_layers: ['block2_conv2', 'block3_conv4', 'block4_conv4', 'block5_conv4']
+  vgg_layer_weights: [3.0e-5, 1.4e-6, 6.0e-6, 2.0e-3]
+  gan_layer_weights: [1.67e-3, 1.43e-3, 8.33e-4, 2.0e-5]
 
 batch: 16
-patch_size: 96
+patch_size: 128
 lr: 1.0e-4
+lr_decay:
+  method: multistep
+  decay_step: [250, 500]
+  decay_rate: 0.5
