@@ -1,7 +1,7 @@
 #  Copyright (c): Wenyi Tang 2017-2019.
 #  Author: Wenyi Tang
 #  Email: wenyi.tang@intel.com
-#  Update Date: 2019/4/27 下午3:15
+#  Update Date: 2019/5/7 下午5:21
 
 import numpy as np
 import torch
@@ -107,26 +107,25 @@ class TeCoGAN(SuperResolution):
     # For ping-pong loss
     frames_rev = frames.copy()
     last_lr = frames_rev[0]
-    last_sr = torch.zeros_like(labels[0])
+    last_sr = F.interpolate(
+      last_lr, scale_factor=self.scale, mode='bilinear', align_corners=False)
     back_sr = []
     for lr in frames_rev:
       sr_rev, _, _, _, _ = self.gnet(lr, last_lr, last_sr)
       # TODO detach or not?
       back_sr.append(sr_rev)
+      last_lr = lr.detach()
+      last_sr = sr_rev.detach()
     total_loss = 0
     pp_loss = 0
     # Generator graph
     last_lr = frames[0]
     last_sr = F.interpolate(
-      frames[0], scale_factor=self.scale, mode='bilinear', align_corners=False)
+      last_lr, scale_factor=self.scale, mode='bilinear', align_corners=False)
     forward_sr = []
     bicubic_lr = []
     for lr, hr, bk in zip(frames, labels, back_sr):
       sr, sr_warp, flow, _, bi = self.gnet(lr, last_lr, last_sr)
-      last_lr = lr.detach()
-      last_sr = sr.detach()
-      forward_sr.append(sr)
-      bicubic_lr.append(bi.detach())
       lr_warp = self.gnet.warpper(last_lr, flow[:, 0], flow[:, 1], False)
       l2_image = F.mse_loss(sr, hr)
       l2_warp = F.mse_loss(lr_warp, lr)
@@ -136,6 +135,10 @@ class TeCoGAN(SuperResolution):
       pp_loss += l2_pingpong.detach()
       metrics['image'] = l2_image.detach().cpu().numpy()
       metrics['flow'] = l2_warp.detach().cpu().numpy()
+      last_lr = lr.detach()
+      last_sr = sr.detach()
+      forward_sr.append(sr)
+      bicubic_lr.append(bi.detach())
       if self.use_vgg:
         real_feature = self.vgg[0](hr)
         fake_feature = self.vgg[0](sr)
