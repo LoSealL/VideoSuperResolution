@@ -24,7 +24,7 @@ def test_glob_absolute_pattern():
 
   URL = './data/**/*.png'
   node = _glob_absolute_pattern(URL)
-  assert len(node) == 10
+  assert len(node) == 16
 
 
 def test_existence():

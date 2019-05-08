@@ -43,12 +43,11 @@ class Composer(nn.Module):
     """
     flow = self.fnet(lr, lr_pre)
     flow_up = self.scale * F.interpolate(
-      flow, scale_factor=self.scale, mode='bilinear', align_corners=False)
+      flow, scale_factor=self.scale, mode='bicubic', align_corners=False)
     u, v = [x.squeeze(1) for x in flow_up.split(1, dim=1)]
     sr_warp = self.warpper(sr_pre, u, v, False)
-    device = lr.device
-    bi = [self.bicubic(img) for img in lr.cpu()]
-    bi = torch.stack(bi, dim=0).to(device)
+    bi = F.interpolate(
+      lr, scale_factor=self.scale, mode='bicubic', align_corners=False)
     sr = self.gnet(lr, self.spd(sr_warp), bi)
     return sr, sr_warp, flow, flow_up, bi
 
@@ -109,7 +108,7 @@ class TeCoGAN(SuperResolution):
     frames_rev.reverse()
     last_lr = frames_rev[0]
     last_sr = F.interpolate(
-      last_lr, scale_factor=self.scale, mode='bilinear', align_corners=False)
+      last_lr, scale_factor=self.scale, mode='bicubic', align_corners=False)
     back_sr = []
     for lr in frames_rev:
       sr_rev, _, _, _, _ = self.gnet(lr, last_lr, last_sr)
@@ -122,7 +121,7 @@ class TeCoGAN(SuperResolution):
     # Generator graph
     last_lr = frames[0]
     last_sr = F.interpolate(
-      last_lr, scale_factor=self.scale, mode='bilinear', align_corners=False)
+      last_lr, scale_factor=self.scale, mode='bicubic', align_corners=False)
     forward_sr = []
     bicubic_lr = []
     for lr, hr, bk in zip(frames, labels, back_sr):
@@ -159,10 +158,10 @@ class TeCoGAN(SuperResolution):
         sr_p, sr_c, sr_n = forward_sr[i - 1:i + 2]
         flow_forward = self.scale * F.interpolate(
           self.gnet.fnet(lr_c, lr_p), scale_factor=self.scale,
-          mode='bilinear', align_corners=False)
+          mode='bicubic', align_corners=False)
         flow_backward = self.scale * F.interpolate(
           self.gnet.fnet(lr_c, lr_n), scale_factor=self.scale,
-          mode='bilinear', align_corners=False)
+          mode='bicubic', align_corners=False)
         hr_w1 = self.gnet.warpper(
           hr_p, flow_forward[:, 0], flow_forward[:, 1], False)
         hr_w2 = self.gnet.warpper(
@@ -207,8 +206,9 @@ class TeCoGAN(SuperResolution):
     slice_h = slice(None) if a == 0 else slice(a // 2, -a // 2)
     slice_w = slice(None) if b == 0 else slice(b // 2, -b // 2)
     last_sr = F.interpolate(
-      frames[0], scale_factor=self.scale, mode='bilinear', align_corners=False)
+      last_lr, scale_factor=self.scale, mode='bicubic', align_corners=False)
     for lr in frames:
+      lr = pad_if_divide(lr, 8, 'reflect')
       sr, _, _, _, _ = self.gnet(lr, last_lr, last_sr)
       last_lr = lr.detach()
       last_sr = sr.detach()

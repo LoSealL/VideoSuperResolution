@@ -10,7 +10,7 @@ from VSR.DataLoader.Dataset import *
 from VSR.Util.ImageProcess import img_to_array
 
 DATASETS = load_datasets('./data/fake_datasets.yml')
-RAW = 'data/raw.yv12'
+RAW = 'data/video/raw.yv12'
 IMG = 'data/set5_x2/img_001_SRF_2_LR.png'
 
 
