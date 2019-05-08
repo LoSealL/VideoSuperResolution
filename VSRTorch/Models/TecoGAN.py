@@ -6,11 +6,9 @@
 import numpy as np
 import torch
 import torch.nn.functional as F
-import torchvision
 from torch import nn
 
 from .Arch import SpaceToDepth
-from .Classic import Scale
 from .Loss import VggFeatureLoss, gan_bce_loss
 from .Model import SuperResolution
 from .frvsr.ops import FNet
@@ -28,10 +26,6 @@ class Composer(nn.Module):
     self.gnet = TecoGenerator(channel, scale, filters, n_rb)
     self.warpper = STN(padding_mode='border')
     self.spd = SpaceToDepth(scale)
-    self.bicubic = torchvision.transforms.Compose([
-      torchvision.transforms.ToPILImage(),
-      Scale(scale),
-      torchvision.transforms.ToTensor()])
     self.scale = scale
 
   def forward(self, lr, lr_pre, sr_pre):

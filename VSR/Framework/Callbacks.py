@@ -94,7 +94,11 @@ def _save_model_predicted_images(output, index, mode, cols=1, **kwargs):
 
 
 def _colored_grayscale_image(outputs, input, **kwargs):
+  # [WARNING] Coloring 1-channel outputs may not work properly!
   return_img = []
+  if np.ndim(input) == 5:
+    center = input.shape[1] // 2
+    input = input[:, center]
   for img in outputs:
     assert img.shape[-1] == 1
     scale = np.array(img.shape[1:3]) // np.array(input.shape[1:3])
