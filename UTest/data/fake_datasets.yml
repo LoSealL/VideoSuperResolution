@@ -28,14 +28,14 @@ Dataset:
       parser: cifar10
 
   RAW:
-    train: [raw.yv12]
-    val: [raw.yv12]
-    test: [raw.yv12]
+    train: [video/raw.yv12]
+    val: [video/raw.yv12]
+    test: [video/raw.yv12]
     param:
       parser: raw
       mode: yv12
       width: 32
-      hight: 32
+      height: 32
 
   FLOW:
     train: [flying_chair/pair]
@@ -46,6 +46,16 @@ Dataset:
   PAIR:
     train: [FOO]
     train_pair: [FOO]
+    param:
+      parser: custom_pairs
+
+  VIDEOPAIR:
+    train: "video/custom_pair/hr"
+    train_pair: "video/custom_pair/lr"
+    val: "video/custom_pair/hr"
+    val_pair: "video/custom_pair/lr"
+    test: "video/custom_pair/hr"
+    test_pair: "video/custom_pair/lr"
     param:
       parser: custom_pairs
 
