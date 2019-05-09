@@ -89,6 +89,11 @@ class TeCoGAN(SuperResolution):
     if self.use_vgg:
       self.vgg[0].cuda()
 
+  @staticmethod
+  def shave_border_pixel(x, border=16):
+    x = x[..., border:-border, border:-border]
+    return F.pad(x, [0, 0, 0, 0, border, border, border, border])
+
   def train(self, inputs, labels, learning_rate=None):
     metrics = {}
     frames = [self.norm(x.squeeze(1)) for x in inputs[0].split(1, dim=1)]
@@ -110,6 +115,7 @@ class TeCoGAN(SuperResolution):
       back_sr.append(sr_rev)
       last_lr = lr.detach()
       last_sr = sr_rev.detach()
+    back_sr.reverse()
     total_loss = 0
     pp_loss = 0
     # Generator graph
@@ -164,10 +170,16 @@ class TeCoGAN(SuperResolution):
           sr_p, flow_forward[:, 0], flow_forward[:, 1], False)
         sr_w2 = self.gnet.warpper(
           sr_n, flow_backward[:, 0], flow_backward[:, 1], False)
+        # Stop BP to Fnet
         d_input_fake = torch.cat(
-          (bi_p, bi_c, bi_n, sr_p, sr_c, sr_n, sr_w1, sr_w2), dim=1)
+          (bi_p, bi_c, bi_n, sr_p, sr_c, sr_n, sr_w1.detach(), sr_w2.detach()),
+          dim=1)
         d_input_real = torch.cat(
-          (bi_p, bi_c, bi_n, hr_p, hr_c, hr_n, hr_w1, hr_w2), dim=1)
+          (bi_p, bi_c, bi_n, hr_p, hr_c, hr_n, hr_w1.detach(), hr_w2.detach()),
+          dim=1)
+        # Padding border pixels to zero
+        d_input_fake = self.shave_border_pixel(d_input_fake, 16)
+        d_input_real = self.shave_border_pixel(d_input_real, 16)
         # BP to generator
         fake, fake_d_feature = self.dnet(d_input_fake)
         real, real_d_feature = self.dnet(d_input_real)
