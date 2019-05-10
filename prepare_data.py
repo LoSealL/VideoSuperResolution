@@ -83,6 +83,8 @@ WEIGHTS = {
   # PyTorch weights (Prefix "T")
   'Tsofvsr.zip': 'https://github.com/LoSealL/Model/releases/download/sofvsr/SOFVSR_x4.zip',
   'Tcarn.zip': 'https://github.com/LoSealL/Model/releases/download/carn/tcarn.zip',
+  'Tesrgan.zip': 'https://github.com/LoSealL/Model/releases/download/esrgan/esrgan.zip',
+  'Ttecogan.zip': 'https://github.com/LoSealL/Model/releases/download/tecogan/tecogan.zip',
 }
 
 

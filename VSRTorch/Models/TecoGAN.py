@@ -92,7 +92,7 @@ class TeCoGAN(SuperResolution):
   @staticmethod
   def shave_border_pixel(x, border=16):
     x = x[..., border:-border, border:-border]
-    return F.pad(x, [0, 0, 0, 0, border, border, border, border])
+    return F.pad(x, [border, border, border, border])
 
   def train(self, inputs, labels, learning_rate=None):
     metrics = {}
@@ -135,8 +135,8 @@ class TeCoGAN(SuperResolution):
       pp_loss += l2_pingpong.detach()
       metrics['image'] = l2_image.detach().cpu().numpy()
       metrics['flow'] = l2_warp.detach().cpu().numpy()
-      last_lr = lr.detach()
-      last_sr = sr.detach()
+      last_lr = lr  # .detach()
+      last_sr = sr  # .detach()
       forward_sr.append(sr)
       bicubic_lr.append(bi.detach())
       if self.use_vgg:
