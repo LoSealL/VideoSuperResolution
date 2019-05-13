@@ -120,7 +120,7 @@ def downsample(img, scale, border='reflect'):
   device = img.device
   kernel, s = _weights_downsample(scale)
   kernel = kernel.astype('float32')
-  kernel = torch.from_numpy(kernel).to(device)
+  kernel = torch.from_numpy(kernel)
   p1 = int(s * 3 / 2)
   p2 = 4 * s - int(s * 3 / 2)
   img, shape = _push_shape_4d(img)
@@ -129,7 +129,7 @@ def downsample(img, scale, border='reflect'):
   assert c is not None, "img must define channel number"
   c = int(c)
   filters = torch.reshape(torch.eye(c, c), [c, c, 1, 1]) * kernel
-  img_s = F.conv2d(img_ex, filters, stride=s)
+  img_s = F.conv2d(img_ex, filters.to(device), stride=s)
   img_s = _pop_shape(img_s, shape)
   return img_s
 
@@ -145,7 +145,7 @@ def upsample(img, scale, border='reflect'):
   device = img.device
   kernels, s = _weights_upsample(scale)
   kernels = [k.astype('float32') for k in kernels]
-  kernels = [torch.from_numpy(k).to(device) for k in kernels]
+  kernels = [torch.from_numpy(k) for k in kernels]
   p1 = 1 + s // 2
   p2 = 3
   img, shape = _push_shape_4d(img)
@@ -155,7 +155,7 @@ def upsample(img, scale, border='reflect'):
   c = int(c)
   filters = [torch.reshape(torch.eye(c, c), [c, c, 1, 1]) * k for k in kernels]
   weights = torch.stack(filters, dim=0).transpose(0, 1).reshape([-1, c, 5, 5])
-  img_s = F.conv2d(img_ex, weights)
+  img_s = F.conv2d(img_ex, weights.to(device))
   img_s = F.pixel_shuffle(img_s, s)
   more = s // 2 * s
   crop = slice(more - s // 2, - (s // 2))

@@ -12,6 +12,7 @@ from .Arch import EasyConv2d
 from .Model import SuperResolution
 from .Loss import VggFeatureLoss
 from ..Util import Metrics
+from ..Util.Utility import upsample
 
 
 class Espcn(nn.Module):
@@ -115,18 +116,6 @@ class PerceptualOptimizer(SuperResolution):
     raise NotImplementedError
 
 
-class Scale:
-  def __init__(self, scale_factor, interpolation=Image.BICUBIC):
-    self.scale_factor = scale_factor
-    self.interp = interpolation
-
-  def __call__(self, img: Image.Image):
-    w, h = img.size
-    return img.resize(
-      [int(w * self.scale_factor), int(h * self.scale_factor)],
-      self.interp)
-
-
 class ESPCN(PerceptualOptimizer):
   def __init__(self, scale, channel, **kwargs):
     super(ESPCN, self).__init__(scale, channel, **kwargs)
@@ -138,45 +127,27 @@ class ESPCN(PerceptualOptimizer):
 
 
 class SRCNN(PerceptualOptimizer):
-  def __init__(self, scale, channel, upsample, **kwargs):
+  def __init__(self, scale, channel, **kwargs):
     super(SRCNN, self).__init__(scale, channel, **kwargs)
     filters = kwargs.get('filters', (9, 5, 5))
     self.srcnn = Srcnn(channel, filters)
     self.opt = torch.optim.Adam(self.trainable_variables(), 1e-4)
-    if upsample:
-      self.up = torchvision.transforms.Compose([
-        torchvision.transforms.ToPILImage(),
-        Scale(scale),
-        torchvision.transforms.ToTensor()])
-    self.upsample = upsample
 
   def fn(self, tensor):
-    if self.upsample:
-      device = tensor.device
-      ups = [self.up(img) for img in tensor.cpu()]
-      tensor = torch.stack(ups, dim=0).to(device)
-    return self.srcnn(tensor)
+    x = upsample(tensor, self.scale)
+    return self.srcnn(x)
 
 
 class VDSR(PerceptualOptimizer):
-  def __init__(self, scale, channel, upsample, **kwargs):
+  def __init__(self, scale, channel, **kwargs):
     super(VDSR, self).__init__(scale, channel, **kwargs)
     layers = kwargs.get('layers', 20)
     self.vdsr = Vdsr(channel, layers)
     self.opt = torch.optim.Adam(self.trainable_variables(), 1e-4)
-    if upsample:
-      self.up = torchvision.transforms.Compose([
-        torchvision.transforms.ToPILImage(),
-        Scale(scale),
-        torchvision.transforms.ToTensor()])
-    self.upsample = upsample
 
   def fn(self, tensor):
-    if self.upsample:
-      device = tensor.device
-      ups = [self.up(img) for img in tensor.cpu()]
-      tensor = torch.stack(ups, dim=0).to(device)
-    return self.vdsr(tensor)
+    x = upsample(tensor, self.scale)
+    return self.vdsr(x)
 
 
 class DNCNN(PerceptualOptimizer):
