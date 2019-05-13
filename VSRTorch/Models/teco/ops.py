@@ -40,26 +40,29 @@ class TecoGenerator(nn.Module):
 
 
 class TecoDiscriminator(nn.Module):
-  def __init__(self, channel, filters):
+  def __init__(self, channel, filters, patch_size):
     super(TecoDiscriminator, self).__init__()
     f = filters
-    self.conv0 = EasyConv2d(channel * 8, f, 3, activation='leaky')
-    self.conv1 = EasyConv2d(f, f, 4, 2, activation='leaky', use_bn=True)
-    self.conv2 = EasyConv2d(f, f, 4, 2, activation='leaky', use_bn=True)
-    self.conv3 = EasyConv2d(f, f * 2, 4, 2, activation='leaky', use_bn=True)
-    self.conv4 = EasyConv2d(f * 2, f * 4, 4, 2, activation='leaky', use_bn=True)
-    self.pool = nn.AdaptiveAvgPool2d(1)
-    self.linear = nn.Linear(f * 4, 1)
+    conv0 = EasyConv2d(channel * 8, f, 3, activation='leaky')
+    conv1 = EasyConv2d(f, f, 4, 2, activation='leaky', use_bn=True)
+    conv11 = EasyConv2d(f, f, 3, 1, activation='leaky', use_bn=True)
+    conv2 = EasyConv2d(f, f, 4, 2, activation='leaky', use_bn=True)
+    conv21 = EasyConv2d(f, f, 3, 1, activation='leaky', use_bn=True)
+    conv3 = EasyConv2d(f, f * 2, 4, 2, activation='leaky', use_bn=True)
+    conv31 = EasyConv2d(f * 2, f * 2, 3, 1, activation='leaky', use_bn=True)
+    conv4 = EasyConv2d(f * 2, f * 4, 4, 2, activation='leaky', use_bn=True)
+    conv41 = EasyConv2d(f * 4, f * 4, 3, 1, activation='leaky', use_bn=True)
+    self.body = nn.Sequential(conv0, conv1, conv11, conv2, conv21,
+                              conv3, conv31, conv4, conv41)
+    self.linear = nn.Sequential(
+      nn.Linear(f * 4 * (patch_size // 16) ** 2, 100),
+      nn.LeakyReLU(inplace=True),
+      nn.Linear(100, 1))
 
   def forward(self, x):
     """The inputs `x` is the concat of 8 tensors.
       Note that we remove the duplicated gt/yt in paper (9 - 1 = 8).
     """
-    l0 = self.conv0(x)
-    l1 = self.conv1(l0)
-    l2 = self.conv2(l1)
-    l3 = self.conv3(l2)
-    l4 = self.conv4(l3)
-    y = self.pool(l4)
+    y = self.body(x)
     y = self.linear(y.flatten(1))
-    return y, (l1, l2, l3, l4)
+    return y, None

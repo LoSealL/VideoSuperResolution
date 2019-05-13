@@ -64,7 +64,7 @@ class TeCoGAN(SuperResolution):
   """
 
   def __init__(self, scale, channel, weights, vgg_layers, vgg_layer_weights,
-               gan_layer_weights, **kwargs):
+               gan_layer_weights, patch_size, **kwargs):
     super(TeCoGAN, self).__init__(scale, channel, **kwargs)
     filters = kwargs.get('filters', 64)  # default filter number
     gain = kwargs.get('max_displacement', 24)  # max movement of optical flow
@@ -79,7 +79,7 @@ class TeCoGAN(SuperResolution):
       self.vgg = [VggFeatureLoss(vgg_layers, True)]
       self.vgg_weights = vgg_layer_weights
     if self.use_gan:
-      self.dnet = TecoDiscriminator(channel, filters)
+      self.dnet = TecoDiscriminator(channel, filters, patch_size)
       self.dopt = torch.optim.Adam(self.trainable_variables('dnet'), 5e-5)
       self.gan_weights = gan_layer_weights
     self.w = weights  # [L2, flow, ping-pong, gan]
@@ -184,11 +184,11 @@ class TeCoGAN(SuperResolution):
         fake, fake_d_feature = self.dnet(d_input_fake)
         real, real_d_feature = self.dnet(d_input_real)
         loss_g = gan_bce_loss(fake, True)
-        l2_d_feature = 0
-        for x, y, w in zip(fake_d_feature, real_d_feature, self.gan_weights):
-          l2_d_feature += F.mse_loss(x, y) * w
-        total_loss += loss_g * self.w[3] + l2_d_feature
-        metrics['dfeat'] = l2_d_feature.detach().cpu().numpy()
+        # l2_d_feature = 0
+        # for x, y, w in zip(fake_d_feature, real_d_feature, self.gan_weights):
+        #   l2_d_feature += F.mse_loss(x, y) * w
+        total_loss += loss_g * self.w[3]
+        # metrics['dfeat'] = l2_d_feature.detach().cpu().numpy()
         # Now avoid BP to generator
         fake, _ = self.dnet(d_input_fake.detach())
         disc_loss += gan_bce_loss(real, True) + gan_bce_loss(fake, False)

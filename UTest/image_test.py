@@ -22,33 +22,70 @@ def test_rgb2yuv():
   assert yuv.shape == img.shape
 
 
-def test_resize_2x2():
-  scale = 2
-  img = np.array([[1, 2], [3, 4]], np.uint8)
-  imgp = Image.fromarray(img, 'L')
-  img = np.reshape(img, [1, 2, 2, 1])
-  y = U.upsample(img.astype(np.float32), scale)
-  y = y.numpy()[0, ..., 0].astype('uint8')
-  imgp = imgp.resize([2 * scale, 2 * scale], Image.BICUBIC)
-  yp = np.array(imgp)
-  yf = tf.image.resize_bicubic(img, [2 * scale, 2 * scale])
-  yf = yf.numpy()[0, ..., 0].astype('uint8')
-  diff = yp - y
-  assert diff.mean() < 10
+def test_resize_upsample():
+  Im = Image.open(URL)
+  for X in [Im, Im.convert('L')]:
+    w = X.width
+    h = X.height
+    for ss in [2, 3, 4, 5, 6]:
+      GT = X.resize([w * ss, h * ss], Image.BICUBIC)
+      gt = np.asarray(GT, dtype='float32') / 255
+      x = tf.constant(np.asarray(X), dtype='float32') / 255
+      y = U.upsample(x, ss).numpy().clip(0, 1)
+      assert np.all(np.abs(y[16:-16, 16:-16] - gt[16:-16, 16:-16]) < 1.0e-2), \
+        f"Scale: {ss}. Mode: {X.mode}"
 
 
-def test_resize_img():
-  scale = 2
-  img = Image.open(URL)
-  w = img.width
-  h = img.height
-  imgp = img.resize([w * scale, h * scale], Image.BICUBIC)
-  yp = np.array(imgp)
-  img = np.resize(img, [1, h, w, 3])
-  y = U.upsample(img.astype(np.float32), scale)
-  y = y.numpy()[0].astype('uint8')
-  yf = tf.image.resize_bicubic(img, [h * scale, w * scale])
-  yf = yf.numpy()[0].astype('uint8')
-  diff = yp - y
-  # TODO not aligned
-  # assert diff.mean() < 10
+def test_resize_downsample():
+  Im = Image.open(URL)
+  for X in [Im, Im.convert('L')]:
+    w = X.width
+    h = X.height
+    for ss in [2, 4, 6, 8]:
+      w_ = w - w % ss
+      h_ = h - h % ss
+      X = X.crop([0, 0, w_, h_])
+      GT = X.resize([w_ // ss, h_ // ss], Image.BICUBIC)
+      gt = np.asarray(GT, dtype='float32') / 255
+      x = tf.constant(np.asarray(X), dtype='float32') / 255
+      y = U.downsample(x, ss).numpy().clip(0, 1)
+      assert np.all(np.abs(y[8:-8, 8:-8] - gt[8:-8, 8:-8]) < 1.0e-2), \
+        f"Scale: {ss}. Mode: {X.mode}"
+
+
+from VSRTorch.Util.Utility import upsample, downsample
+import torchvision
+
+
+def test_resize_upsample_VSRT():
+  Im = Image.open(URL)
+  trans = torchvision.transforms.ToTensor()
+  for X in [Im, Im.convert('L')]:
+    w = X.width
+    h = X.height
+    for ss in [2, 3, 4, 5, 6]:
+      GT = X.resize([w * ss, h * ss], Image.BICUBIC)
+      gt = trans(GT).numpy()
+      x = trans(X)
+      y = upsample(x, ss).numpy().clip(0, 1)
+      assert np.all(
+        np.abs(y[..., 16:-16, 16:-16] - gt[..., 16:-16, 16:-16]) < 1.0e-2), \
+        f"Scale: {ss}. Mode: {X.mode}"
+
+
+def test_resize_downsample_VSRT():
+  Im = Image.open(URL)
+  trans = torchvision.transforms.ToTensor()
+  for X in [Im, Im.convert('L')]:
+    w = X.width
+    h = X.height
+    for ss in [2, 4, 6, 8]:
+      w_ = w - w % ss
+      h_ = h - h % ss
+      X = X.crop([0, 0, w_, h_])
+      GT = X.resize([w_ // ss, h_ // ss], Image.BICUBIC)
+      gt = trans(GT).numpy()
+      x = trans(X)
+      y = downsample(x, ss).numpy().clip(0, 1)
+      assert np.all(np.abs(y[..., 8:-8, 8:-8] - gt[..., 8:-8, 8:-8]) < 1.0e-2), \
+        f"Scale: {ss}. Mode: {X.mode}"

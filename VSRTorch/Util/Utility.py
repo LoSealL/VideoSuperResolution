@@ -3,9 +3,9 @@
 #  Email: wenyi.tang@intel.com
 #  Update Date: 2019/4/2 上午10:54
 
+import numpy as np
 import torch
 import torch.nn.functional as F
-import numpy as np
 
 
 def pad_if_divide(x: torch.Tensor, value, mode='constant'):
@@ -81,3 +81,94 @@ def nd_meshgrid(*size, permute=None):
       raise ValueError(_error_msg.format(len(size), len(permute)))
     mesh = mesh[permute]
   return mesh.transpose(*range(1, mesh.ndim), 0)
+
+
+from VSR.Util.Utility import _weights_upsample, _weights_downsample
+
+
+def _push_shape_4d(x):
+  dim = x.dim()
+  if dim == 2:
+    return x.unsqueeze(0).unsqueeze(1), 2
+  elif dim == 3:
+    return x.unsqueeze(0), 3
+  elif dim == 4:
+    return x, 4
+  else:
+    raise ValueError("Unsupported tensor! Must be 2D/3D/4D")
+
+
+def _pop_shape(x, shape):
+  if shape == 2:
+    return x[0, ..., 0]
+  elif shape == 3:
+    return x[0]
+  elif shape == 4:
+    return x
+  else:
+    raise ValueError("Unsupported shape! Must be 2/3/4")
+
+
+def downsample(img, scale, border='reflect'):
+  """Bicubical downsample via **CONV2D**. Using PIL's kernel.
+
+  Args:
+    img: a tf tensor of 2/3/4-D.
+    scale: n or 1/n. `n` must be integer >= 2.
+    border: padding mode. Recommend to 'REFLECT'.
+  """
+  device = img.device
+  kernel, s = _weights_downsample(scale)
+  kernel = kernel.astype('float32')
+  kernel = torch.from_numpy(kernel).to(device)
+  p1 = int(s * 3 / 2)
+  p2 = 4 * s - int(s * 3 / 2)
+  img, shape = _push_shape_4d(img)
+  img_ex = F.pad(img, [p1, p2, p1, p2], mode=border)
+  c = img_ex.shape[1]
+  assert c is not None, "img must define channel number"
+  c = int(c)
+  filters = torch.reshape(torch.eye(c, c), [c, c, 1, 1]) * kernel
+  img_s = F.conv2d(img_ex, filters, stride=s)
+  img_s = _pop_shape(img_s, shape)
+  return img_s
+
+
+def upsample(img, scale, border='reflect'):
+  """Bicubical upsample via **CONV2D**. Using PIL's kernel.
+
+  Args:
+    img: a tf tensor of 2/3/4-D.
+    scale: must be integer >= 2.
+    border: padding mode. Recommend to 'REFLECT'.
+  """
+  device = img.device
+  kernels, s = _weights_upsample(scale)
+  kernels = [k.astype('float32') for k in kernels]
+  kernels = [torch.from_numpy(k).to(device) for k in kernels]
+  p1 = 1 + s // 2
+  p2 = 3
+  img, shape = _push_shape_4d(img)
+  img_ex = F.pad(img, [p1, p2, p1, p2], mode=border)
+  c = img_ex.shape[1]
+  assert c is not None, "img must define channel number"
+  c = int(c)
+  filters = [torch.reshape(torch.eye(c, c), [c, c, 1, 1]) * k for k in kernels]
+  weights = torch.stack(filters, dim=0).transpose(0, 1).reshape([-1, c, 5, 5])
+  img_s = F.conv2d(img_ex, weights)
+  img_s = F.pixel_shuffle(img_s, s)
+  more = s // 2 * s
+  crop = slice(more - s // 2, - (s // 2))
+  img_s = _pop_shape(img_s[..., crop, crop], shape)
+  return img_s
+
+
+def bicubic_resize(img, scale, border='reflect'):
+  if scale > 1:
+    return upsample(img, scale, border)
+  elif 0 < scale < 1:
+    return downsample(img, scale, border)
+  elif scale == 1:
+    return img
+  else:
+    raise ValueError("Wrong scale factor!")

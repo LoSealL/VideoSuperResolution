@@ -86,6 +86,12 @@ def repeat(x, n):
   return tf.tile(x, pattern)
 
 
+def list_rshift(l, s):
+  for _ in range(s):
+    l.insert(0, l.pop(-1))
+  return l
+
+
 def pixel_shift(image, scale, channel=1):
   """Efficient Sub-pixel Convolution,
     see paper: https://arxiv.org/abs/1609.05158
@@ -132,6 +138,7 @@ def bicubic_rescale(img, scale):
   NOTE: tf.image.resize_bicubic uses different boundary to PIL.Image.resize,
     try to use resize_area without aligned corners.
   """
+  print("bicubic_rescale is deprecated. Use bicubic_resize instead.")
   with tf.name_scope('Bicubic'):
     shape = tf.shape(img)
     scale = to_list(scale, 2)
@@ -140,7 +147,7 @@ def bicubic_rescale(img, scale):
     return tf.image.resize_bicubic(img, shape_enlarge[1:3], False)
 
 
-def _bicubic_filter(x, a=0.5):
+def _bicubic_filter(x, a=-0.5):
   # https://en.wikipedia.org/wiki/Bicubic_interpolation#Bicubic_convolution_algorithm
   if x < 0:
     x = -x
@@ -151,58 +158,131 @@ def _bicubic_filter(x, a=0.5):
   return 0
 
 
-def upsample(img, scale):
-  scale = to_list(scale, 2)
-  with tf.name_scope('UpsampleX{}'.format(scale[0])):
-    shape = img.shape
-    imgx = tf.pad(img, [[0, 0], [1, 1], [0, 0], [0, 0]], "CONSTANT")
-    imgx = tf.pad(imgx, [[0, 0], [0, 1], [0, 0], [0, 0]], "CONSTANT")
-    dh = [(i + 0.5) / scale[1] for i in range(scale[1])]
-    dw = [(i + 0.5) / scale[0] for i in range(scale[0])]
-    ph, pw = [], []
-    for d in dh:
-      _v = np.array([-1, 0, 1, 2], np.float32) - d + 0.5
-      if d < 0.5:
-        _v[-1] = 2
-      else:
-        _v[0] = 2
-      _k = np.asarray([_bicubic_filter(v) for v in _v], np.float32)
-      _k /= np.sum(_k) + 1e-12
-      _k = _k.reshape([4, 1, 1])
-      if shape[-1] == 3:
-        zero = tf.zeros_like(_k)
-        _r = tf.concat([_k, zero, zero], -1)
-        _g = tf.concat([zero, _k, zero], -1)
-        _b = tf.concat([zero, zero, _k], -1)
-        _k = tf.stack([_r, _g, _b], -1)
-      else:
-        _k = tf.expand_dims(_k, -1)
-      ph += [tf.nn.conv2d(imgx, _k, (1, 1, 1, 1), 'VALID', name='Hori')]
-    img = pixel_shift(tf.concat(ph, -1), [1, scale[1]], shape[-1])
-    img = tf.round(img)
-    imgx = tf.pad(img, [[0, 0], [0, 0], [1, 1], [0, 0]], "CONSTANT")
-    imgx = tf.pad(imgx, [[0, 0], [0, 0], [0, 1], [0, 0]], "CONSTANT")
-    for d in dw:
-      _v = np.array([-1, 0, 1, 2], np.float32) - d + 0.5
-      if d < 0.5:
-        _v[-1] = 2
-      else:
-        _v[0] = 2
-      _k = np.asarray([_bicubic_filter(v) for v in _v], np.float32)
-      _k /= np.sum(_k) + 1e-12
-      _k = _k.reshape([4, 1, 1])
-      if shape[-1] == 3:
-        zero = tf.zeros_like(_k)
-        _r = tf.concat([_k, zero, zero], -1)
-        _g = tf.concat([zero, _k, zero], -1)
-        _b = tf.concat([zero, zero, _k], -1)
-        _k = tf.stack([_r, _g, _b], -1)
-      else:
-        _k = tf.expand_dims(_k, -1)
-      _k = tf.transpose(_k, [1, 0, 2, 3])
-      pw += [tf.nn.conv2d(imgx, _k, (1, 1, 1, 1), 'VALID', name='Vert')]
-    img = pixel_shift(tf.concat(pw, -1), [scale[0], 1], shape[-1])
-    return tf.round(img)
+def _weights_downsample(scale_factor):
+  if scale_factor < 1:
+    ss = int(1 / scale_factor + 0.5)
+  else:
+    ss = int(scale_factor + 0.5)
+  support = 2 * ss
+  ksize = support * 2 + 1
+  weights = []
+  for lambd in range(ksize):
+    dist = -2 + (2 * lambd + 1) / support
+    weights.append(_bicubic_filter(dist))
+  h = np.array([weights])
+  h /= h.sum()
+  v = h.transpose()
+  kernel = np.matmul(v, h)
+  assert kernel.shape == (ksize, ksize), f"{kernel.shape} != [{ksize}]"
+  return kernel, ss
+
+
+def _weights_upsample(scale_factor):
+  if scale_factor < 1:
+    ss = int(1 / scale_factor + 0.5)
+  else:
+    ss = int(scale_factor + 0.5)
+  support = 2
+  ksize = support * 2 + 1
+  weights = [[] for _ in range(ss)]
+  for i in range(ss):
+    for lambd in range(ksize):
+      dist = int((1 + ss + 2 * i) / 2 / ss) + lambd - 1.5 - (2 * i + 1) / 2 / ss
+      weights[i].append(_bicubic_filter(dist))
+  w = [np.array([i]) / np.sum(i) for i in weights]
+  w = list_rshift(w, ss - ss // 2)
+  kernels = []
+  for i in range(len(w)):
+    for j in range(len(w)):
+      kernels.append(np.matmul(w[i].transpose(), w[j]))
+  return kernels, ss
+
+
+def _push_shape_4d(x):
+  shape = tf.shape(x)
+  if shape.shape[0] == 2:
+    return tf.reshape(x, [1, shape[0], shape[1], 1]), 2
+  elif shape.shape[0] == 3:
+    return tf.expand_dims(x, 0), 3
+  elif shape.shape[0] == 4:
+    return x, 4
+  else:
+    raise ValueError("Unsupported tensor! Must be 2D/3D/4D")
+
+
+def _pop_shape(x, shape):
+  if shape == 2:
+    return x[0, ..., 0]
+  elif shape == 3:
+    return x[0]
+  elif shape == 4:
+    return x
+  else:
+    raise ValueError("Unsupported shape! Must be 2/3/4")
+
+
+def downsample(img, scale, border='REFLECT'):
+  """Bicubical downsample via **CONV2D**. Using PIL's kernel.
+
+  Args:
+    img: a tf tensor of 2/3/4-D.
+    scale: n or 1/n. `n` must be integer >= 2.
+    border: padding mode. Recommend to 'REFLECT'.
+  """
+  kernel, s = _weights_downsample(scale)
+  kernel = tf.convert_to_tensor(kernel, dtype='float32')
+  p1 = int(s * 3 / 2)
+  p2 = 4 * s - int(s * 3 / 2)
+  img, shape = _push_shape_4d(img)
+  img_ex = tf.pad(img, [[0, 0], [p1, p2], [p1, p2], [0, 0]], border)
+  c = img_ex.shape[-1]
+  assert c is not None, "img must define channel number"
+  c = int(c)
+  filters = tf.reshape(tf.eye(c, c), [c, c, 1, 1]) * kernel
+  filters = tf.transpose(filters, [2, 3, 0, 1])
+  img_s = tf.nn.conv2d(img_ex, filters, [1, s, s, 1], 'VALID')
+  img_s = _pop_shape(img_s, shape)
+  return img_s
+
+
+def upsample(img, scale, border='REFLECT'):
+  """Bicubical upsample via **CONV2D**. Using PIL's kernel.
+
+  Args:
+    img: a tf tensor of 2/3/4-D.
+    scale: must be integer >= 2.
+    border: padding mode. Recommend to 'REFLECT'.
+  """
+  kernels, s = _weights_upsample(scale)
+  kernels = [tf.convert_to_tensor(k, dtype='float32') for k in kernels]
+  p1 = 1 + s // 2
+  p2 = 3
+  img, shape = _push_shape_4d(img)
+  img_ex = tf.pad(img, [[0, 0], [p1, p2], [p1, p2], [0, 0]], border)
+  c = img_ex.shape[-1]
+  assert c is not None, "img must define channel number"
+  c = int(c)
+  filters = [tf.reshape(tf.eye(c, c), [c, c, 1, 1]) * k for k in kernels]
+  filters = [tf.transpose(f, [2, 3, 0, 1]) for f in filters]
+  weights = tf.concat(filters, axis=-1)
+  img_s = tf.nn.conv2d(img_ex, weights, [1, 1, 1, 1], 'VALID')
+  img_s = tf.depth_to_space(img_s, s)
+  more = s // 2 * s
+  crop = slice(more - s // 2, - (s // 2))
+  img_s = _pop_shape(img_s[:, crop, crop], shape)
+  return img_s
+
+
+def bicubic_resize(img, scale, border='REFLECT'):
+  with tf.name_scope('Bicubic'):
+    if scale > 1:
+      return upsample(img, scale, border)
+    elif 0 < scale < 1:
+      return downsample(img, scale, border)
+    elif scale == 1:
+      return img
+    else:
+      raise ValueError("Wrong scale factor!")
 
 
 def prelu(x, initialize=0, name=None, scope='PReLU'):
@@ -640,6 +720,7 @@ class TorchInitializer(tf.keras.initializers.Initializer):
     dtype: Default data type, used if no `dtype` argument is provided when
       calling the initializer. Only floating point types are supported.
   """
+
   def __init__(self, fan_in=None, a=5, seed=None, dtype=tf.float32):
     self.fan_in = fan_in
     self.a = a

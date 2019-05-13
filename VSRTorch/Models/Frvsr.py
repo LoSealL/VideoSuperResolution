@@ -86,8 +86,9 @@ class FRVSR(SuperResolution):
     slice_h = slice(None) if a == 0 else slice(a // 2, -a // 2)
     slice_w = slice(None) if b == 0 else slice(b // 2, -b // 2)
     last_sr = F.interpolate(
-      frames[0], scale_factor=self.scale, mode='bilinear', align_corners=False)
+      last_lr, scale_factor=self.scale, mode='bilinear', align_corners=False)
     for lr in frames:
+      lr = pad_if_divide(lr, 8, 'reflect')
       sr, _, _, _ = self.frvsr(lr, last_lr, last_sr)
       last_lr = lr.detach()
       last_sr = sr.detach()
@@ -100,5 +101,5 @@ class FRVSR(SuperResolution):
       writer = get_writer(self.name)
       if writer is not None:
         step = kwargs['epoch']
-        writer.image('clean', sr, step=step)
+        writer.image('clean', sr.clamp(0, 1), step=step)
     return predicts, metrics
