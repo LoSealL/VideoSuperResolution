@@ -7,5 +7,3 @@ import logging
 _logger = logging.getLogger("VSR.ESRGAN")
 _logger.info("LICENSE: ESRGAN is implemented by Xintao Wang. "
              "@xinntao https://github.com/xinntao/ESRGAN")
-
-_logger.warning("Note that training of ESRGAN is incomplete for now.")

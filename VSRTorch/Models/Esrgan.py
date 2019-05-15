@@ -16,7 +16,7 @@ from ..Framework.Summary import get_writer
 
 
 class ESRGAN(SuperResolution):
-  def __init__(self, scale, patch_size=128, weights=(1, 0.05, 5e-3), **kwargs):
+  def __init__(self, scale, patch_size=128, weights=(0.01, 1, 5e-3), **kwargs):
     super(ESRGAN, self).__init__(scale, 3)
     self.use_vgg = weights[1] > 0
     self.use_gan = weights[2] > 0
@@ -27,6 +27,7 @@ class ESRGAN(SuperResolution):
     self.optg = torch.optim.Adam(self.trainable_variables('rrdb'), 1e-4)
     if self.use_vgg:
       self.vgg = [VggFeatureLoss(['block5_conv4'], True)]
+    # image, vgg, gan
     self.w = weights
 
   def cuda(self):

@@ -59,7 +59,7 @@ class VESPCN(SuperResolution):
       writer = get_writer(self.name)
       if writer is not None:
         step = kwargs['epoch']
-        writer.image('clean', sr, step=step)
-        writer.image('warp/0', warps[0], step=step)
-        writer.image('warp/1', warps[-1], step=step)
+        writer.image('clean', sr.clamp(0, 1), step=step)
+        writer.image('warp/0', warps[0].clamp(0, 1), step=step)
+        writer.image('warp/1', warps[-1].clamp(0, 1), step=step)
     return [sr.numpy()], metrics

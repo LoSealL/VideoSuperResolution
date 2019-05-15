@@ -36,16 +36,17 @@ All these models are implemented in **ONE** framework.
 |ZSSR|[CVPR18](http://www.wisdom.weizmann.ac.il/~vision/zssr/)|[Tensorflow](https://github.com/assafshocher/ZSSR)|-|-| Zero-shot ||
 |FRVSR|[CVPR18](https://arxiv.org/abs/1801.04590)|[PDF](https://github.com/msmsajjadi/FRVSR)|T|Y| VideoSR ||
 |DUF|[CVPR18](http://openaccess.thecvf.com/content_cvpr_2018/papers/Jo_Deep_Video_Super-Resolution_CVPR_2018_paper.pdf)|[Tensorflow](https://github.com/yhjo09/VSR-DUF)|T|-| VideoSR ||
-|CARN|[ECCV18](https://arxiv.org/abs/1803.08664)|[PyTorch](https://github.com/nmhkahn/CARN-pytorch)|Y|Y| Fast |[√](https://github.com/LoSealL/Model/releases)|
+|CARN|[ECCV18](https://arxiv.org/abs/1803.08664)|[PyTorch](https://github.com/nmhkahn/CARN-pytorch)|Y|Y| Fast |[√](https://github.com/LoSealL/Model/releases/carn)|
 |RCAN|[ECCV18](https://arxiv.org/abs/1807.02758)|[PyTorch](https://github.com/yulunzhang/RCAN)|Y|Y| Deep, BI-BD-DN ||
 |MSRN|[ECCV18](http://openaccess.thecvf.com/content_ECCV_2018/papers/Juncheng_Li_Multi-scale_Residual_Network_ECCV_2018_paper.pdf)|[PyTorch](https://github.com/MIVRC/MSRN-PyTorch)|Y|Y| |[√](https://drive.google.com/open?id=1A0LoY3oB_VnArP3GzI1ILUNJbLAEjdtJ)|
-|SRFeat|[ECCV18](http://openaccess.thecvf.com/content_ECCV_2018/papers/Seong-Jin_Park_SRFeat_Single_Image_ECCV_2018_paper.pdf)|[Tensorflow](https://github.com/HyeongseokSon1/SRFeat)|Y|T| GAN ||
+|SRFeat|[ECCV18](http://openaccess.thecvf.com/content_ECCV_2018/papers/Seong-Jin_Park_SRFeat_Single_Image_ECCV_2018_paper.pdf)|[Tensorflow](https://github.com/HyeongseokSon1/SRFeat)|Y|Y| GAN ||
 |NLRN|[NIPS18](https://papers.nips.cc/paper/7439-non-local-recurrent-network-for-image-restoration.pdf)|[Tensorflow](https://github.com/Ding-Liu/NLRN)|T|-| Non-local, Recurrent ||
 |SRCliqueNet|[NIPS18](https://arxiv.org/abs/1809.04508)|-|-|-| Wavelet ||
 |FFDNet|[TIP18](https://ieeexplore.ieee.org/document/8365806/)|[Matlab](https://github.com/cszn/FFDNet)|Y|-| Conditional denoise||
 |CBDNet|[arXiv](https://arxiv.org/abs/1807.04686)|[Matlab](https://github.com/GuoShi28/CBDNet)|T|-| Blind-denoise ||
-|ESRGAN|[ECCVW18](http://arxiv.org/abs/1809.00219)|[PyTorch](https://github.com/xinntao/ESRGAN)|-|Y|1st place PIRM 2018||
-|TecoGAN|[arXiv](http://arxiv.org/abs/1811.09393)|[Tensorflow](https://github.com/thunil/TecoGAN)|-|T| VideoSR GAN||
+|SOFVSR|[ACCV18](http://arxiv.org/abs/1809.08573)|[PyTorch](https://github.com/LongguangWang/SOF-VSR)|-|Y| VideoSR |[√](https://github.com/LoSealL/Model/releases/download/sofvsr/SOFVSR_x4.zip)|
+|ESRGAN|[ECCVW18](http://arxiv.org/abs/1809.00219)|[PyTorch](https://github.com/xinntao/ESRGAN)|-|Y|1st place PIRM 2018|[√](https://github.com/LoSealL/Model/releases/download/esrgan/esrgan.zip)|
+|TecoGAN|[arXiv](http://arxiv.org/abs/1811.09393)|[Tensorflow](https://github.com/thunil/TecoGAN)|-|T| VideoSR GAN|[√](https://github.com/LoSealL/Model/releases/download/tecogan/tecogan.zip)|
 |RBPN|[CVPR19](https://arxiv.org/abs/1903.10128)|[PyTorch](https://github.com/alterzero/RBPN-PyTorch)|-|-| VideoSR ||
 
 \*The 1st repo is by paper author.

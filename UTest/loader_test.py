@@ -46,28 +46,6 @@ def test_quickloader_iter():
     print(name, flush=True)
 
 
-def test_benchmark_basic():
-  dut = DATASETS['NORMAL']
-  epochs = 4
-  config = Config(batch=8, scale=4, depth=1, patch_size=32,
-                  steps_per_epoch=100, convert_to='RGB', crop='random')
-  loader = BasicLoader(dut, 'train', config, True)
-  for _ in range(epochs):
-    r = loader.make_one_shot_iterator()
-    list(r)
-
-
-def test_benchmark_mp():
-  dut = DATASETS['NORMAL']
-  epochs = 4
-  config = Config(batch=8, scale=4, depth=1, patch_size=32,
-                  steps_per_epoch=100, convert_to='RGB', crop='random')
-  loader = QuickLoader(dut, 'train', config, True, n_threads=8)
-  for _ in range(epochs):
-    r = loader.make_one_shot_iterator()
-    list(r)
-
-
 def test_read_flow():
   dut = DATASETS['FLOW']
   config = Config(batch=8, scale=1, depth=2, patch_size=256,
@@ -144,3 +122,25 @@ def test_crop_stride():
   re = re.transpose([0, 2, 1, 3, 4])
   re = re.reshape([shape[1] * rows, shape[2] * cols, shape[3]])
   assert np.all(ref[0, :re.shape[0], :re.shape[1], :] == re)
+
+
+def test_video_raw():
+  dut = DATASETS['RAW']
+  config = Config(batch=1, scale=2, depth=3, patch_size=32)
+  ld1 = QuickLoader(dut, 'train', config)
+  ld2 = QuickLoader(dut, 'val', config)
+  ld3 = QuickLoader(dut, 'test', config)
+  assert list(ld1.make_one_shot_iterator()) != []
+  assert list(ld2.make_one_shot_iterator()) != []
+  assert list(ld3.make_one_shot_iterator()) != []
+
+
+def test_video_pair():
+  dut = DATASETS['VIDEOPAIR']
+  config = Config(batch=1, scale=2, depth=3, patch_size=32)
+  ld1 = QuickLoader(dut, 'train', config)
+  ld2 = QuickLoader(dut, 'val', config)
+  ld3 = QuickLoader(dut, 'test', config)
+  assert list(ld1.make_one_shot_iterator()) != []
+  assert list(ld2.make_one_shot_iterator()) != []
+  assert list(ld3.make_one_shot_iterator()) != []

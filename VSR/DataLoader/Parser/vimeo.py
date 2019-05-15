@@ -62,7 +62,7 @@ class Parser(object):
 
   @property
   def capacity(self):
-    return np.prod(self.data.shape) * 3
+    return np.prod(self.data.shape, dtype='uint64') * 3
 
   def gen_frames(self, hr):
     length = hr.shape[0]

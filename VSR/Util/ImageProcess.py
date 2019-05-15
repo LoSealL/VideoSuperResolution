@@ -29,10 +29,27 @@ def _resample(name):
   return 0
 
 
-def array_to_img(x, mode='YCbCr'):
+def array_to_img(x, mode='YCbCr', min_val=0, max_val=255):
   """Convert an ndarray to PIL Image."""
-  x = np.squeeze(x)
-  return Image.fromarray(x.astype('uint8'), mode=mode)
+  x = np.squeeze(x).astype('float32')
+  x = (x - min_val) / (max_val - min_val)
+  x = x.clip(0, 1) * 255
+  if np.ndim(x) == 2:
+    if mode in ('L', 'gray'):
+      x = np.expand_dims(x, 0)
+    else:
+      x = np.expand_dims(np.expand_dims(x, -1), 0)
+  elif np.ndim(x) == 3:
+    x = np.expand_dims(x, 0)
+  elif np.ndim(x) >= 5:
+    raise ValueError(f"Dimension of x must <= 4. Got {np.ndim(x)}.")
+  ret = []
+  for i in x:
+    i = np.round(i)
+    ret.append(Image.fromarray(i.astype('uint8'), mode=mode))
+  if len(ret) == 1:
+    return ret.pop()
+  return ret
 
 
 def img_to_array(img, data_format=None):

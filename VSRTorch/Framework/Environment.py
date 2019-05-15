@@ -99,7 +99,8 @@ class Env:
           last_epoch = 0
         try:
           model.load_state_dict(torch.load(str(fp), map_location=map_location))
-        except RuntimeError:
+        except RuntimeError as ex:
+          print(ex)
           self._logger.warning(f"Couldn't restore state for {key} from {fp}.")
     if pth is None:
       for key, opt in self.model.opts.items():

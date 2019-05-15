@@ -6,11 +6,9 @@
 import numpy as np
 import torch
 import torch.nn.functional as F
-import torchvision
 from torch import nn
 
 from .Arch import SpaceToDepth
-from .Classic import Scale
 from .Loss import VggFeatureLoss, gan_bce_loss
 from .Model import SuperResolution
 from .frvsr.ops import FNet
@@ -28,10 +26,6 @@ class Composer(nn.Module):
     self.gnet = TecoGenerator(channel, scale, filters, n_rb)
     self.warpper = STN(padding_mode='border')
     self.spd = SpaceToDepth(scale)
-    self.bicubic = torchvision.transforms.Compose([
-      torchvision.transforms.ToPILImage(),
-      Scale(scale),
-      torchvision.transforms.ToTensor()])
     self.scale = scale
 
   def forward(self, lr, lr_pre, sr_pre):
@@ -43,12 +37,11 @@ class Composer(nn.Module):
     """
     flow = self.fnet(lr, lr_pre)
     flow_up = self.scale * F.interpolate(
-      flow, scale_factor=self.scale, mode='bilinear', align_corners=False)
+      flow, scale_factor=self.scale, mode='bicubic', align_corners=False)
     u, v = [x.squeeze(1) for x in flow_up.split(1, dim=1)]
     sr_warp = self.warpper(sr_pre, u, v, False)
-    device = lr.device
-    bi = [self.bicubic(img) for img in lr.cpu()]
-    bi = torch.stack(bi, dim=0).to(device)
+    bi = F.interpolate(
+      lr, scale_factor=self.scale, mode='bicubic', align_corners=False)
     sr = self.gnet(lr, self.spd(sr_warp), bi)
     return sr, sr_warp, flow, flow_up, bi
 
@@ -71,7 +64,7 @@ class TeCoGAN(SuperResolution):
   """
 
   def __init__(self, scale, channel, weights, vgg_layers, vgg_layer_weights,
-               gan_layer_weights, **kwargs):
+               gan_layer_weights, patch_size, **kwargs):
     super(TeCoGAN, self).__init__(scale, channel, **kwargs)
     filters = kwargs.get('filters', 64)  # default filter number
     gain = kwargs.get('max_displacement', 24)  # max movement of optical flow
@@ -86,7 +79,7 @@ class TeCoGAN(SuperResolution):
       self.vgg = [VggFeatureLoss(vgg_layers, True)]
       self.vgg_weights = vgg_layer_weights
     if self.use_gan:
-      self.dnet = TecoDiscriminator(channel, filters)
+      self.dnet = TecoDiscriminator(channel, filters, patch_size)
       self.dopt = torch.optim.Adam(self.trainable_variables('dnet'), 5e-5)
       self.gan_weights = gan_layer_weights
     self.w = weights  # [L2, flow, ping-pong, gan]
@@ -95,6 +88,11 @@ class TeCoGAN(SuperResolution):
     super(TeCoGAN, self).cuda()
     if self.use_vgg:
       self.vgg[0].cuda()
+
+  @staticmethod
+  def shave_border_pixel(x, border=16):
+    x = x[..., border:-border, border:-border]
+    return F.pad(x, [border, border, border, border])
 
   def train(self, inputs, labels, learning_rate=None):
     metrics = {}
@@ -109,7 +107,7 @@ class TeCoGAN(SuperResolution):
     frames_rev.reverse()
     last_lr = frames_rev[0]
     last_sr = F.interpolate(
-      last_lr, scale_factor=self.scale, mode='bilinear', align_corners=False)
+      last_lr, scale_factor=self.scale, mode='bicubic', align_corners=False)
     back_sr = []
     for lr in frames_rev:
       sr_rev, _, _, _, _ = self.gnet(lr, last_lr, last_sr)
@@ -117,12 +115,13 @@ class TeCoGAN(SuperResolution):
       back_sr.append(sr_rev)
       last_lr = lr.detach()
       last_sr = sr_rev.detach()
+    back_sr.reverse()
     total_loss = 0
     pp_loss = 0
     # Generator graph
     last_lr = frames[0]
     last_sr = F.interpolate(
-      last_lr, scale_factor=self.scale, mode='bilinear', align_corners=False)
+      last_lr, scale_factor=self.scale, mode='bicubic', align_corners=False)
     forward_sr = []
     bicubic_lr = []
     for lr, hr, bk in zip(frames, labels, back_sr):
@@ -136,8 +135,8 @@ class TeCoGAN(SuperResolution):
       pp_loss += l2_pingpong.detach()
       metrics['image'] = l2_image.detach().cpu().numpy()
       metrics['flow'] = l2_warp.detach().cpu().numpy()
-      last_lr = lr.detach()
-      last_sr = sr.detach()
+      last_lr = lr  # .detach()
+      last_sr = sr  # .detach()
       forward_sr.append(sr)
       bicubic_lr.append(bi.detach())
       if self.use_vgg:
@@ -159,10 +158,10 @@ class TeCoGAN(SuperResolution):
         sr_p, sr_c, sr_n = forward_sr[i - 1:i + 2]
         flow_forward = self.scale * F.interpolate(
           self.gnet.fnet(lr_c, lr_p), scale_factor=self.scale,
-          mode='bilinear', align_corners=False)
+          mode='bicubic', align_corners=False)
         flow_backward = self.scale * F.interpolate(
           self.gnet.fnet(lr_c, lr_n), scale_factor=self.scale,
-          mode='bilinear', align_corners=False)
+          mode='bicubic', align_corners=False)
         hr_w1 = self.gnet.warpper(
           hr_p, flow_forward[:, 0], flow_forward[:, 1], False)
         hr_w2 = self.gnet.warpper(
@@ -171,19 +170,25 @@ class TeCoGAN(SuperResolution):
           sr_p, flow_forward[:, 0], flow_forward[:, 1], False)
         sr_w2 = self.gnet.warpper(
           sr_n, flow_backward[:, 0], flow_backward[:, 1], False)
+        # Stop BP to Fnet
         d_input_fake = torch.cat(
-          (bi_p, bi_c, bi_n, sr_p, sr_c, sr_n, sr_w1, sr_w2), dim=1)
+          (bi_p, bi_c, bi_n, sr_p, sr_c, sr_n, sr_w1.detach(), sr_w2.detach()),
+          dim=1)
         d_input_real = torch.cat(
-          (bi_p, bi_c, bi_n, hr_p, hr_c, hr_n, hr_w1, hr_w2), dim=1)
+          (bi_p, bi_c, bi_n, hr_p, hr_c, hr_n, hr_w1.detach(), hr_w2.detach()),
+          dim=1)
+        # Padding border pixels to zero
+        d_input_fake = self.shave_border_pixel(d_input_fake, 16)
+        d_input_real = self.shave_border_pixel(d_input_real, 16)
         # BP to generator
         fake, fake_d_feature = self.dnet(d_input_fake)
         real, real_d_feature = self.dnet(d_input_real)
         loss_g = gan_bce_loss(fake, True)
-        l2_d_feature = 0
-        for x, y, w in zip(fake_d_feature, real_d_feature, self.gan_weights):
-          l2_d_feature += F.mse_loss(x, y) * w
-        total_loss += loss_g * self.w[3] + l2_d_feature
-        metrics['dfeat'] = l2_d_feature.detach().cpu().numpy()
+        # l2_d_feature = 0
+        # for x, y, w in zip(fake_d_feature, real_d_feature, self.gan_weights):
+        #   l2_d_feature += F.mse_loss(x, y) * w
+        total_loss += loss_g * self.w[3]
+        # metrics['dfeat'] = l2_d_feature.detach().cpu().numpy()
         # Now avoid BP to generator
         fake, _ = self.dnet(d_input_fake.detach())
         disc_loss += gan_bce_loss(real, True) + gan_bce_loss(fake, False)
@@ -207,8 +212,9 @@ class TeCoGAN(SuperResolution):
     slice_h = slice(None) if a == 0 else slice(a // 2, -a // 2)
     slice_w = slice(None) if b == 0 else slice(b // 2, -b // 2)
     last_sr = F.interpolate(
-      frames[0], scale_factor=self.scale, mode='bilinear', align_corners=False)
+      last_lr, scale_factor=self.scale, mode='bicubic', align_corners=False)
     for lr in frames:
+      lr = pad_if_divide(lr, 8, 'reflect')
       sr, _, _, _, _ = self.gnet(lr, last_lr, last_sr)
       last_lr = lr.detach()
       last_sr = sr.detach()

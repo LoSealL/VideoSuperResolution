@@ -44,7 +44,7 @@ class DCGAN(nn.Module):
                       use_bias=bias)]
     self.n_strided = 0
     counter = 1
-    assert favor in ('A', 'B'), "favor must be either A or B"
+    assert favor in ('A', 'B', 'C'), "favor must be A | B | C"
     while True:
       f *= 2
       net.append(EasyConv2d(
@@ -54,24 +54,30 @@ class DCGAN(nn.Module):
       counter += 1
       if counter >= num_layers:
         break
-      if favor == 'A':
+      if favor in ('A', 'C'):
         net.append(EasyConv2d(
           f, f, ks, 1, activation=act, use_bias=bias, use_bn=bn,
           use_sn=sn))
         counter += 1
         if counter >= num_layers:
           break
-    self.body = nn.Sequential(*net)
-    linear = [nn.Linear(f * 4 * 4, 100, bias),
-              Activation(act, in_place=True),
-              nn.Linear(100, 1, bias)]
+    if favor == 'C':
+      self.body = nn.Sequential(*net, nn.AdaptiveAvgPool2d(1))
+      linear = [nn.Linear(f, 100, bias),
+                Activation(act, in_place=True),
+                nn.Linear(100, 1, bias)]
+    else:
+      self.body = nn.Sequential(*net)
+      linear = [nn.Linear(f * 4 * 4, 100, bias),
+                Activation(act, in_place=True),
+                nn.Linear(100, 1, bias)]
     if sn:
       linear[0] = nn.utils.spectral_norm(linear[0])
       linear[2] = nn.utils.spectral_norm(linear[2])
     self.linear = nn.Sequential(*linear)
 
   def forward(self, x):
-    assert x.size(2) == x.size(3) == 4 * 2 ** self.n_strided
+    # assert x.size(2) == x.size(3) == 4 * 2 ** self.n_strided
     y = self.body(x).flatten(1)
     return self.linear(y)
 

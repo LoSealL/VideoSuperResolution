@@ -7,7 +7,7 @@ import copy
 
 import numpy as np
 
-from . import _logger
+from . import _logger, parse_index
 from ..VirtualFile import ImageFile
 
 
@@ -35,50 +35,60 @@ class Parser(object):
       _logger.warning('Use grayscale by default. '
                       'Unknown format {}'.format(config.convert_to))
       self.color_format = 'L'
+    # calculate index range
+    depth = self.depth
+    if self.method in ('test', 'infer') and depth > 1:
+      # padding head and tail
+      for vf in self.files:
+        vf.pad([depth // 2, depth // 2])
+        vf.pair.pad([depth // 2, depth // 2])
+    if depth < 0:
+      depth = 2 ** 31 - 1
+    n_frames = []
+    for _f in self.files:
+      l = _f.frames
+      if l < depth:
+        n_frames.append(1)
+      else:
+        n_frames.append(l - depth + 1)
+    index = np.arange(int(np.sum(n_frames)))
+    self.index = [parse_index(i, n_frames) for i in index]
 
   def __getitem__(self, index):
     if isinstance(index, slice):
       ret = []
-      for vf in self.files[index]:
-        ret += self.gen_frames(copy.deepcopy(vf), vf.frames)
+      for key, seq in self.index[index]:
+        vf = self.files[key]
+        ret += self.gen_frames(copy.deepcopy(vf), seq)
       return ret
     else:
-      vf = self.files[index]
-      return self.gen_frames(copy.deepcopy(vf), vf.frames)
+      key, seq = self.index[index]
+      vf = self.files[key]
+      return self.gen_frames(copy.deepcopy(vf), seq)
 
   def __len__(self):
-    return len(self.files)
+    return len(self.index)
 
-  def gen_frames(self, vf, clips):
+  def gen_frames(self, vf, index):
     assert isinstance(vf, ImageFile)
 
     _logger.debug('Prefetching ' + vf.name)
-    depth = self.depth
-    if self.method in ('test', 'infer') and depth > 1:
-      # padding head and tail
-      vf.pad([depth // 2, depth // 2])
-      vf.pair.pad([depth // 2, depth // 2])
     # read all frames if depth is set to -1
-    if depth == -1:
-      depth = vf.frames
-    index = np.arange(0, vf.frames - depth + 1)
-    if self.method == 'train':
-      np.random.shuffle(index)
-    frames = []
-    for i in index[:clips]:
-      vf.seek(i)
-      vf.pair.seek(i)
-      hr = [img for img in vf.read_frame(depth)]
-      lr = [img for img in vf.pair.read_frame(depth)]
-      hr = [img.convert(self.color_format) for img in hr]
-      lr = [img.convert(self.color_format) for img in lr]
-      frames.append((hr, lr, (vf.name, i, vf.frames)))
-    vf.reopen()  # necessary, rewind the read pointer
-    return frames
+    depth = self.depth if self.depth > 0 else vf.frames
+    depth = min(depth, vf.frames)
+    vf.seek(index)
+    vf.pair.seek(index)
+    hr = [img for img in vf.read_frame(depth)]
+    lr = [img for img in vf.pair.read_frame(depth)]
+    hr = [img.convert(self.color_format) for img in hr]
+    lr = [img.convert(self.color_format) for img in lr]
+    return [(hr, lr, (vf.name, index, vf.frames))]
 
   @property
   def capacity(self):
-    bpp = 6  # bytes per pixel
+    # bytes per pixel
+    depth = 1 if self.depth < 1 else self.depth
+    bpp = 6 * depth
     # NOTE use uint64 to prevent sum overflow
     return np.sum([np.prod((*vf.shape, vf.frames, bpp), dtype=np.uint64)
                    for vf in self.files])

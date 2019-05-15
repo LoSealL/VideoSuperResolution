@@ -80,6 +80,11 @@ WEIGHTS = {
   'rlsgan.zip': '1siDKxGvlb0p2E2_EmAJoT8knFMuQRivj',
   'sgan.zip': '1spClB26QJNQEio_DktobQq9ALT-PHfg3',
   'wgangp.zip': '1jyngiCyU1Js4DH5yUhug4gTPy2bQoETO',
+  # PyTorch weights (Prefix "T")
+  'Tsofvsr.zip': 'https://github.com/LoSealL/Model/releases/download/sofvsr/SOFVSR_x4.zip',
+  'Tcarn.zip': 'https://github.com/LoSealL/Model/releases/download/carn/tcarn.zip',
+  'Tesrgan.zip': 'https://github.com/LoSealL/Model/releases/download/esrgan/esrgan.zip',
+  'Ttecogan.zip': 'https://github.com/LoSealL/Model/releases/download/tecogan/tecogan.zip',
 }
 
 

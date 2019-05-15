@@ -17,7 +17,7 @@ from VSRTorch.Models import get_model, list_supported_models
 from VSR.DataLoader.Dataset import Dataset, _glob_absolute_pattern, \
   load_datasets
 from VSR.DataLoader.Loader import QuickLoader
-from VSR.Framework.Callbacks import save_image
+from VSR.Framework.Callbacks import save_image, to_gray, to_rgb
 from VSR.Util.Config import Config
 from VSR.Tools.Run import suppress_opt_by_args, dump
 
@@ -33,7 +33,7 @@ parser.add_argument("--save_dir", default='../Results',
 parser.add_argument("--data_config", default="../Data/datasets.yaml",
                     help="Specify dataset config file")
 parser.add_argument("-c", "--comment", default=None,
-                    help="extend a comment string after saving folder")
+                    help="Extend a comment string after saving folder")
 parser.add_argument("--pth", help="Specify the pre-trained model path. "
                                   "If not given, will search into `save_dir`.")
 parser.add_argument("--epoch", type=int, default=None,
@@ -42,7 +42,9 @@ parser.add_argument("--epoch", type=int, default=None,
 parser.add_argument("--thread", type=int, default=8,
                     help="Specify loading threads number")
 parser.add_argument("--output_index", default='-1',
-                    help="specify access index of output array (slicable)")
+                    help="Specify access index of output array (slicable)")
+parser.add_argument("--output_color", default='GRAY', choices=('RGB', 'GRAY'),
+                    help="Valid only for 1-channel outputs.")
 parser.add_argument("--seed", type=int, default=None, help="set random seed")
 parser.add_argument("--cuda", action="store_true")
 parser.add_argument("--auto_rename", action="store_true")
@@ -91,7 +93,9 @@ def main():
     test_datas = []
     for pattern in flags.test:
       test_data = Dataset(test=_glob_absolute_pattern(pattern),
-                          mode='pil-image1', modcrop=False)
+                          test_pair=_glob_absolute_pattern(pattern),
+                          mode='pil-image1', modcrop=False,
+                          parser='custom_pairs')
       father = Path(pattern)
       while not father.is_dir():
         if father.parent == father:
@@ -113,6 +117,11 @@ def main():
       save_image(root, flags.output_index, flags.auto_rename)]
     if opt.channel == 1:
       loader_config.convert_to = 'gray'
+      if opt.output_color == 'RGB':
+        loader_config.convert_to = 'yuv'
+        loader_config.feature_callbacks = [to_gray()]
+        loader_config.label_callbacks = [to_gray()]
+        loader_config.output_callbacks.insert(0, to_rgb())
 
     with trainer(model, root, verbosity, flags.pth) as t:
       if flags.seed is not None:
