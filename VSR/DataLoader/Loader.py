@@ -255,6 +255,7 @@ class BasicLoader:
     else:
       cap = -1
     if cap <= memory_usage:
+      _logger.debug("Load all data into memory.")
       # load all clips
       interval = int(np.ceil(len(self.parser) / shard))
       if index == shard - 1:
@@ -266,6 +267,7 @@ class BasicLoader:
     else:
       scale_factor = 0.9
       prop = memory_usage / cap / shard * scale_factor
+      _logger.debug(f"Load {prop * 100:.1f}% data into memory.")
       # How many frames can be read into memory each thread each epoch
       # Note: we assume each "frame" has a close size.
       n = max(1, int(np.round(len(self.parser) * prop)))  # at least 1 sample
