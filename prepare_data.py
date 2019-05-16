@@ -53,8 +53,8 @@ DATASETS = {
   'vid4.zip': '1ogEdifL_krqJnFAHfGNqOSMuUg_Ud6fb',
 }
 WEIGHTS = {
-  'srcnn.tar.gz': 'https://github.com/LoSealL/Model/releases/download/srcnn_sc4_1/srcnn.tar.gz',
-  'espcn.tar.gz': 'https://github.com/LoSealL/Model/releases/download/espcn_sc4_c1/espcn.tar.gz',
+  'srcnn.tar.gz': 'https://github.com/LoSealL/Model/releases/download/srcnn/srcnn.tar.gz',
+  'espcn.tar.gz': 'https://github.com/LoSealL/Model/releases/download/espcn/espcn.tar.gz',
   'edsr.zip': 'https://github.com/LoSealL/Model/releases/download/edsr/edsr.zip',
   'dncnn.zip': 'https://github.com/LoSealL/Model/releases/download/DnCNN/dncnn.zip',
   'carn.zip': 'https://github.com/LoSealL/Model/releases/download/CARN/carn.zip',
