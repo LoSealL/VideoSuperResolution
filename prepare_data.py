@@ -57,7 +57,7 @@ WEIGHTS = {
   'espcn.tar.gz': 'https://github.com/LoSealL/Model/releases/download/espcn/espcn.tar.gz',
   'edsr.zip': 'https://github.com/LoSealL/Model/releases/download/edsr/edsr.zip',
   'dncnn.zip': 'https://github.com/LoSealL/Model/releases/download/DnCNN/dncnn.zip',
-  'carn.zip': 'https://github.com/LoSealL/Model/releases/download/CARN/carn.zip',
+  'carn.zip': 'https://github.com/LoSealL/Model/releases/download/carn/carn.zip',
   'rsr.zip': 'https://github.com/LoSealL/Model/releases/download/crdn/rsr.zip',
   'drn.zip': 'https://github.com/LoSealL/Model/releases/download/mldn/drn.zip',
   # Google Drive File ID.
