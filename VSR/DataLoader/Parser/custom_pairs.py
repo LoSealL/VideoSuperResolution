@@ -14,11 +14,10 @@ from ..VirtualFile import ImageFile
 class Parser(object):
   def __init__(self, dataset, config):
     urls = dataset.get(config.method, [])
-    pair = getattr(dataset, '{}_pair'.format(config.method))
-    if not pair:
-      pair = []
+    pair = dataset.get('{}_pair'.format(config.method), [])
     urls = sorted(urls)
     pair = sorted(pair)
+    assert len(urls) == len(pair)
     self.files = [ImageFile(fp).attach_pair(p) for fp, p in zip(urls, pair)]
     self.scale = config.scale
     self.depth = config.depth

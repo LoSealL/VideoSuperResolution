@@ -1,15 +1,19 @@
 # VSR Dataset Description File
 # Date: Oct 17th 2018
-# Ver: v1.2.1
+# Ver: v1.2.2
 
+# changelog 2019-5-20:
+# - Add "Lazy Load". Defer globing process via concurrent.futures.Future
 # changelog 2019-4-1:
 # - Introduce `parser`: see VSR.DataLoader.Parser for details.
 
 # changelog 2019-1-9:
 # - `Root` will affect absolute url in `Dataset` as well
 ---
-# Add root dir to dataset
-# In current version, Root only affects members in "Path" and "Path_Tracked"
+# Set to True to enable lazy load. May speed up the first loading time if your
+# dataset contains much plenty of files.
+Lazy_Load: None
+# Add root dir to dataset. Take effect on all patterns below.
 Root:
   /mnt/data/datasets/
 #  c:/work/datasets
@@ -76,8 +80,6 @@ Dataset:
 
   MCL-V:  # http://mcl.usc.edu/mcl-v-database/, small set videos
     train: MCL-V
-    # TODO: Remove this comment after version 1.0.0
-    # Note: Root applies to absolute path now!!!
     val: MCL-V/test/*.yuv     # You can still write absolute path patterns like this,
     test: [MCL-V/test/*.yuv]  # or as array like this
     param:  # For MCL-V is raw data, these param must be specified
