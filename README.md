@@ -14,10 +14,10 @@ All these models are implemented in **ONE** framework.
 
 |Model |Published |Code* |VSR (TF)**|VSR (Torch)|Keywords|Pretrained|
 |:-----|:---------|:-----|:---------|:----------|:-------|:---------|
-|SRCNN|[ECCV14](https://arxiv.org/abs/1501.00092)|-, [Keras](https://github.com/qobilidop/srcnn)|Y|-| Kaiming |[√](https://github.com/LoSealL/Model/releases)|
+|SRCNN|[ECCV14](https://arxiv.org/abs/1501.00092)|-, [Keras](https://github.com/qobilidop/srcnn)|Y|Y| Kaiming |[√](https://github.com/LoSealL/Model/releases)|
 |RAISR|[arXiv](https://arxiv.org/abs/1606.01299)|-|-|-| Google, Pixel 3 ||
 |ESPCN|[CVPR16](https://arxiv.org/abs/1609.05158)|-, [Keras](https://github.com/qobilidop/srcnn)|Y|Y| Real time |[√](https://github.com/LoSealL/Model/releases)|
-|VDSR|[CVPR16](https://arxiv.org/abs/1511.04587)|-|Y|-| Deep, Residual |[√](https://drive.google.com/open?id=1hW5YDxXpmjO2IfAy8f29O7yf1M3fPIg1)|
+|VDSR|[CVPR16](https://arxiv.org/abs/1511.04587)|-|Y|Y| Deep, Residual |[√](https://drive.google.com/open?id=1hW5YDxXpmjO2IfAy8f29O7yf1M3fPIg1)|
 |DRCN|[CVPR16](https://arxiv.org/abs/1511.04491)|-|Y|-| Recurrent ||
 |DRRN|[CVPR17](http://cvlab.cse.msu.edu/pdfs/Tai_Yang_Liu_CVPR2017.pdf)|[Caffe](https://github.com/tyshiwo/DRRN_CVPR17), [PyTorch](https://github.com/jt827859032/DRRN-pytorch)|Y|-| Recurrent ||
 |LapSRN|[CVPR17](http://vllab.ucmerced.edu/wlai24/LapSRN/)|[Matlab](https://github.com/phoenix104104/LapSRN)|Y|-| Huber loss ||
@@ -27,7 +27,7 @@ All these models are implemented in **ONE** framework.
 |MemNet|[ICCV17](https://arxiv.org/abs/1708.02209)|[Caffe](https://github.com/tyshiwo/MemNet)|Y|-|||
 |SRDenseNet|[ICCV17](http://openaccess.thecvf.com/content_ICCV_2017/papers/Tong_Image_Super-Resolution_Using_ICCV_2017_paper.pdf)|-, [PyTorch](https://github.com/wxywhu/SRDenseNet-pytorch)|Y|-| Dense |[√](https://drive.google.com/open?id=1aXAfRqZieY6mTfZUnErG84-9NfkQSeDw)|
 |SPMC|[ICCV17](https://arxiv.org/abs/1704.02738)|[Tensorflow](https://github.com/jiangsutx/SPMC_VideoSR)|-|-| VideoSR ||
-|DnCNN|[TIP17](http://ieeexplore.ieee.org/document/7839189/)|[Matlab](https://github.com/cszn/DnCNN)|Y|-| Denoise |[√](https://github.com/LoSealL/Model/releases)|
+|DnCNN|[TIP17](http://ieeexplore.ieee.org/document/7839189/)|[Matlab](https://github.com/cszn/DnCNN)|Y|Y| Denoise |[√](https://github.com/LoSealL/Model/releases)|
 |DCSCN|[arXiv](https://arxiv.org/abs/1707.05425)|[Tensorflow](https://github.com/jiny2001/dcscn-super-resolution)|Y|-|||
 |IDN|[CVPR18](https://arxiv.org/abs/1803.09454)|[Caffe](https://github.com/Zheng222/IDN-Caffe)|Y|-| Fast |[√](https://drive.google.com/open?id=1Fh3rtvrKKLAK27r518T1M_JET_LWZAFQ)|
 |RDN|[CVPR18](https://arxiv.org/abs/1802.08797)|[Torch](https://github.com/yulunzhang/RDN)|Y|-| Deep, BI-BD-DN ||

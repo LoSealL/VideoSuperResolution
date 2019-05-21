@@ -21,11 +21,13 @@ models = {
   'esrgan': ('Esrgan', 'ESRGAN'),
   'msrn': ('Msrn', 'MSRN'),
   'rsr': ('Rsr', 'RSR'),
+  'mldn': ('Mldn', 'MLDN'),
   'drn': ('Drn', 'DRN'),
   'sofvsr': ('Sofvsr', 'SOFVSR'),
   'vespcn': ('Vespcn', 'VESPCN'),
   'frvsr': ('Frvsr', 'FRVSR'),
   'qprn': ('Qprn', 'QPRN'),
+  'ufvsr': ('Ufvsr', 'UFVSR'),
   'tecogan': ('TecoGAN', 'TeCoGAN'),
   # NTIRE 2019 Collections
   'didn': ('NTIRE19', 'DIDN'),

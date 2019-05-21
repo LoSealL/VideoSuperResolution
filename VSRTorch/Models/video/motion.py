@@ -22,10 +22,11 @@ class STN(nn.Module):
     self.padding_mode = padding_mode
 
   def forward(self, inputs, u, v, normalized=True):
-    batch = inputs.shape[0]
+    batch = inputs.size(0)
     device = inputs.device
     mesh = nd_meshgrid(*inputs.shape[-2:], permute=[1, 0])
-    mesh = torch.stack([torch.Tensor(mesh)] * batch)
+    mesh = torch.tensor(mesh, dtype=torch.float32)
+    mesh = mesh.unsqueeze(0).repeat_interleave(batch, dim=0)
     # add flow to mesh
     _u, _v = u, v
     if not normalized:

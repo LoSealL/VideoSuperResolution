@@ -10,6 +10,9 @@ import numpy as np
 from . import _logger, parse_index
 from ..VirtualFile import ImageFile
 
+# TODO Test: Saving memory
+_SAVING_MEM = True
+
 
 class Parser(object):
   def __init__(self, dataset, config):
@@ -77,17 +80,26 @@ class Parser(object):
     depth = min(depth, vf.frames)
     vf.seek(index)
     vf.pair.seek(index)
-    hr = [img for img in vf.read_frame(depth)]
-    lr = [img for img in vf.pair.read_frame(depth)]
-    hr = [img.convert(self.color_format) for img in hr]
-    lr = [img.convert(self.color_format) for img in lr]
+    # TODO Test: Saving memory
+    hr = [img for img in vf.read_frame2(depth)]
+    lr = [img for img in vf.pair.read_frame2(depth)]
+    hr = [
+      img.convert(self.color_format) if img.mode != self.color_format else img
+      for img in hr]
+    lr = [
+      img.convert(self.color_format) if img.mode != self.color_format else img
+      for img in lr]
     return [(hr, lr, (vf.name, index, vf.frames))]
 
   @property
   def capacity(self):
-    # bytes per pixel
-    depth = 1 if self.depth < 1 else self.depth
-    bpp = 6 * depth
-    # NOTE use uint64 to prevent sum overflow
-    return np.sum([np.prod((*vf.shape, vf.frames, bpp), dtype=np.uint64)
-                   for vf in self.files])
+    if _SAVING_MEM:
+      # TODO Test: Saving memory
+      return 0
+    else:
+      # bytes per pixel
+      depth = 1 if self.depth < 1 else self.depth
+      bpp = 6 * depth
+      # NOTE use uint64 to prevent sum overflow
+      return np.sum([np.prod((*vf.shape, vf.frames, bpp), dtype=np.uint64)
+                     for vf in self.files])
