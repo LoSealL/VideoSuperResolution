@@ -11,7 +11,7 @@ from . import _logger, parse_index
 from ..VirtualFile import ImageFile
 
 # TODO Test: Saving memory
-_SAVING_MEM = True
+_SAVING_MEM = False
 
 
 class Parser(object):
