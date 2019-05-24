@@ -30,8 +30,8 @@ class FRNet(nn.Module):
   def forward(self, lr, last_lr, last_sr):
     flow = self.fnet(lr, last_lr)
     flow2 = self.scale * upsample(flow, self.scale)
-    hw = self.warp(last_sr, flow2[:, 0], flow2[:, 1], normalized=False)
-    lw = self.warp(last_lr, flow[:, 0], flow[:, 1], normalized=False)
+    hw = self.warp(last_sr, flow2[:, 0], flow2[:, 1])
+    lw = self.warp(last_lr, flow[:, 0], flow[:, 1])
     hws = self.space_to_depth(hw)
     y = self.snet(hws, lr)
     return y, hw, lw, flow2

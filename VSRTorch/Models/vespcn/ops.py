@@ -57,11 +57,11 @@ class MotionCompensation(nn.Module):
   def forward(self, target, ref):
     flow0 = self.coarse_flow(torch.cat([ref, target], 1))
     flow0 *= self.gain
-    w0 = self.warp1(ref, flow0[:, 0], flow0[:, 1], False)
+    w0 = self.warp1(ref, flow0[:, 0], flow0[:, 1])
     flow1 = self.fine_flow(torch.cat([ref, target, flow0, w0], 1))
     flow1 *= self.gain
     flow1 += flow0
-    w1 = self.warp2(ref, flow1[:, 0], flow1[:, 1], False)
+    w1 = self.warp2(ref, flow1[:, 0], flow1[:, 1])
     return w1, flow1
 
 

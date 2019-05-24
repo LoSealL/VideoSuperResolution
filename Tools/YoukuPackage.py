@@ -4,16 +4,11 @@
 #  Update Date: 2019/5/22 下午1:25
 
 import argparse
-import multiprocessing as mp
 import os
 import subprocess
 from pathlib import Path
-from functools import partial
-import numpy as np
-import tqdm
-from PIL import Image
 
-from Tools.Misc import YUVConverter
+import tqdm
 
 parser = argparse.ArgumentParser(description="Youku VSR Packager")
 parser.add_argument("-i", "--input_dir")
@@ -21,7 +16,6 @@ parser.add_argument("-o", "--output_dir")
 parser.add_argument("--full_percentage", default=0.1)
 parser.add_argument("--extract_interval", default=25)
 parser.add_argument("-v", action='store_true', help="Show debug information")
-parser.add_argument("--async", action='store_true', help="multi process")
 FLAGS = parser.parse_args()
 
 
@@ -31,27 +25,22 @@ def _check_ffmpeg():
     raise FileNotFoundError("Couldn't find ffmpeg!")
 
 
-def gen_y4m_full(url):
-  _, num, _, size = url.name.split('_')
-  output = url.parent / f'Youku_{num}_h_Res.y4m'
-  cmd = f'ffmpeg -f rawvideo -pix_fmt yuv420p -s:v {size} '
-  cmd += f'-i {str(url)} -vsync 0 {str(output)} -y'
+def gen_y4m_full(url, num):
+  output = f'{FLAGS.output_dir}/Youku_{num}_h_Res.y4m'
+  cmd = f'ffmpeg -i {str(url)} -pix_fmt yuv420p -vsync 0 {str(output)} -y'
   if FLAGS.v:
     print(cmd)
   subprocess.call(cmd, stderr=subprocess.DEVNULL, shell=True)
-  subprocess.call(f'rm {url}', shell=True)
 
 
-def gen_y4m_part(url):
-  _, num, _, size = url.name.split('_')
-  output = url.parent / f'Youku_{num}_h_Sub25_Res.y4m'
-  cmd = f'ffmpeg -f rawvideo -pix_fmt yuv420p -s:v {size} '
-  cmd += f"-i {str(url)} -vf select='not(mod(n\\,{FLAGS.extract_interval}))' "
+def gen_y4m_part(url, num):
+  output = f'{FLAGS.output_dir}/Youku_{num}_h_Sub25_Res.y4m'
+  cmd = f'ffmpeg -i {str(url)} -pix_fmt yuv420p '
+  cmd += f"-vf select='not(mod(n\\,{FLAGS.extract_interval}))' "
   cmd += f"-vsync 0 {str(output)} -y"
   if FLAGS.v:
     print(cmd)
   subprocess.call(cmd, stderr=subprocess.DEVNULL, shell=True)
-  subprocess.call(f'rm {url}', shell=True)
 
 
 def parse_video_clips(path):
@@ -64,19 +53,17 @@ def parse_video_clips(path):
   return sorted(parents)
 
 
-def read_video_frames(path):
+def parse_url(path):
   _path = Path(path)
-  files = sorted(_path.glob('*'))
-  images = [Image.open(f) for f in files]
-  images = [m.convert('YCbCr') for m in images]
-  mat = np.stack(images).transpose([0, 3, 1, 2])  # [NCHW]
-  return {
-    'data': mat,
-    'length': mat.shape[0],
-    'name': path.stem,
-    'width': mat.shape[3],
-    'height': mat.shape[2],
-  }
+  if not _path.exists():
+    raise FileNotFoundError(f"{path} doesn't exist!!")
+  files = filter(lambda f: f.is_file(), _path.glob('*'))
+  files = sorted(files)
+  for i, fp in enumerate(files):
+    target = _path / f'frames_{i:04d}{fp.suffix}'
+    fp.rename(target)
+    assert target.exists()
+  return _path / f'frames_%04d{fp.suffix}'
 
 
 def zip(url):
@@ -93,40 +80,15 @@ def main():
   root = Path(FLAGS.output_dir)
   root.mkdir(exist_ok=True, parents=True)
   print(f" [*] Total videos found: {len(videos)}.")
-  pool = mp.pool.ThreadPool()
-  results = []
-
-  def action(index, fp):
-    data = read_video_frames(fp)
-    cvt = YUVConverter(data['data'])
-    bytes = cvt.to('YV12').getbuffer().tobytes()
-    nm = f"{data['name']}_{cvt.width}x{cvt.height}"
-    save_path = root / nm
-    if FLAGS.v:
-      print(save_path)
-    with save_path.open('wb') as fd:
-      fd.write(bytes)
-    if index < len(videos) * FLAGS.full_percentage:
-      gen_y4m_full(save_path)
-    else:
-      gen_y4m_part(save_path)
-    return data['name']
-
-  for i in enumerate(videos):
-    if FLAGS.async:
-      results.append(pool.apply_async(action, i))
-    else:
-      results.append(partial(action, index=i[0], fp=i[1]))
-
-  with tqdm.tqdm(results, ascii=True, unit=' video') as r:
-    for i in r:
-      if FLAGS.async:
-        name = i.get()
+  with tqdm.tqdm(videos, ascii=True, unit=' video') as r:
+    for i, fp in enumerate(r):
+      _, num, _ = fp.name.split('_')
+      url = parse_url(fp)
+      if i < FLAGS.full_percentage * len(videos):
+        gen_y4m_full(url, num)
       else:
-        name = i()
-      r.set_postfix({"name": name})
-  pool.close()
-  pool.join()
+        gen_y4m_part(url, num)
+      r.set_postfix({"name": fp.stem})
   zip(root)
 
 
