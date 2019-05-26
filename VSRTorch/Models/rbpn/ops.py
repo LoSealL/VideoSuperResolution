@@ -5,7 +5,7 @@
 
 import torch.nn as nn
 
-from ..dbpn.base_networks import *
+from .base_network import *
 
 
 class Dbpns(nn.Module):
