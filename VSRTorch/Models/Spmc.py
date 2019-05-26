@@ -24,6 +24,7 @@ class SPMC(SuperResolution):
     self.lambda2 = lambda2
 
   def train(self, inputs, labels, learning_rate=None):
+    self.spmc.reset()
     frames = [x.squeeze(1) for x in inputs[0].split(1, dim=1)]
     labels = [x.squeeze(1) for x in labels[0].split(1, dim=1)]
     for opt in self.opts.values():

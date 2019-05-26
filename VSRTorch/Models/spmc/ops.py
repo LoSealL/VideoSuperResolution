@@ -205,6 +205,9 @@ class DetailRevealer(nn.Module):
     self.scale = scale
     self.hidden_state = None
 
+  def reset(self):
+    self.hidden_state = None
+
   def forward(self, target, ref):
     flow = self.me(target, ref)
     hr_ref = self.spmc(ref, flow=flow)
@@ -218,5 +221,5 @@ class DetailRevealer(nn.Module):
       hx = self.hidden_state
     res, hx = self.vsr(hr_ref, hx)
     sr = hr_target + res
-    self.hidden_state = [x.detach() for x in hx]
+    self.hidden_state = hx
     return sr, flow
