@@ -1,0 +1,13 @@
+---
+rbpn:
+  scale: 4
+  channel: 3
+  depth: 7
+  residual: false
+  base_filter: 256
+  feat: 64
+  num_stages: 3
+  n_resblock: 5
+
+batch: 4
+patch_size: 96

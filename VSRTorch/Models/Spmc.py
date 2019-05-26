@@ -6,10 +6,12 @@
 import torch
 from torch.nn import functional as F
 
-from .spmc.ops import DetailRevealer
-from .Model import SuperResolution
 from .Loss import total_variance
+from .Model import SuperResolution
+from .spmc.ops import DetailRevealer
+from ..Framework.Summary import get_writer
 from ..Util.Metrics import psnr
+from ..Util.Utility import pad_if_divide
 
 
 class SPMC(SuperResolution):
@@ -33,15 +35,14 @@ class SPMC(SuperResolution):
     flows = []
     center = len(frames) // 2
     target = frames[center]
+    gt = labels[center]
     for ref in frames:
       sr, flow = self.spmc(target, ref)
       warp = self.spmc.me.warper(ref, flow[:, 0], flow[:, 1])
       srs.append(sr)
       warps.append(warp)
       flows.append(flow)
-    losses = []
-    for x, y in zip(srs, labels):
-      losses.append(F.mse_loss(x, y))
+    losses = [F.mse_loss(x, gt) for x in srs]
     image_loss = torch.stack(losses).sum()
     losses = []
     for w, f in zip(warps, flows):
@@ -65,14 +66,26 @@ class SPMC(SuperResolution):
   def eval(self, inputs, labels=None, **kwargs):
     metrics = {}
     frames = [x.squeeze(1) for x in inputs[0].split(1, dim=1)]
-    srs = []
     center = len(frames) // 2
-    target = frames[center]
+    _frames = [pad_if_divide(x, 8, 'reflect') for x in frames]
+    target = _frames[center]
+    a = (target.size(2) - frames[0].size(2)) * self.scale
+    b = (target.size(3) - frames[0].size(3)) * self.scale
+    slice_h = slice(None) if a == 0 else slice(a // 2, -a // 2)
+    slice_w = slice(None) if b == 0 else slice(b // 2, -b // 2)
+    srs = []
     for ref in frames:
       sr, _ = self.spmc(target, ref)
-      srs.append(sr.detach().cpu().numpy())
+      srs.append(sr[..., slice_h, slice_w].detach().cpu().numpy())
     if labels is not None:
       labels = [x.squeeze(1) for x in labels[0].split(1, dim=1)]
-      for i, v in enumerate(psnr(x, y) for x, y in zip(srs, labels)):
+      gt = labels[center]
+      gt = pad_if_divide(gt, 8, 'reflect')
+      for i, v in enumerate(psnr(x, gt) for x in srs):
         metrics[f'psnr{i}'] = v
+      writer = get_writer(self.name)
+      if writer is not None:
+        step = kwargs['epoch']
+        writer.image('hr', gt, step=step)
+        writer.image('sr', sr.clamp(0, 1), step=step)
     return srs, metrics
