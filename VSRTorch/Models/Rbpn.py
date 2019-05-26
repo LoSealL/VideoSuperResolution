@@ -17,25 +17,23 @@ from ..Util.Metrics import psnr
 from ..Util.Utility import pad_if_divide, upsample
 
 
-class ME(nn.Module):
-  def __init__(self, channel):
-    super(ME, self).__init__()
-    self.fnet = FNet(channel)
-    self.warper = STN(padding_mode='border')
-
-  def forward(self, target, ref):
-    flow = self.fnet(target, ref)
-    warped = self.warper(ref, flow[:, 0], flow[:, 1])
-    return flow, warped
-
-
 class Composer(nn.Module):
   def __init__(self, **kwargs):
     super(Composer, self).__init__()
     self.module = Rbpn(**kwargs)
+    self.fnet = FNet(kwargs['num_channels'])
+    self.warper = STN(padding_mode='border')
 
-  def forward(self, *args, **kwargs):
-    return self.module(*args, **kwargs)
+  def forward(self, target, neighbors):
+    flows = []
+    warps = []
+    for i in neighbors:
+      flow = self.fnet(target, i)
+      warp = self.warper(i, flow[:, 0], flow[:, 1])
+      flows.append(flow)
+      warps.append(warp)
+    sr = self.module(target, neighbors, flows)
+    return sr, flows, warps
 
 
 class RBPN(SuperResolution):
@@ -54,7 +52,6 @@ class RBPN(SuperResolution):
       'nFrames': depth
     }
     self.rbpn = Composer(**ops)
-    self.fnet = ME(channel)
     self.adam = torch.optim.Adam(self.trainable_variables(), 1e-4)
 
   def train(self, inputs, labels, learning_rate=None):
@@ -66,13 +63,7 @@ class RBPN(SuperResolution):
           param_group["lr"] = learning_rate
     target = frames.pop(self.depth // 2)
     neighbors = frames
-    flows = []
-    warps = []
-    for i in neighbors:
-      flow, warp = self.fnet(target, i)
-      flows.append(flow)
-      warps.append(warp)
-    sr = self.rbpn(target, neighbors, flows)
+    sr, flows, warps = self.rbpn(target, neighbors)
     if self.res:
       sr = sr + upsample(target, self.scale)
 
@@ -101,11 +92,7 @@ class RBPN(SuperResolution):
     b = (target.size(3) - frames[0].size(3)) * self.scale
     slice_h = slice(None) if a == 0 else slice(a // 2, -a // 2)
     slice_w = slice(None) if b == 0 else slice(b // 2, -b // 2)
-    flows = []
-    for i in neighbors:
-      flow, _ = self.fnet(target, i)
-      flows.append(flow)
-    sr = self.rbpn(target, neighbors, flows)
+    sr, _, _ = self.rbpn(target, neighbors)
     if self.res:
       sr = sr + upsample(target, self.scale)
     sr = sr[..., slice_h, slice_w].detach().cpu().numpy()

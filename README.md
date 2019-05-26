@@ -47,7 +47,7 @@ All these models are implemented in **ONE** framework.
 |SOFVSR|[ACCV18](http://arxiv.org/abs/1809.08573)|[PyTorch](https://github.com/LongguangWang/SOF-VSR)|-|Y| VideoSR |[√](https://github.com/LoSealL/Model/releases/download/sofvsr/SOFVSR_x4.zip)|
 |ESRGAN|[ECCVW18](http://arxiv.org/abs/1809.00219)|[PyTorch](https://github.com/xinntao/ESRGAN)|-|Y|1st place PIRM 2018|[√](https://github.com/LoSealL/Model/releases/download/esrgan/esrgan.zip)|
 |TecoGAN|[arXiv](http://arxiv.org/abs/1811.09393)|[Tensorflow](https://github.com/thunil/TecoGAN)|-|T| VideoSR GAN|[√](https://github.com/LoSealL/Model/releases/download/tecogan/tecogan.zip)|
-|RBPN|[CVPR19](https://arxiv.org/abs/1903.10128)|[PyTorch](https://github.com/alterzero/RBPN-PyTorch)|-|-| VideoSR ||
+|RBPN|[CVPR19](https://arxiv.org/abs/1903.10128)|[PyTorch](https://github.com/alterzero/RBPN-PyTorch)|-|Y| VideoSR ||
 
 \*The 1st repo is by paper author.
 
