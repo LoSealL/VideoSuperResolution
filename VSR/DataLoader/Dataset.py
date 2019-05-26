@@ -9,6 +9,7 @@ offline dataset collector
 support random crop
 """
 import logging
+import os
 from concurrent import futures
 from pathlib import Path
 
@@ -23,6 +24,7 @@ except ImportError:
   from yaml import Loader as _Loader
 
 _logger = logging.getLogger("VSR.Dataset")
+_lazy_load = os.getenv('VSR_LAZY_LOAD')
 _executor = None
 
 
@@ -130,9 +132,8 @@ def load_datasets(describe_file):
   datasets = {}
   with open(describe_file, 'r') as fd:
     config = yaml.load(fd, Loader=_Loader)
-    lazy_load = config.get('Lazy_Load')
     root = Path(config["Root"])
-    if lazy_load:
+    if _lazy_load:
       global _executor
       _executor = futures.ThreadPoolExecutor(4)
     if not root.is_absolute():
@@ -151,9 +152,9 @@ def load_datasets(describe_file):
         sets = []
         for j in to_list(value[i]):
           try:
-            sets += _glob_absolute_pattern(root / all_set_path[j], lazy_load)
+            sets += _glob_absolute_pattern(root / all_set_path[j], _lazy_load)
           except KeyError:
-            sets += _glob_absolute_pattern(root / j, lazy_load)
+            sets += _glob_absolute_pattern(root / j, _lazy_load)
         setattr(datasets[name], i, sets)
       if 'param' in value:
         for k, v in value['param'].items():
@@ -161,5 +162,5 @@ def load_datasets(describe_file):
     for name, path in config["Path_Tracked"].items():
       if name not in datasets:
         datasets[name] = Dataset(name=name)
-        datasets[name].test = _glob_absolute_pattern(root / path, lazy_load)
+        datasets[name].test = _glob_absolute_pattern(root / path, _lazy_load)
   return datasets

@@ -1,0 +1,10 @@
+spmc:
+  scale: 4
+  channel: 3
+  depth: 3
+  stage: 3
+  lambda1: 0.01
+  lambda2: 0.01
+
+batch: 16
+patch_size: 96

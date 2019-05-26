@@ -10,9 +10,6 @@
 # changelog 2019-1-9:
 # - `Root` will affect absolute url in `Dataset` as well
 ---
-# Set to True to enable lazy load. May speed up the first loading time if your
-# dataset contains much plenty of files.
-Lazy_Load: None
 # Add root dir to dataset. Take effect on all patterns below.
 Root:
   /mnt/data/datasets/

@@ -26,7 +26,7 @@ All these models are implemented in **ONE** framework.
 |VESPCN|[CVPR17](https://arxiv.org/abs/1611.05250)|-|Y|Y| VideoSR |[√](https://drive.google.com/open?id=19u4YpsyThxW5dv4fhpMj7c5gZeEDKthm)|
 |MemNet|[ICCV17](https://arxiv.org/abs/1708.02209)|[Caffe](https://github.com/tyshiwo/MemNet)|Y|-|||
 |SRDenseNet|[ICCV17](http://openaccess.thecvf.com/content_ICCV_2017/papers/Tong_Image_Super-Resolution_Using_ICCV_2017_paper.pdf)|-, [PyTorch](https://github.com/wxywhu/SRDenseNet-pytorch)|Y|-| Dense |[√](https://drive.google.com/open?id=1aXAfRqZieY6mTfZUnErG84-9NfkQSeDw)|
-|SPMC|[ICCV17](https://arxiv.org/abs/1704.02738)|[Tensorflow](https://github.com/jiangsutx/SPMC_VideoSR)|-|-| VideoSR ||
+|SPMC|[ICCV17](https://arxiv.org/abs/1704.02738)|[Tensorflow](https://github.com/jiangsutx/SPMC_VideoSR)|T|Y| VideoSR ||
 |DnCNN|[TIP17](http://ieeexplore.ieee.org/document/7839189/)|[Matlab](https://github.com/cszn/DnCNN)|Y|Y| Denoise |[√](https://github.com/LoSealL/Model/releases)|
 |DCSCN|[arXiv](https://arxiv.org/abs/1707.05425)|[Tensorflow](https://github.com/jiny2001/dcscn-super-resolution)|Y|-|||
 |IDN|[CVPR18](https://arxiv.org/abs/1803.09454)|[Caffe](https://github.com/Zheng222/IDN-Caffe)|Y|-| Fast |[√](https://drive.google.com/open?id=1Fh3rtvrKKLAK27r518T1M_JET_LWZAFQ)|

@@ -26,7 +26,7 @@ class STN(nn.Module):
     self.padding_mode = padding_mode
     self.norm = normalize
 
-  def forward(self, inputs, u, v, normalized=True):
+  def forward(self, inputs, u, v):
     batch = inputs.size(0)
     device = inputs.device
     mesh = nd_meshgrid(*inputs.shape[-2:], permute=[1, 0])

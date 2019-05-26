@@ -4,6 +4,7 @@
 #  Update Date: 2019/4/3 下午5:03
 
 import copy
+import os
 
 import numpy as np
 
@@ -11,7 +12,7 @@ from . import _logger, parse_index
 from ..VirtualFile import ImageFile
 
 # TODO Test: Saving memory
-_SAVING_MEM = False
+_SAVING_MEM = os.getenv('VSR_CUSTOM_PAIR_AGGR_MEM')
 
 
 class Parser(object):
