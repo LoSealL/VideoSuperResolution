@@ -15,6 +15,7 @@ models = {
   'dncnn': ('Classic', 'DNCNN'),
   'drcn': ('Classic', 'DRCN'),
   'drrn': ('Classic', 'DRRN'),
+  'ffdnet': ('Ffdnet', 'FFDNET'),
   'edsr': ('Edsr', 'EDSR'),
   'carn': ('Carn', 'CARN'),
   'dbpn': ('Dbpn', 'DBPN'),
