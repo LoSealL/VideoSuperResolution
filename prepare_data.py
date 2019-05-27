@@ -86,6 +86,7 @@ WEIGHTS = {
   'Tfrvsr.zip': 'https://github.com/LoSealL/Model/releases/download/frvsr/FRVSR.zip',
   'Tmldn.zip': 'https://github.com/LoSealL/Model/releases/download/mldn/drn.zip',
   'Tcrdn.zip': 'https://github.com/LoSealL/Model/releases/download/crdn/rsr.zip',
+  'Trbpn.zip': '1Ozp5j-DBWJSpXY5GvxiEPKdfCaAbOXqu',
 }
 
 

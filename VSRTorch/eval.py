@@ -52,11 +52,20 @@ parser.add_argument("--ensemble", action="store_true")
 parser.add_argument("-v", "--verbose", action="store_true")
 
 
+def overwrite_from_env(flags):
+  import os
+  if os.getenv('VSR_AUTO_RENAME'):
+    flags.auto_rename = True
+  if os.getenv('VSR_OUTPUT_INDEX'):
+    flags.output_index = os.getenv('VSR_OUTPUT_INDEX')
+
+
 def main():
   flags, args = parser.parse_known_args()
   opt = Config()
   for pair in flags._get_kwargs():
     opt.setdefault(*pair)
+  overwrite_from_env(opt)
   data_config_file = Path(flags.data_config)
   if not data_config_file.exists():
     raise RuntimeError("dataset config file doesn't exist!")
@@ -76,22 +85,22 @@ def main():
   model_params = opt.get(opt.model, {})
   suppress_opt_by_args(model_params, *args)
   opt.update(model_params)
-  model = get_model(flags.model)(**model_params)
-  if flags.cuda:
+  model = get_model(opt.model)(**model_params)
+  if opt.cuda:
     model.cuda()
-  root = f'{flags.save_dir}/{flags.model}'
-  if flags.comment:
-    root += '_' + flags.comment
-  verbosity = logging.DEBUG if flags.verbose else logging.INFO
+  root = f'{opt.save_dir}/{opt.model}'
+  if opt.comment:
+    root += '_' + opt.comment
+  verbosity = logging.DEBUG if opt.verbose else logging.INFO
   trainer = model.trainer
 
   datasets = load_datasets(data_config_file)
   try:
-    test_datas = [datasets[t.upper()] for t in flags.test]
+    test_datas = [datasets[t.upper()] for t in opt.test]
     run_benchmark = True
   except KeyError:
     test_datas = []
-    for pattern in flags.test:
+    for pattern in opt.test:
       test_data = Dataset(test=_glob_absolute_pattern(pattern),
                           test_pair=_glob_absolute_pattern(pattern),
                           mode='pil-image1', modcrop=False,
@@ -114,7 +123,7 @@ def main():
     loader_config.batch = 1
     loader_config.subdir = test_data.name
     loader_config.output_callbacks += [
-      save_image(root, flags.output_index, flags.auto_rename)]
+      save_image(root, opt.output_index, opt.auto_rename)]
     if opt.channel == 1:
       loader_config.convert_to = 'gray'
       if opt.output_color == 'RGB':
@@ -123,12 +132,12 @@ def main():
         loader_config.label_callbacks = [to_gray()]
         loader_config.output_callbacks.insert(0, to_rgb())
 
-    with trainer(model, root, verbosity, flags.pth) as t:
-      if flags.seed is not None:
-        t.set_seed(flags.seed)
+    with trainer(model, root, verbosity, opt.pth) as t:
+      if opt.seed is not None:
+        t.set_seed(opt.seed)
       loader = QuickLoader(test_data, 'test', loader_config,
-                           n_threads=flags.thread)
-      loader_config.epoch = flags.epoch
+                           n_threads=opt.thread)
+      loader_config.epoch = opt.epoch
       if run_benchmark:
         t.benchmark(loader, loader_config)
       else:

@@ -92,17 +92,19 @@ class RBPN(SuperResolution):
     b = (target.size(3) - frames[0].size(3)) * self.scale
     slice_h = slice(None) if a == 0 else slice(a // 2, -a // 2)
     slice_w = slice(None) if b == 0 else slice(b // 2, -b // 2)
-    sr, _, _ = self.rbpn(target, neighbors)
+    sr, _, warps = self.rbpn(target, neighbors)
     if self.res:
       sr = sr + upsample(target, self.scale)
-    sr = sr[..., slice_h, slice_w].detach().cpu().numpy()
+    sr = sr[..., slice_h, slice_w].detach().cpu()
     if labels is not None:
       labels = [x.squeeze(1) for x in labels[0].split(1, dim=1)]
-      gt = pad_if_divide(labels[self.depth // 2], 8, 'reflect')
+      gt = labels[self.depth // 2]
       metrics['psnr'] = psnr(sr, gt)
       writer = get_writer(self.name)
       if writer is not None:
         step = kwargs['epoch']
         writer.image('hr', gt, step=step)
         writer.image('sr', sr.clamp(0, 1), step=step)
-    return [sr], metrics
+        writer.image('warp/0', warps[0].clamp(0, 1), step=step)
+        writer.image('warp/1', warps[1].clamp(0, 1), step=step)
+    return [sr.numpy()], metrics
