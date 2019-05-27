@@ -13,6 +13,8 @@ models = {
   'srcnn': ('Classic', 'SRCNN'),
   'vdsr': ('Classic', 'VDSR'),
   'dncnn': ('Classic', 'DNCNN'),
+  'drcn': ('Classic', 'DRCN'),
+  'drrn': ('Classic', 'DRRN'),
   'edsr': ('Edsr', 'EDSR'),
   'carn': ('Carn', 'CARN'),
   'dbpn': ('Dbpn', 'DBPN'),

@@ -4,13 +4,12 @@
 #  Update Date: 2019 - 3 - 21
 
 import torch
-import torchvision
 import torch.nn as nn
 import torch.nn.functional as F
-from PIL import Image
-from .Arch import EasyConv2d
-from .Model import SuperResolution
+
+from .Arch import EasyConv2d, RB
 from .Loss import VggFeatureLoss
+from .Model import SuperResolution
 from ..Util import Metrics
 from ..Util.Utility import upsample
 
@@ -68,6 +67,57 @@ class DnCnn(nn.Module):
     return self.net(x) + x
 
 
+class Drcn(nn.Module):
+  def __init__(self, scale, channel, n_recur, filters):
+    from torch.nn import Parameter
+
+    super(Drcn, self).__init__()
+    self.entry = nn.Sequential(
+      EasyConv2d(channel, filters, 3, activation='relu'),
+      EasyConv2d(filters, filters, 3, activation='relu'))
+    self.exit = nn.Sequential(
+      EasyConv2d(filters, filters, 3, activation='relu'),
+      EasyConv2d(filters, channel, 3))
+    self.conv = EasyConv2d(filters, filters, 3, activation='relu')
+    self.output_weights = Parameter(torch.empty(n_recur + 1))
+    torch.nn.init.uniform_(self.output_weights, 0, 1)
+    self.n_recur = n_recur
+    self.scale = scale
+
+  def forward(self, x):
+    bic = upsample(x, self.scale)
+    y = [self.entry(bic)]
+    for i in range(self.n_recur):
+      y.append(self.conv(y[-1]))
+    sr = [self.exit(i) for i in y[1:]]
+    final = bic * self.output_weights[0]
+    for i in range(len(sr)):
+      final = final + self.output_weights[i + 1] * sr[i]
+    return final
+
+
+class Drrn(nn.Module):
+  def __init__(self, channel, n_ru, n_rb, filters):
+    super(Drrn, self).__init__()
+    self.entry0 = EasyConv2d(channel, filters, 3, activation='relu')
+    for i in range(1, n_rb):
+      setattr(self, f'entry{i}',
+              EasyConv2d(filters, filters, 3, activation='relu'))
+    self.n_rb = n_rb
+    self.rb = RB(filters, 3, activation='relu')
+    self.n_ru = n_ru
+    self.exit = EasyConv2d(filters, channel, 3)
+
+  def forward(self, x):
+    for i in range(self.n_rb):
+      entry = getattr(self, f'entry{i}')
+      y = entry(x)
+      for j in range(self.n_ru):
+        y = self.rb(y)
+      x = y
+    return self.exit(x)
+
+
 class PerceptualOptimizer(SuperResolution):
   def __init__(self, scale, channel, image_weight=1, feature_weight=0,
                **kwargs):
@@ -76,6 +126,7 @@ class PerceptualOptimizer(SuperResolution):
       # tricks: do not save weights of vgg
       self.feature = [VggFeatureLoss(['block3_conv4'], True)]
     self.w = [image_weight, feature_weight]
+    self.clip = kwargs.get('clip')
 
   def cuda(self):
     super(PerceptualOptimizer, self).cuda()
@@ -99,6 +150,9 @@ class PerceptualOptimizer(SuperResolution):
         param_group["lr"] = learning_rate
     opt.zero_grad()
     loss.backward()
+    if self.clip:
+      clip = self.clip / learning_rate
+      nn.utils.clip_grad_norm_(self.trainable_variables(), clip)
     opt.step()
     return {
       'loss': loss.detach().cpu().numpy(),
@@ -166,3 +220,24 @@ class DNCNN(PerceptualOptimizer):
       noise = self.norm.sample(tensor.shape)
       tensor += noise.to(device)
     return self.dncnn(tensor)
+
+
+class DRCN(PerceptualOptimizer):
+  def __init__(self, scale, channel, n_recur, **kwargs):
+    super(DRCN, self).__init__(scale, channel, **kwargs)
+    self.drcn = Drcn(scale, channel, n_recur, 128)
+    self.opt = torch.optim.Adam(self.trainable_variables(), 1e-4)
+
+  def fn(self, tensor):
+    return self.drcn(tensor)
+
+
+class DRRN(PerceptualOptimizer):
+  def __init__(self, scale, channel, n_rb, n_ru, **kwargs):
+    super(DRRN, self).__init__(scale, channel, **kwargs)
+    self.drrn = Drrn(channel, n_ru, n_rb, 128)
+    self.opt = torch.optim.Adam(self.trainable_variables(), 1e-4)
+
+  def fn(self, tensor):
+    x = upsample(tensor, self.scale)
+    return self.drrn(x)

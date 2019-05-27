@@ -1,0 +1,6 @@
+drrn:
+  scale: 4
+  channel: 3
+  n_ru: 3
+  n_rb: 3
+  clip: 0.01

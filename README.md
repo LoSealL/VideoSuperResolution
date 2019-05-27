@@ -18,8 +18,8 @@ All these models are implemented in **ONE** framework.
 |RAISR|[arXiv](https://arxiv.org/abs/1606.01299)|-|-|-| Google, Pixel 3 ||
 |ESPCN|[CVPR16](https://arxiv.org/abs/1609.05158)|-, [Keras](https://github.com/qobilidop/srcnn)|Y|Y| Real time |[√](https://github.com/LoSealL/Model/releases)|
 |VDSR|[CVPR16](https://arxiv.org/abs/1511.04587)|-|Y|Y| Deep, Residual |[√](https://drive.google.com/open?id=1hW5YDxXpmjO2IfAy8f29O7yf1M3fPIg1)|
-|DRCN|[CVPR16](https://arxiv.org/abs/1511.04491)|-|Y|-| Recurrent ||
-|DRRN|[CVPR17](http://cvlab.cse.msu.edu/pdfs/Tai_Yang_Liu_CVPR2017.pdf)|[Caffe](https://github.com/tyshiwo/DRRN_CVPR17), [PyTorch](https://github.com/jt827859032/DRRN-pytorch)|Y|-| Recurrent ||
+|DRCN|[CVPR16](https://arxiv.org/abs/1511.04491)|-|Y|Y| Recurrent ||
+|DRRN|[CVPR17](http://cvlab.cse.msu.edu/pdfs/Tai_Yang_Liu_CVPR2017.pdf)|[Caffe](https://github.com/tyshiwo/DRRN_CVPR17), [PyTorch](https://github.com/jt827859032/DRRN-pytorch)|Y|Y| Recurrent ||
 |LapSRN|[CVPR17](http://vllab.ucmerced.edu/wlai24/LapSRN/)|[Matlab](https://github.com/phoenix104104/LapSRN)|Y|-| Huber loss ||
 |EDSR|[CVPR17](https://arxiv.org/abs/1707.02921)|-|Y|Y| NTIRE17 Champion |[√](https://github.com/LoSealL/Model/releases)|
 |SRGAN|[CVPR17](https://arxiv.org/abs/1609.04802)|-|Y|-| 1st proposed GAN ||
@@ -34,7 +34,7 @@ All these models are implemented in **ONE** framework.
 |SRMD|[CVPR18](https://arxiv.org/abs/1712.06116)|[Matlab](https://github.com/cszn/SRMD)|T|-| Denoise/Deblur/SR ||
 |DBPN|[CVPR18](https://arxiv.org/abs/1803.02735)|[PyTorch](https://github.com/alterzero/DBPN-Pytorch)|Y|Y| NTIRE18 Champion |[√](https://drive.google.com/open?id=1ymtlOjhkGmad-od0zw7yTf17nWD4KMVi)|
 |ZSSR|[CVPR18](http://www.wisdom.weizmann.ac.il/~vision/zssr/)|[Tensorflow](https://github.com/assafshocher/ZSSR)|-|-| Zero-shot ||
-|FRVSR|[CVPR18](https://arxiv.org/abs/1801.04590)|[PDF](https://github.com/msmsajjadi/FRVSR)|T|Y| VideoSR ||
+|FRVSR|[CVPR18](https://arxiv.org/abs/1801.04590)|[PDF](https://github.com/msmsajjadi/FRVSR)|T|Y| VideoSR |[√](https://github.com/LoSealL/Model/releases)|
 |DUF|[CVPR18](http://openaccess.thecvf.com/content_cvpr_2018/papers/Jo_Deep_Video_Super-Resolution_CVPR_2018_paper.pdf)|[Tensorflow](https://github.com/yhjo09/VSR-DUF)|T|-| VideoSR ||
 |CARN|[ECCV18](https://arxiv.org/abs/1803.08664)|[PyTorch](https://github.com/nmhkahn/CARN-pytorch)|Y|Y| Fast |[√](https://github.com/LoSealL/Model/releases/carn)|
 |RCAN|[ECCV18](https://arxiv.org/abs/1807.02758)|[PyTorch](https://github.com/yulunzhang/RCAN)|Y|Y| Deep, BI-BD-DN ||
