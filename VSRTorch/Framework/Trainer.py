@@ -170,7 +170,8 @@ class SRTrainer(Env):
     self.model.to_eval()
     for items in tqdm.tqdm(it, 'Test', ascii=True):
       label, feature, name, post = items[:4]
-      self.fn_benchmark_each_step(label, feature, name, post)
+      with torch.no_grad():
+        self.fn_benchmark_each_step(label, feature, name, post)
     for _k, _v in v.mean_metrics.items():
       _v = np.mean(_v)
       if isinstance(self.v.writer, Summarizer):
@@ -222,7 +223,8 @@ class SRTrainer(Env):
     for items in tqdm.tqdm(it, 'Infer', ascii=True):
       feature = items[0]
       name = items[2]
-      self.fn_infer_each_step(None, feature, name)
+      with torch.no_grad():
+        self.fn_infer_each_step(None, feature, name)
 
   def fn_infer_each_step(self, label=None, feature=None, name=None, post=None):
     v = self.v
