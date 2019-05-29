@@ -67,6 +67,9 @@ WEIGHTS = {
   'vespcn.zip': '19u4YpsyThxW5dv4fhpMj7c5gZeEDKthm',
   'dbpn.zip': '1ymtlOjhkGmad-od0zw7yTf17nWD4KMVi',
   'idn.zip': '1Fh3rtvrKKLAK27r518T1M_JET_LWZAFQ',
+  'drsr_v2': '1UrVNE6QMcQTW9Ks4P__JrRClb4IGTMYp',
+  'drsr_sc2': '1xIRVG7jbTM9fcLQkwyGyJIjwF2rTbNEJ',
+  'drsr_sc4': '1W-222rR2D2o-E99B4cXuUPBz2aCLuY_Z',
   # GAN weights
   'gangp.zip': '1UHiSLjaU5Yeiltl9cQsR3-EKta3yt0dI',
   'lsgan.zip': '15dsubMpvTeCoSCIfPCcKjhnk7UMyuljt',
