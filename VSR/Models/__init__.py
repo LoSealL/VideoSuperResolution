@@ -4,49 +4,59 @@
 #  Update Date: 2018 - 8 - 1
 
 import importlib
+import re
+from pathlib import Path
 
 __all__ = ['get_model', 'list_supported_models']
 
-models = {
-  # alias: (file, class)
-  'srcnn': ('Srcnn', 'SRCNN'),
-  'espcn': ('Espcn', 'ESPCN'),
-  'vdsr': ('Vdsr', 'VDSR'),
-  'drcn': ('Drcn', 'DRCN'),
-  'dncnn': ('DnCnn', 'DnCNN'),
-  'idn': ('Idn', 'InformationDistillationNetwork'),
-  'rdn': ('Rdn', 'ResidualDenseNetwork'),
-  'dcscn': ('Dcscn', 'DCSCN'),
-  'lapsrn': ('LapSrn', 'LapSRN'),
-  'drrn': ('Drrn', 'DRRN'),
-  'memnet': ('MemNet', 'MEMNET'),
-  'dbpn': ('Dbpn', 'DBPN'),
-  'edsr': ('Edsr', 'EDSR'),
-  'srgan': ('SrGan', 'SRGAN'),
-  'carn': ('Carn', 'CARN'),
-  'rcan': ('Rcan', 'RCAN'),
-  'msrn': ('Msrn', 'MSRN'),
-  'vespcn': ('Vespcn', 'VESPCN'),
-  'srdensenet': ('SRDenseNet', 'SRDenseNet'),
-  'srfeat': ('SRFeat', 'SRFEAT'),
-  'nlrn': ('Nlrn', 'NLRN'),
-  'crdn': ('Crdn', 'CRDN'),
-  'ffdnet': ('FFDNet', 'FFDNet'),
-}
 
-_generative_models = {
-  'sgan': ('Gan', 'SGAN'),
-  'gangp': ('Gan', 'SGANGP'),
-  'lsgan': ('Gan', 'LSGAN'),
-  'wgan': ('Gan', 'WGAN'),
-  'wgangp': ('Gan', 'WGANGP'),
-  'rgan': ('Gan', 'RGAN'),
-  'rgangp': ('Gan', 'RGANGP'),
-  'ragan': ('Gan', 'RaGAN'),
-  'ragangp': ('Gan', 'RaGANGP'),
-  'rlsgan': ('Gan', 'RLSGAN'),
-  'ralsgan': ('Gan', 'RaLSGAN'),
-}
+def auto_search(root):
+  def _parse_class(file):
+    obj = []
+    key_to_remove = set()
+    file = Path(file)
+    with file.open('r') as fd:
+      line = fd.readline()
+      while line:
+        if line.startswith('class'):
+          if '(SuperResolution)' in line:
+            try:
+              classname = re.compile("(?<=class\s)\w+\\b").findall(line)[0]
+              obj.append(classname)
+            except IndexError:
+              print(" [!] class: " + line)
+          else:
+            for cls in obj:
+              if f'({cls})' in line:
+                try:
+                  classname = re.compile("(?<=class\s)\w+\\b").findall(line)[0]
+                  obj.append(classname)
+                  key_to_remove.add(cls)
+                except IndexError:
+                  print(" [!] class: " + line)
+        line = fd.readline()
+    for key in key_to_remove:
+      obj.remove(key)
+    return {file.stem: obj}
+
+  mods = sorted(filter(
+    lambda x: x.is_file() and not x.stem.startswith('__'),
+    Path(root).glob('*.py')))
+  for _m in mods:
+    cls = _parse_class(_m)
+    for k in cls:
+      if k.lower() in models:
+        print(" [!] duplicated model names found: " + k)
+        continue
+      if len(cls[k]) == 1:
+        models[k.lower()] = (k, cls[k][0])
+      elif len(cls[k]) > 1:
+        for i in cls[k]:
+          models[f'{k.lower()}.{i.lower()}'] = (k, i)
+
+
+models = {}
+auto_search(Path(__file__).parent)
 
 
 def get_model(name):

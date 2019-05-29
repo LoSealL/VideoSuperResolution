@@ -44,6 +44,7 @@ models = {
   'ran': ('NTIRE19', 'RAN'),
 }
 
+
 def get_model(name):
   module = f'VSRTorch.Models.{models[name][0]}'
   package = 'VSR'
