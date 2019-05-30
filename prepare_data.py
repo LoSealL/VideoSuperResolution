@@ -57,9 +57,7 @@ WEIGHTS = {
   'espcn.tar.gz': 'https://github.com/LoSealL/Model/releases/download/espcn/espcn.tar.gz',
   'edsr.zip': 'https://github.com/LoSealL/Model/releases/download/edsr/edsr.zip',
   'dncnn.zip': 'https://github.com/LoSealL/Model/releases/download/DnCNN/dncnn.zip',
-  'carn.zip': 'https://github.com/LoSealL/Model/releases/download/CARN/carn.zip',
-  'rsr.zip': 'https://github.com/LoSealL/Model/releases/download/crdn/rsr.zip',
-  'drn.zip': 'https://github.com/LoSealL/Model/releases/download/mldn/drn.zip',
+  'carn.zip': 'https://github.com/LoSealL/Model/releases/download/carn/carn.zip',
   # Google Drive File ID.
   # If you can't download from this file, visit url https://drive.google.com/open?id=<id>
   # paste the file id into position <id>.
@@ -69,6 +67,9 @@ WEIGHTS = {
   'vespcn.zip': '19u4YpsyThxW5dv4fhpMj7c5gZeEDKthm',
   'dbpn.zip': '1ymtlOjhkGmad-od0zw7yTf17nWD4KMVi',
   'idn.zip': '1Fh3rtvrKKLAK27r518T1M_JET_LWZAFQ',
+  'drsr_v2': '1UrVNE6QMcQTW9Ks4P__JrRClb4IGTMYp',
+  'drsr_sc2': '1xIRVG7jbTM9fcLQkwyGyJIjwF2rTbNEJ',
+  'drsr_sc4': '1W-222rR2D2o-E99B4cXuUPBz2aCLuY_Z',
   # GAN weights
   'gangp.zip': '1UHiSLjaU5Yeiltl9cQsR3-EKta3yt0dI',
   'lsgan.zip': '15dsubMpvTeCoSCIfPCcKjhnk7UMyuljt',
@@ -85,6 +86,10 @@ WEIGHTS = {
   'Tcarn.zip': 'https://github.com/LoSealL/Model/releases/download/carn/tcarn.zip',
   'Tesrgan.zip': 'https://github.com/LoSealL/Model/releases/download/esrgan/esrgan.zip',
   'Ttecogan.zip': 'https://github.com/LoSealL/Model/releases/download/tecogan/tecogan.zip',
+  'Tfrvsr.zip': 'https://github.com/LoSealL/Model/releases/download/frvsr/FRVSR.zip',
+  'Tmldn.zip': 'https://github.com/LoSealL/Model/releases/download/mldn/drn.zip',
+  'Tcrdn.zip': 'https://github.com/LoSealL/Model/releases/download/crdn/rsr.zip',
+  'Trbpn.zip': '1Ozp5j-DBWJSpXY5GvxiEPKdfCaAbOXqu',
 }
 
 

@@ -66,6 +66,9 @@ class Summarizer:
     tensor = tensor.unsqueeze(1)
     self.image(name, tensor, step, max, collection='features')
 
+  def graph(self, model, *args, **kwargs):
+    self.writer.add_graph(model, args, **kwargs)
+
 
 def get_writer(key) -> Summarizer:
   return _writer_container.get(hash(key))

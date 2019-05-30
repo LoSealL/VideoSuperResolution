@@ -9,14 +9,14 @@ import torch.nn.functional as F
 from torch import nn
 
 from .Arch import SpaceToDepth
-from .Loss import VggFeatureLoss, gan_bce_loss
+from .Loss import VggFeatureLoss, gan_bce_loss, ragan_bce_loss
 from .Model import SuperResolution
 from .frvsr.ops import FNet
 from .teco.ops import TecoDiscriminator, TecoGenerator
 from .video.motion import STN
 from ..Framework.Summary import get_writer
 from ..Util import Metrics
-from ..Util.Utility import pad_if_divide
+from ..Util.Utility import pad_if_divide, upsample
 
 
 class Composer(nn.Module):
@@ -28,22 +28,24 @@ class Composer(nn.Module):
     self.spd = SpaceToDepth(scale)
     self.scale = scale
 
-  def forward(self, lr, lr_pre, sr_pre):
+  def forward(self, lr, lr_pre, sr_pre, detach_fnet=None):
     """
     Args:
        lr: t_1 lr frame
        lr_pre: t_0 lr frame
        sr_pre: t_0 sr frame
+       detach_fnet: detach BP to fnet
     """
     flow = self.fnet(lr, lr_pre)
-    flow_up = self.scale * F.interpolate(
-      flow, scale_factor=self.scale, mode='bicubic', align_corners=False)
+    flow_up = self.scale * upsample(flow, self.scale)
     u, v = [x.squeeze(1) for x in flow_up.split(1, dim=1)]
-    sr_warp = self.warpper(sr_pre, u, v, False)
-    bi = F.interpolate(
-      lr, scale_factor=self.scale, mode='bicubic', align_corners=False)
-    sr = self.gnet(lr, self.spd(sr_warp), bi)
-    return sr, sr_warp, flow, flow_up, bi
+    sr_warp = self.warpper(sr_pre, u, v)
+    bi = upsample(lr, self.scale)
+    if detach_fnet:
+      sr = self.gnet(lr, self.spd(sr_warp.detach()), bi)
+    else:
+      sr = self.gnet(lr, self.spd(sr_warp), bi)
+    return sr, sr_warp, flow, flow_up
 
 
 class TeCoGAN(SuperResolution):
@@ -82,7 +84,7 @@ class TeCoGAN(SuperResolution):
       self.dnet = TecoDiscriminator(channel, filters, patch_size)
       self.dopt = torch.optim.Adam(self.trainable_variables('dnet'), 5e-5)
       self.gan_weights = gan_layer_weights
-    self.w = weights  # [L2, flow, ping-pong, gan]
+    self.weights = weights  # [L2, flow, ping-pong, gan]
 
   def cuda(self):
     super(TeCoGAN, self).cuda()
@@ -94,10 +96,34 @@ class TeCoGAN(SuperResolution):
     x = x[..., border:-border, border:-border]
     return F.pad(x, [border, border, border, border])
 
+  def gen_sr_clips(self, frames):
+    """generate a video clip"""
+    last_lr = frames[0]
+    sr = [upsample(last_lr, self.scale)]
+    flow = []
+    for lr in frames:
+      _sr, _, _f, _ = self.gnet(lr, last_lr, sr[-1].detach())
+      sr.append(_sr)
+      flow.append(_f)
+    return sr[1:], flow
+
+  def prepare_dnet_input(self, frames):
+    # For now inputs don't take LR into account
+    cube = []
+    for i in range(1, len(frames) - 1):
+      pre, cur, nex = frames[i - 1:i + 2]
+      with torch.no_grad():
+        ff = self.gnet.fnet(cur, pre)
+        bf = self.gnet.fnet(cur, nex)
+        warpf = self.gnet.warpper(pre, ff[:, 0], ff[:, 1])
+        warpb = self.gnet.warpper(nex, bf[:, 0], bf[:, 1])
+        cube.append(torch.cat((pre, cur, nex, warpf, cur, warpb), dim=1))
+    return cube
+
   def train(self, inputs, labels, learning_rate=None):
     metrics = {}
-    frames = [self.norm(x.squeeze(1)) for x in inputs[0].split(1, dim=1)]
-    labels = [self.norm(x.squeeze(1)) for x in labels[0].split(1, dim=1)]
+    frames = [x.squeeze(1) for x in inputs[0].split(1, dim=1)]
+    labels = [x.squeeze(1) for x in labels[0].split(1, dim=1)]
     for opt in self.opts.values():
       if learning_rate:
         for param_group in opt.param_groups:
@@ -105,121 +131,100 @@ class TeCoGAN(SuperResolution):
     # For ping-pong loss
     frames_rev = frames.copy()
     frames_rev.reverse()
-    last_lr = frames_rev[0]
-    last_sr = F.interpolate(
-      last_lr, scale_factor=self.scale, mode='bicubic', align_corners=False)
-    back_sr = []
-    for lr in frames_rev:
-      sr_rev, _, _, _, _ = self.gnet(lr, last_lr, last_sr)
-      # TODO detach or not?
-      back_sr.append(sr_rev)
-      last_lr = lr.detach()
-      last_sr = sr_rev.detach()
+    back_sr, _ = self.gen_sr_clips(frames_rev)
     back_sr.reverse()
-    total_loss = 0
-    pp_loss = 0
-    # Generator graph
-    last_lr = frames[0]
-    last_sr = F.interpolate(
-      last_lr, scale_factor=self.scale, mode='bicubic', align_corners=False)
-    forward_sr = []
-    bicubic_lr = []
-    for lr, hr, bk in zip(frames, labels, back_sr):
-      sr, sr_warp, flow, _, bi = self.gnet(lr, last_lr, last_sr)
-      lr_warp = self.gnet.warpper(last_lr, flow[:, 0], flow[:, 1], False)
-      l2_image = F.mse_loss(sr, hr)
-      l2_warp = F.mse_loss(lr_warp, lr)
-      l2_pingpong = F.mse_loss(sr, bk)
-      total_loss += l2_image * self.w[0] + l2_warp * self.w[1] + \
-                    l2_pingpong * self.w[2]
-      pp_loss += l2_pingpong.detach()
-      metrics['image'] = l2_image.detach().cpu().numpy()
-      metrics['flow'] = l2_warp.detach().cpu().numpy()
-      last_lr = lr  # .detach()
-      last_sr = sr  # .detach()
-      forward_sr.append(sr)
-      bicubic_lr.append(bi.detach())
-      if self.use_vgg:
-        real_feature = self.vgg[0](hr)
-        fake_feature = self.vgg[0](sr)
-        l2_vgg = 0
-        for x, y, w in zip(real_feature, fake_feature, self.vgg_weights):
-          l2_vgg += F.mse_loss(x, y) * w
-        metrics['vgg'] = l2_vgg.detach().cpu().numpy()
-        total_loss += l2_vgg
-    metrics['pp'] = pp_loss.detach().cpu().numpy() / len(frames)
+    sr, ff = self.gen_sr_clips(frames)
+    # Generator loss
+    # 1. Image MSE
+    loss_image_mse = torch.stack([F.mse_loss(x, y) for x, y in zip(sr, labels)])
+    # 2. Ping-pong loss
+    loss_pp = torch.stack([F.mse_loss(x, y) for x, y in zip(sr, back_sr)])
+    # 3. FlowNet loss
+    loss_flow = []
+    for i in range(len(sr)):
+      last_lr = frames[i] if i == 0 else frames[i - 1]
+      flow = ff[i]
+      lr_warp = self.gnet.warpper(last_lr, flow[:, 0], flow[:, 1])
+      loss_flow.append(F.mse_loss(frames[i], lr_warp))
+    loss_flow = torch.stack(loss_flow)
+    w = self.weights
+    loss_image_mse = loss_image_mse.mean() * w[0]
+    loss_flow = loss_flow.mean() * w[1]
+    loss_pp = loss_pp.mean() * w[2]
+    loss = loss_image_mse + loss_flow + loss_pp
+    # recording
+    metrics['image'] = loss_image_mse.detach().cpu().numpy()
+    metrics['flow'] = loss_flow.detach().cpu().numpy()
+    metrics['pp'] = loss_pp.detach().cpu().numpy()
+    # 4. Vgg feature loss
+    if self.use_vgg:
+      loss_vgg = []
+      for x, y in zip(sr, labels):
+        real_feature = self.vgg[0](y)
+        fake_feature = self.vgg[0](x)
+        loss_vgg += [F.mse_loss(x, y) * w for x, y, w in
+                     zip(real_feature, fake_feature, self.vgg_weights)]
+      loss_vgg = torch.stack(loss_vgg).mean()
+      loss += loss_vgg
+      metrics['vgg'] = loss_vgg.detach().cpu().numpy()
+    # 5. GAN loss g
     if self.use_gan:
-      # Discriminator graph
-      disc_loss = 0
-      for i in range(1, len(forward_sr) - 1):
-        bi_p, bi_c, bi_n = bicubic_lr[i - 1:i + 2]
-        lr_p, lr_c, lr_n = frames[i - 1:i + 2]
-        hr_p, hr_c, hr_n = labels[i - 1:i + 2]
-        sr_p, sr_c, sr_n = forward_sr[i - 1:i + 2]
-        flow_forward = self.scale * F.interpolate(
-          self.gnet.fnet(lr_c, lr_p), scale_factor=self.scale,
-          mode='bicubic', align_corners=False)
-        flow_backward = self.scale * F.interpolate(
-          self.gnet.fnet(lr_c, lr_n), scale_factor=self.scale,
-          mode='bicubic', align_corners=False)
-        hr_w1 = self.gnet.warpper(
-          hr_p, flow_forward[:, 0], flow_forward[:, 1], False)
-        hr_w2 = self.gnet.warpper(
-          hr_n, flow_backward[:, 0], flow_backward[:, 1], False)
-        sr_w1 = self.gnet.warpper(
-          sr_p, flow_forward[:, 0], flow_forward[:, 1], False)
-        sr_w2 = self.gnet.warpper(
-          sr_n, flow_backward[:, 0], flow_backward[:, 1], False)
-        # Stop BP to Fnet
-        d_input_fake = torch.cat(
-          (bi_p, bi_c, bi_n, sr_p, sr_c, sr_n, sr_w1.detach(), sr_w2.detach()),
-          dim=1)
-        d_input_real = torch.cat(
-          (bi_p, bi_c, bi_n, hr_p, hr_c, hr_n, hr_w1.detach(), hr_w2.detach()),
-          dim=1)
-        # Padding border pixels to zero
-        d_input_fake = self.shave_border_pixel(d_input_fake, 16)
-        d_input_real = self.shave_border_pixel(d_input_real, 16)
-        # BP to generator
-        fake, fake_d_feature = self.dnet(d_input_fake)
-        real, real_d_feature = self.dnet(d_input_real)
-        loss_g = gan_bce_loss(fake, True)
-        # l2_d_feature = 0
-        # for x, y, w in zip(fake_d_feature, real_d_feature, self.gan_weights):
-        #   l2_d_feature += F.mse_loss(x, y) * w
-        total_loss += loss_g * self.w[3]
-        # metrics['dfeat'] = l2_d_feature.detach().cpu().numpy()
-        # Now avoid BP to generator
-        fake, _ = self.dnet(d_input_fake.detach())
-        disc_loss += gan_bce_loss(real, True) + gan_bce_loss(fake, False)
-      metrics['dloss'] = disc_loss.detach().cpu().numpy() / (len(frames) - 2)
-      self.dopt.zero_grad()
-      disc_loss.backward(retain_graph=True)
-      self.dopt.step()
+      fake_inputs = self.prepare_dnet_input(sr)
+      real_inputs = self.prepare_dnet_input(labels)
+      loss_d_feature = []
+      loss_g = []
+      for x, y in zip(fake_inputs, real_inputs):
+        fake, fake_d_feats = self.dnet(self.norm(x))
+        real, real_d_feats = self.dnet(self.norm(y.detach()))
+        loss_d_feature += [F.mse_loss(x, y) * w for x, y, w in
+                           zip(real_d_feats, fake_d_feats, self.gan_weights)]
+        loss_g += [ragan_bce_loss(fake, real)]
+      loss_d_feature = torch.stack(loss_d_feature).mean()
+      loss_g = torch.stack(loss_g).mean() * w[3]
+      loss += loss_d_feature
+      metrics['df'] = loss_d_feature.detach().cpu().numpy()
+      metrics['g'] = loss_g.detach().cpu().numpy()
+    # Discriminator loss
+    if self.use_gan:
+      loss_d = []
+      for x, y in zip(fake_inputs, real_inputs):
+        fake, _ = self.dnet(self.norm(x.detach()))
+        real, _ = self.dnet(self.norm(y.detach()))
+        loss_d.append(ragan_bce_loss(real, fake))
+      loss_d = torch.stack(loss_d).mean()
+      metrics['d'] = loss_d.detach().cpu().numpy()
+    metrics['total'] = loss.detach().cpu().numpy()
+    # Optimize
     self.gopt.zero_grad()
-    total_loss.backward()
+    if self.use_gan:
+      loss_g.backward(retain_graph=True)
+      self.gnet.fnet.zero_grad()
+    loss.backward()
     self.gopt.step()
-    metrics['loss'] = total_loss.detach().cpu().numpy() / len(frames)
+    if self.use_gan:
+      self.dopt.zero_grad()
+      loss_d.backward()
+      self.dopt.step()
     return metrics
 
   def eval(self, inputs, labels=None, **kwargs):
     metrics = {}
-    frames = [self.norm(x.squeeze(1)) for x in inputs[0].split(1, dim=1)]
+    frames = [x.squeeze(1) for x in inputs[0].split(1, dim=1)]
     predicts = []
     last_lr = pad_if_divide(frames[0], 8, 'reflect')
     a = (last_lr.size(2) - frames[0].size(2)) * self.scale
     b = (last_lr.size(3) - frames[0].size(3)) * self.scale
     slice_h = slice(None) if a == 0 else slice(a // 2, -a // 2)
     slice_w = slice(None) if b == 0 else slice(b // 2, -b // 2)
-    last_sr = F.interpolate(
-      last_lr, scale_factor=self.scale, mode='bicubic', align_corners=False)
+    last_sr = upsample(last_lr, self.scale)
     for lr in frames:
       lr = pad_if_divide(lr, 8, 'reflect')
-      sr, _, _, _, _ = self.gnet(lr, last_lr, last_sr)
+      sr, warp, _, _ = self.gnet(lr, last_lr, last_sr)
       last_lr = lr.detach()
       last_sr = sr.detach()
       sr = sr[..., slice_h, slice_w]
-      predicts.append(self.denorm(sr).cpu().detach().numpy())
+      warp = warp[..., slice_h, slice_w]
+      predicts.append(sr.cpu().detach().numpy())
     if labels is not None:
       labels = [x.squeeze(1) for x in labels[0].split(1, dim=1)]
       psnr = [Metrics.psnr(x, y) for x, y in zip(predicts, labels)]
@@ -227,7 +232,9 @@ class TeCoGAN(SuperResolution):
       writer = get_writer(self.name)
       if writer is not None:
         step = kwargs['epoch']
-        writer.image('sr', self.denorm(sr).clamp(0, 1), step=step)
+        writer.image('hr', labels[-1], step=step)
+        writer.image('sr', sr.clamp(0, 1), step=step)
+        writer.image('warp', warp.clamp(0, 1), step=step)
     return predicts, metrics
 
   @staticmethod

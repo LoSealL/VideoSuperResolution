@@ -79,11 +79,12 @@ class Rdb(nn.Module):
     dilation = kwargs.get('dilation', 1)
     group = kwargs.get('group', 1)
     bias = kwargs.get('bias', True)
+    act = kwargs.get('activation', 'relu')
     for i in range(depth):
       conv = nn.Conv2d(
         in_c + out_c * i, out_c, ks, stride, padding, dilation, group, bias)
       if i < depth - 1:  # no activation after last layer
-        conv = nn.Sequential(conv, nn.ReLU(True))
+        conv = nn.Sequential(conv, Activation(act))
       setattr(self, f'conv_{i}', conv)
 
   def forward(self, inputs):
@@ -194,7 +195,7 @@ class _UpsampleNearest(nn.Module):
 
   def forward(self, x, scale=None):
     scale = scale or self.scale
-    return F.interpolate(x, scale_factor=scale, align_corners=False)
+    return F.interpolate(x, scale_factor=scale)
 
 
 class _UpsampleLinear(nn.Module):
@@ -250,13 +251,11 @@ class Upsample(nn.Module):
       if activation:
         body.insert(1, Activation(activation))
     if method == 'nearest':
-      body = [_UpsampleNearest(scale)]
-      if activation:
-        body.insert(1, Activation(activation))
+      body = [_UpsampleNearest(scale),
+              EasyConv2d(self.channel, self.channel, k, activation=activation)]
     if method == 'linear':
-      body = [_UpsampleLinear(scale)]
-      if activation:
-        body.insert(1, Activation(activation))
+      body = [_UpsampleLinear(scale),
+              EasyConv2d(self.channel, self.channel, k, activation=activation)]
     return nn.Sequential(*body)
 
   def forward(self, inputs):

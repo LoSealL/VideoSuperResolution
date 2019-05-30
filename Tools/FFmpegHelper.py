@@ -60,7 +60,7 @@ def decode(file, output_dir, name, fmt):
   cmd = f'ffmpeg -i {str(file)}'
   output_name = output_dir / f'{name}_{FLAGS.qp}.{fmt}'
   cmd += f' -f rawvideo -pix_fmt {fmt}'
-  cmd += f' {str(output_name)}'
+  cmd += f' {str(output_name)} -y'
   # print(cmd)
   subprocess.call(cmd.split(' '), stderr=subprocess.DEVNULL)
 

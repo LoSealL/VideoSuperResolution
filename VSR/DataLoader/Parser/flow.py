@@ -12,7 +12,7 @@ from ..VirtualFile import ImageFile
 class Parser(object):
   def __init__(self, dataset, config):
     urls = sorted(dataset.get(config.method, []))
-    flow = sorted(dataset.flow)
+    flow = sorted(dataset['flow'])
     self.files = [ImageFile(fp).attach_flow(f) for fp, f in zip(urls, flow)]
     self.depth = config.depth
     self.method = config.method

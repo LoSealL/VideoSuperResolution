@@ -51,6 +51,6 @@ def evaluate(*args):
     input_data = load_folder(FLAGS.input_dir, ref_data.test)
   metric_config = Config(batch=1, scale=1, modcrop=False, crop=None)
   input_loader = BasicLoader(input_data, 'test', metric_config)
-  input_images = [x[0] for x in input_loader.make_one_shot_iterator()]
-  label_images = [x[1] for x in input_loader.make_one_shot_iterator()]
+  input_images = (x[0] for x in input_loader.make_one_shot_iterator())
+  label_images = (x[1] for x in input_loader.make_one_shot_iterator())
   Eval.evaluate(label_images, input_images)

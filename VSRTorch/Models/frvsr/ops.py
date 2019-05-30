@@ -5,8 +5,18 @@
 
 import torch
 from torch import nn
-
+from torch.nn.functional import interpolate
 from ..Arch import Upsample
+
+
+class BilinerUp(nn.Module):
+  def __init__(self, scale_factor):
+    super(BilinerUp, self).__init__()
+    self.scale = scale_factor
+
+  def forward(self, x):
+    return interpolate(x, scale_factor=self.scale,
+                       mode='bilinear', align_corners=False)
 
 
 class FNet(nn.Module):
@@ -24,7 +34,7 @@ class FNet(nn.Module):
     for i in range(3):
       layers += [nn.Conv2d(in_c, f, 3, 1, 1), nn.LeakyReLU(0.2, inplace=True)]
       layers += [nn.Conv2d(f, f, 3, 1, 1), nn.LeakyReLU(0.2, inplace=True)]
-      layers += [Upsample(f, scale=2, method='linear')]
+      layers += [BilinerUp(2)]
       in_c = f
       f //= 2
     layers += [nn.Conv2d(in_c, f, 3, 1, 1), nn.LeakyReLU(0.2, inplace=True)]

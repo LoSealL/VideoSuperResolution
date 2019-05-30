@@ -13,6 +13,9 @@ models = {
   'srcnn': ('Classic', 'SRCNN'),
   'vdsr': ('Classic', 'VDSR'),
   'dncnn': ('Classic', 'DNCNN'),
+  'drcn': ('Classic', 'DRCN'),
+  'drrn': ('Classic', 'DRRN'),
+  'ffdnet': ('Ffdnet', 'FFDNET'),
   'edsr': ('Edsr', 'EDSR'),
   'carn': ('Carn', 'CARN'),
   'dbpn': ('Dbpn', 'DBPN'),
@@ -21,12 +24,16 @@ models = {
   'esrgan': ('Esrgan', 'ESRGAN'),
   'msrn': ('Msrn', 'MSRN'),
   'rsr': ('Rsr', 'RSR'),
+  'mldn': ('Mldn', 'MLDN'),
   'drn': ('Drn', 'DRN'),
   'sofvsr': ('Sofvsr', 'SOFVSR'),
   'vespcn': ('Vespcn', 'VESPCN'),
   'frvsr': ('Frvsr', 'FRVSR'),
   'qprn': ('Qprn', 'QPRN'),
+  'ufvsr': ('Ufvsr', 'UFVSR'),
   'tecogan': ('TecoGAN', 'TeCoGAN'),
+  'spmc': ('Spmc', 'SPMC'),
+  'rbpn': ('Rbpn', 'RBPN'),
   # NTIRE 2019 Collections
   'didn': ('NTIRE19', 'DIDN'),
   'dhdn': ('NTIRE19', 'DHDN'),
@@ -36,6 +43,7 @@ models = {
   'frn': ('NTIRE19', 'FRN'),
   'ran': ('NTIRE19', 'RAN'),
 }
+
 
 def get_model(name):
   module = f'VSRTorch.Models.{models[name][0]}'

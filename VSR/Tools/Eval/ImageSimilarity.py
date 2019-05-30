@@ -74,8 +74,8 @@ def check_shape_compatibility(a: np.ndarray, b: np.ndarray):
 
 class PsnrTask(Task):
   def __call__(self, label_images, fake_images):
-    assert isinstance(label_images, list)
-    assert isinstance(fake_images, list)
+    assert isinstance(label_images, (list, tuple))
+    assert isinstance(fake_images, (list, tuple))
     results = []
     # Placeholder avoids TF copy images' data into graph
     label_ph = tf.placeholder('float32', [None, None, None, None])
@@ -91,8 +91,8 @@ class PsnrTask(Task):
 
 class SsimTask(Task):
   def __call__(self, label_images, fake_images):
-    assert isinstance(label_images, list)
-    assert isinstance(fake_images, list)
+    assert isinstance(label_images, (list, tuple))
+    assert isinstance(fake_images, (list, tuple))
     results = []
     label_ph = tf.placeholder('float32', [None, None, None, None])
     fake_ph = tf.placeholder('float32', [None, None, None, None])

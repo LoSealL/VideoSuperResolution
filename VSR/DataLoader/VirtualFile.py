@@ -352,6 +352,31 @@ class ImageFile(File):
     image_bytes = [BytesIO(self.read()) for _ in range(frames)]
     return [Image.open(fp) for fp in image_bytes]
 
+  def read_frame2(self, frames=1, *args):
+    """new API, saving memory while loading frames.
+
+    Args:
+        frames: number of frames to be loaded
+    """
+    imgs = []
+    if frames == 0:
+      return imgs
+    while True:
+      if len(self.file) > 0:
+        cur_fd = self.file.pop(0)
+        imgs.append(Image.open(cur_fd))
+        self.read_file.append(cur_fd)
+        with open(cur_fd, 'rb') as fd:
+          fd.seek(0, SEEK_END)
+          self.read_pointer += fd.tell()
+      elif self.rewind:
+        self.reopen()
+      else:
+        raise EOFError('End of File!')
+      if len(imgs) == frames:
+        break
+    return imgs
+
   def seek(self, offset, where=SEEK_SET):
     """Seek the position by `offset` relative to `where`.
 

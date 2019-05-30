@@ -15,7 +15,7 @@ from .frvsr.ops import FNet, SRNet
 from .video.motion import STN
 from ..Framework.Summary import get_writer
 from ..Util import Metrics
-from ..Util.Utility import pad_if_divide
+from ..Util.Utility import pad_if_divide, upsample
 
 
 class FRNet(nn.Module):
@@ -29,10 +29,9 @@ class FRNet(nn.Module):
 
   def forward(self, lr, last_lr, last_sr):
     flow = self.fnet(lr, last_lr)
-    flow2 = self.scale * F.interpolate(
-      flow, scale_factor=self.scale, mode='bilinear', align_corners=False)
-    hw = self.warp(last_sr, flow2[:, 0], flow2[:, 1], normalized=False)
-    lw = self.warp(last_lr, flow[:, 0], flow[:, 1], normalized=False)
+    flow2 = self.scale * upsample(flow, self.scale)
+    hw = self.warp(last_sr, flow2[:, 0], flow2[:, 1])
+    lw = self.warp(last_lr, flow[:, 0], flow[:, 1])
     hws = self.space_to_depth(hw)
     y = self.snet(hws, lr)
     return y, hw, lw, flow2
@@ -43,6 +42,7 @@ class FRVSR(SuperResolution):
     super(FRVSR, self).__init__(scale, channel, **kwargs)
     self.frvsr = FRNet(channel, scale, kwargs.get('n_rb', 10))
     self.adam = torch.optim.Adam(self.trainable_variables(), 1e-4)
+    self.w = kwargs.get('weights', [1, 1, 1e-3])
 
   def train(self, inputs, labels, learning_rate=None):
     frames = [x.squeeze(1) for x in inputs[0].split(1, dim=1)]
@@ -54,26 +54,25 @@ class FRVSR(SuperResolution):
     flow_loss = 0
     image_loss = 0
     last_lr = frames[0]
-    last_sr = F.interpolate(
-      last_lr, scale_factor=self.scale, mode='bilinear', align_corners=False)
+    last_sr = upsample(last_lr, self.scale)
     for lr, hr in zip(frames, labels):
-      sr, hrw, lrw, flow = self.frvsr(lr, last_lr, last_sr)
+      sr, hrw, lrw, flow = self.frvsr(lr, last_lr, last_sr.detach())
       last_lr = lr
       last_sr = sr
       l2_image = F.mse_loss(sr, hr)
       l2_warp = F.mse_loss(lrw, lr)
       tv_flow = total_variance(flow)
-      loss = l2_image + l2_warp + 0.001 * tv_flow
-      total_loss += loss
+      loss = l2_image * self.w[0] + l2_warp * self.w[1] + tv_flow * self.w[2]
+      self.adam.zero_grad()
+      loss.backward()
+      self.adam.step()
+      total_loss += loss.detach()
       image_loss += l2_image.detach()
       flow_loss += l2_warp.detach()
-    self.adam.zero_grad()
-    total_loss.backward()
-    self.adam.step()
     return {
-      'total_loss': total_loss.detach().cpu().numpy() / len(frames),
-      'image_loss': image_loss.detach().cpu().numpy() / len(frames),
-      'flow_loss': flow_loss.detach().cpu().numpy() / len(frames),
+      'total_loss': total_loss.cpu().numpy() / len(frames),
+      'image_loss': image_loss.cpu().numpy() / len(frames),
+      'flow_loss': flow_loss.cpu().numpy() / len(frames),
     }
 
   def eval(self, inputs, labels=None, **kwargs):
@@ -85,8 +84,7 @@ class FRVSR(SuperResolution):
     b = (last_lr.size(3) - frames[0].size(3)) * self.scale
     slice_h = slice(None) if a == 0 else slice(a // 2, -a // 2)
     slice_w = slice(None) if b == 0 else slice(b // 2, -b // 2)
-    last_sr = F.interpolate(
-      last_lr, scale_factor=self.scale, mode='bilinear', align_corners=False)
+    last_sr = upsample(last_lr, self.scale)
     for lr in frames:
       lr = pad_if_divide(lr, 8, 'reflect')
       sr, _, _, _ = self.frvsr(lr, last_lr, last_sr)
@@ -102,4 +100,5 @@ class FRVSR(SuperResolution):
       if writer is not None:
         step = kwargs['epoch']
         writer.image('clean', sr.clamp(0, 1), step=step)
+        writer.image('label', labels[-1], step=step)
     return predicts, metrics
