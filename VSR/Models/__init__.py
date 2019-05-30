@@ -15,7 +15,7 @@ def auto_search(root):
     obj = []
     key_to_remove = set()
     file = Path(file)
-    with file.open('r') as fd:
+    with file.open('r', encoding='utf-8') as fd:
       line = fd.readline()
       while line:
         if line.startswith('class'):
