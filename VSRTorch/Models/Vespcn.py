@@ -10,6 +10,7 @@ from .Model import SuperResolution
 from .vespcn import ops
 from ..Framework.Summary import get_writer
 from ..Util import Metrics
+from ..Util.Utility import pad_if_divide
 
 
 class VESPCN(SuperResolution):
@@ -47,10 +48,14 @@ class VESPCN(SuperResolution):
 
   def eval(self, inputs, labels=None, **kwargs):
     metrics = {}
-    frames = torch.split(inputs[0], 1, dim=1)
-    frames = [torch.squeeze(f, dim=1) for f in frames]
-    sr, warps, flows = self.vespcn(*frames)
-    sr = sr.cpu().detach()
+    frames = [x.squeeze(1) for x in inputs[0].split(1, dim=1)]
+    _frames = [pad_if_divide(x, 4, 'reflect') for x in frames]
+    a = (_frames[0].size(2) - frames[0].size(2)) * self.scale
+    b = (_frames[0].size(3) - frames[0].size(3)) * self.scale
+    slice_h = slice(None) if a == 0 else slice(a // 2, -a // 2)
+    slice_w = slice(None) if b == 0 else slice(b // 2, -b // 2)
+    sr, warps, flows = self.vespcn(*_frames)
+    sr = sr[..., slice_h, slice_w].cpu().detach()
     if labels is not None:
       targets = torch.split(labels[0], 1, dim=1)
       targets = [t.squeeze(1) for t in targets]
