@@ -32,7 +32,7 @@ class Summarizer:
 
   def image(self, name, image, max=3, step=None, collection=None):
     if image.ndimension() == 4:
-      images = image.split(image.shape[0])[:max]
+      images = image.split(1, dim=0)[:max]
     else:
       assert image.ndimension() == 3
       images = [image]

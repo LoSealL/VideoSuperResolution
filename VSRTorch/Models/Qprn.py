@@ -9,12 +9,12 @@ import torch.nn.functional as F
 import torchvision
 from torch import nn
 
-from .Arch import Rdb, SpaceToDepth, Upsample
+from .Arch import CascadeRdn, Rdb, SpaceToDepth, Upsample
+from .Crdn import Upsample as RsrUp
 from .Discriminator import DCGAN
 from .Loss import gan_bce_loss, total_variance
 from .Model import SuperResolution
 from .video.motion import STTN
-from .video.refine import Unet
 from ..Framework.Summary import get_writer
 from ..Framework.Trainer import SRTrainer, from_tensor, to_tensor
 from ..Util import Metrics
@@ -50,6 +50,29 @@ class Fnet(nn.Module):
     flow = self.flownet(z)
     gain = self.gain.to(flow.device)
     return flow * gain
+
+
+class Unet(nn.Module):
+  def __init__(self, channel, N=2):
+    super(Unet, self).__init__()
+    self.entry = nn.Sequential(
+      nn.Conv2d(channel * N, 32, 3, 1, 1),
+      SpaceToDepth(2),
+      nn.Conv2d(128, 32, 1, 1, 0))
+    self.exit = nn.Sequential(
+      Upsample(32, 2), nn.Conv2d(32, channel, 3, 1, 1))
+    self.down1 = nn.Conv2d(32, 64, 3, 2, 1)
+    self.up1 = RsrUp([64, 32])
+    self.cb = CascadeRdn(64, 3, True)
+
+  def forward(self, *inputs):
+    inp = torch.cat(inputs, dim=1)  # w
+    c0 = self.entry(inp)  # w / 2
+    c1 = self.down1(c0)  # w / 4
+    x = self.cb(c1)  # w / 4
+    c2 = self.up1(x, c0)
+    out = self.exit(c2)
+    return out
 
 
 class Composer(nn.Module):
