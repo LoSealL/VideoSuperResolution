@@ -5,9 +5,9 @@ _NOTE: all results are evaluated from retrained model here._
 
 |Model   |Scale Factor | Set5       | Set14      | BSD100     | Urban100   | Framework |
 |:-------|:------------|:-----------|:-----------|:-----------|:-----------|:----------|
-|Bicubic |     x2      |33.66/0.9299|30.24/0.8688|29.56/0.8431|26.88/0.8403|-|
+|Bicubic |     x2      |33.66/0.9299|30.24/0.8688|29.56/0.8431|26.88/0.8403|     -     |
 |--------|-------------|------------|------------|------------|------------|-----------|
-|Bicubic |     x4      |28.42/0.8104|26.00/0.7027|25.96/0.6675|23.14/0.6577|-|
+|Bicubic |     x4      |28.42/0.8104|26.00/0.7027|25.96/0.6675|23.14/0.6577|     -     |
 |SRCNN   |     x4      |30.03/0.8514|26.94/0.7453|26.70/0.7054|24.08/0.7048|PyTorch    |
 |ESPCN   |     x4      |29.01/0.8324|26.38/0.7348|26.34/0.7002|23.62/0.6872|PyTorch    |
 |VDSR*   |     x4      |28.39/0.8108|25.76/0.7056|25.95/0.6698|23.12/0.6591|PyTorch    |
@@ -21,6 +21,20 @@ _NOTE: all results are evaluated from retrained model here._
    - Dataset: DIV2K
    - Batch: [16,96,96,3] (HR)
 * VDSR seems fail to reach its global minima.
+
+## VSR (Video Super-Resolution)
+|Model   |Scale| VID4       | TBD..      | TBD..      | TBD..      | Framework |
+|:-------|:----|:-----------|:-----------|:-----------|:-----------|:----------|
+|Bicubic |x4   |23.58/0.6363| | | |     -     |
+|Bayesian|x4   |26.04/0.8151| | | |Matlab     |
+|VESPCN  |x4   |25.46/0.7432| | | |Tensorflow |
+|VESPCN  |x4   | | | | |PyTorch    |
+|SPMC    |x4   | | | | |PyTorch    |
+|SOFVSR  |x4   |26.04/0.7753| | | |PyTorch    |
+|FRVSR   |x4   |26.10/0.7755| | | |PyTorch    |
+|RBPN    |x4   |26.23/0.7843| | | |PyTorch    |
+
+* Compare Y-channel only, no border pixel shaved off.
 
 ## Image Denoise
 |Model   | AWGN Level | BSD68      | Set12      | Urban100   |

@@ -1,7 +1,14 @@
 drn:
-  finetune: true
-  scale: 1
+  scale: 4
+  channel: 3
+  n_cb: 4
+  noise: 0
+  offset: 0
 
-patch_size: 128
 batch: 16
+patch_size: 128
 lr: 1.0e-4
+lr_decay:
+  method: multistep
+  decay_step: []
+  decay_rate: 0.5

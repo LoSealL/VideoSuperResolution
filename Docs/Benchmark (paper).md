@@ -56,6 +56,18 @@ _NOTE: all results are copied from original papers._
 - PSNR Top3: 1st **ESRGAN**, 2nd **RCAN**, 3rd **RNAN**, 4th **RDN**.
 - SSIM Top3: 1st **ESRGAN**, 2nd **RCAN**, 3rd **RDN**, 4th **RNAN**.
 
+## VSR (Video Super-Resolution)
+|Model   |Scale| VID4       | TBD..      | TBD..      | TBD..      |
+|:-------|:----|:-----------|:-----------|:-----------|:-----------|
+|Bicubic |x4   |23.58/0.6363| | | |
+|Bayesian|x4   |26.04/0.8151| | | |
+|VESPCN  |x4   |25.35/0.7557| | | |
+|SPMC    |x4   |25.52/0.7600| | | |
+|SOFVSR  |x4   |26.01/0.7710| | | |
+|DUF     |x4   |27.31/0.8320| | | |
+|FRVSR   |x4   |26.69/0.8220| | | |
+|RBPN    |x4   |27.12/0.8180| | | |
+
 ## Image Denoise
 |Model   | AWGN Level | BSD68      | Set12      | Urban100   |
 |:-------|:-----------|:-----------|:-----------|:-----------|
