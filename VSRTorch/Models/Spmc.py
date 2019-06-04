@@ -11,17 +11,19 @@ from .Model import SuperResolution
 from .spmc.ops import DetailRevealer
 from ..Framework.Summary import get_writer
 from ..Util.Metrics import psnr
-from ..Util.Utility import pad_if_divide
+from ..Util.Utility import pad_if_divide, upsample
 
 
 class SPMC(SuperResolution):
-  def __init__(self, scale, channel, stage, lambda1, lambda2, **kwargs):
+  def __init__(self, scale, channel, stage, lambda1, lambda2, residual,
+               **kwargs):
     super(SPMC, self).__init__(scale, channel)
     self.spmc = DetailRevealer(scale, channel, **kwargs)
     self.adam = torch.optim.Adam(self.trainable_variables(), 1e-4)
     self.stage = stage
     self.lambda1 = lambda1
     self.lambda2 = lambda2
+    self.residual = residual
 
   def train(self, inputs, labels, learning_rate=None):
     self.spmc.reset()
@@ -39,6 +41,8 @@ class SPMC(SuperResolution):
     gt = labels[center]
     for ref in frames:
       sr, flow = self.spmc(target, ref)
+      if self.residual:
+        sr = sr + upsample(target, self.scale)
       warp = self.spmc.me.warper(ref, flow[:, 0], flow[:, 1])
       srs.append(sr)
       warps.append(warp)
@@ -77,6 +81,8 @@ class SPMC(SuperResolution):
     srs = []
     for ref in frames:
       sr, _ = self.spmc(target, ref)
+      if self.residual:
+        sr = sr + upsample(target, self.scale)
       srs.append(sr[..., slice_h, slice_w].detach().cpu().numpy())
     if labels is not None:
       labels = [x.squeeze(1) for x in labels[0].split(1, dim=1)]
