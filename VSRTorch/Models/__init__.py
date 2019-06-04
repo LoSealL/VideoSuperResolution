@@ -23,7 +23,7 @@ models = {
   'srfeat': ('SRFeat', 'SRFEAT'),
   'esrgan': ('Esrgan', 'ESRGAN'),
   'msrn': ('Msrn', 'MSRN'),
-  'rsr': ('Rsr', 'RSR'),
+  'crdn': ('Crdn', 'CRDN'),
   'mldn': ('Mldn', 'MLDN'),
   'drn': ('Drn', 'DRN'),
   'sofvsr': ('Sofvsr', 'SOFVSR'),

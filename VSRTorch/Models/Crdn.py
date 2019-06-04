@@ -28,9 +28,9 @@ class Upsample(nn.Module):
     return self.c2(con)
 
 
-class Rsr(nn.Module):
+class Crdn(nn.Module):
   def __init__(self, blocks=(4, 4), **kwargs):
-    super(Rsr, self).__init__()
+    super(Crdn, self).__init__()
     self.blocks = to_list(blocks, 2)
 
     self.entry = nn.Sequential(
@@ -67,10 +67,10 @@ class Rsr(nn.Module):
     return out
 
 
-class RSR(Model.SuperResolution):
+class CRDN(Model.SuperResolution):
   def __init__(self, **kwargs):
-    super(RSR, self).__init__(scale=1, channel=3)
-    self.rsr = Rsr()
+    super(CRDN, self).__init__(scale=1, channel=3)
+    self.rsr = Crdn()
     self.opt = torch.optim.Adam(self.trainable_variables(), 1e-4)
 
   def train(self, inputs, labels, learning_rate=None):

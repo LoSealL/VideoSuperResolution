@@ -6,4 +6,3 @@
 import logging
 
 _logger = logging.getLogger("VSR.VIDEO")
-_logger.info("@LoSealL. Video related ops, nets...")

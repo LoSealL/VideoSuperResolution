@@ -13,7 +13,7 @@ Last update date: Mar. 25th 2019
 from setuptools import find_packages
 from setuptools import setup
 
-VERSION = '0.8.0'
+VERSION = '0.8.1'
 
 REQUIRED_PACKAGES = [
   'numpy',
