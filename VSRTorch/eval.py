@@ -66,11 +66,11 @@ def overwrite_from_env(flags):
   output_index = os.getenv('VSR_OUTPUT_INDEX')
   seq_loader = os.getenv('VSR_SEQ_LOADER')
 
-  if auto_rename != '':
+  if auto_rename and auto_rename != '':
     flags.auto_rename = str2boolean(auto_rename)
-  if output_index != '':
+  if output_index and output_index != '':
     flags.output_index = output_index
-  if seq_loader != '':
+  if seq_loader and seq_loader != '':
     flags.seq_loader = str2boolean(seq_loader)
 
 
