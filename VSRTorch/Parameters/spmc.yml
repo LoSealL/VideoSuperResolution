@@ -10,7 +10,7 @@ spmc:
   lambda1: 0.01
   lambda2: 0.01
   # add bicubic to output
-  residual: true
+  residual: false
 
 batch: 16
 patch_size: 96

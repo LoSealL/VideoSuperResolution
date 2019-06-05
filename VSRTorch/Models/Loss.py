@@ -22,6 +22,21 @@ def total_variance(x, dims=(2, 3), reduction='mean'):
   return tot_var / reduce
 
 
+def focal_l1_loss(x, y, a=2, b=0, c=1, y_is_label=True, focal='edge'):
+  if not y_is_label:
+    x, y = y, x
+  absolute_diff = torch.abs(x - y)
+  if focal == 'edge':
+    focal = F.pad(y[..., :-1, :-1] - y[..., 1:, 1:], [0, 1, 0, 1])
+  elif focal == 'focal':
+    focal = absolute_diff
+  focal = torch.abs((focal - focal.mean()) / focal.std())
+  focal = (focal + 1) / 2
+  tuned_diff = torch.pow(focal, a) * absolute_diff
+  loss = b * absolute_diff + c * tuned_diff
+  return loss.mean()
+
+
 def gan_bce_loss(x, as_real: bool):
   """vanilla GAN binary cross entropy loss"""
   if as_real:
