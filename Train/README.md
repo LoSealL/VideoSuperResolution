@@ -79,8 +79,8 @@ You can use `ben.py` for **eval** mode now. There are two ways to execute in eva
     ```
 - Evaluate:
     ```Bash
-    python run.py --model=vdsr --checkpoint_dir=../Results/vdsr --epochs=100 --test=set14 --enable_psnr --enable_ssim
-    python run.py --input_dir=../Results/vdsr/SET14 --test=set14 --enable_psnr --enable_ssim
+    python ben.py --model=vdsr --checkpoint_dir=../Results/vdsr --epochs=100 --test=set14 --enable_psnr --enable_ssim
+    python ben.py --input_dir=../Results/vdsr/SET14 --test=set14 --enable_psnr --enable_ssim
     ```
 
 ## 5. Dataset
