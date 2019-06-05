@@ -20,7 +20,7 @@ Dataset:
   NORMAL:
     train: [FOO, BAR]
     val: [BAR]
-    test: [set5_x2/img_001_SRF_2_LR.png]
+    test: ["set5_x2/img_001_SRF_2_LR.png"]
 
   NUMPY:
     # alpha version, loading ndarray data(s)

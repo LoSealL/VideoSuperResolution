@@ -379,3 +379,21 @@ class QuickLoader(BasicLoader):
     if not (self.loaded & 0xFFFF):
       self.frames.clear()
     return EpochIterator(self, grids)
+
+
+class SequentialLoader(BasicLoader):
+  def __init__(self, dataset, method, config, augmentation=False, n_threads=1,
+               **kwargs):
+    self.split = n_threads
+    super(SequentialLoader, self).__init__(dataset, method, config,
+                                           augmentation, **kwargs)
+
+  def make_one_shot_iterator(self, memory_usage=None, shuffle=False):
+    for i in range(self.split):
+      self._prefetch(None, self.split, i)
+      grids = self._generate_crop_grid(
+        self.frames, self.patches_per_epoch, shuffle)
+      self.frames.clear()
+      it = EpochIterator(self, grids)
+      for item in it:
+        yield item

@@ -9,7 +9,7 @@ NOTE: [Y][U][V] means Y/U/V channel is a planar channel, [U/4] means
   U channel is sub-sampled by a factor of [2, 2]
 """
 import numpy as np
-from PIL import Image, ImageFile
+from PIL import ImageFile
 
 
 class YV12Decoder(ImageFile.PyDecoder):
@@ -68,7 +68,3 @@ class YV21Decoder(ImageFile.PyDecoder):
       yuv = np.stack([y, u, v], axis=-1)
       self.set_as_raw(yuv.flatten().tobytes())
     return -1, 0
-
-
-Image.DECODERS['YV12'] = YV12Decoder
-Image.DECODERS['YV21'] = YV21Decoder
