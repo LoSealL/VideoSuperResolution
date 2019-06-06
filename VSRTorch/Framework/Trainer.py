@@ -213,11 +213,12 @@ class SRTrainer(Env):
 
     self._restore(config.epoch, v.map_location)
     it = loader.make_one_shot_iterator()
-    if len(it):
-      self._logger.info('Inferring {} at epoch {}'.format(
-        self.model.name, self.last_epoch))
-    else:
-      return
+    if hasattr(it, 'len'):
+      if len(it):
+        self._logger.info('Inferring {} at epoch {}'.format(
+          self.model.name, self.last_epoch))
+      else:
+        return
     # use original images in inferring
     self.model.to_eval()
     for items in tqdm.tqdm(it, 'Infer', ascii=True):

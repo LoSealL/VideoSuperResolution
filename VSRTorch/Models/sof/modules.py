@@ -73,9 +73,10 @@ class OFRnet(nn.Module):
   def __init__(self, upscale_factor):
     super(OFRnet, self).__init__()
     self.pool = nn.AvgPool2d(kernel_size=2)
-    self.upsample = nn.Upsample(scale_factor=2, mode='bilinear')
+    self.upsample = nn.Upsample(scale_factor=2, mode='bilinear',
+                                align_corners=False)
     self.final_upsample = nn.Upsample(scale_factor=upscale_factor,
-                                      mode='bilinear')
+                                      mode='bilinear', align_corners=False)
     self.shuffle = nn.PixelShuffle(upscale_factor)
     self.upscale_factor = upscale_factor
     # Level 1
@@ -142,18 +143,23 @@ class OFRnet(nn.Module):
 
 
 class SRnet(nn.Module):
-  def __init__(self, upscale_factor):
+  def __init__(self, s, c, d):
+    """
+    Args:
+      s: scale factor
+      c: channel numbers
+      d: video sequence number
+    """
     super(SRnet, self).__init__()
-    self.conv = nn.Conv2d(35, 64, 3, 1, 1, bias=False)
+    self.conv = nn.Conv2d(c * (2 * s ** 2 + d), 64, 3, 1, 1, bias=False)
     self.RDB_1 = RDB(5, 64, 32)
     self.RDB_2 = RDB(5, 64, 32)
     self.RDB_3 = RDB(5, 64, 32)
     self.RDB_4 = RDB(5, 64, 32)
     self.RDB_5 = RDB(5, 64, 32)
-    self.bottleneck = nn.Conv2d(384, upscale_factor ** 2, 1, 1, 0, bias=False)
-    self.conv_2 = nn.Conv2d(upscale_factor ** 2, upscale_factor ** 2, 3, 1, 1,
-                            bias=True)
-    self.shuffle = nn.PixelShuffle(upscale_factor=upscale_factor)
+    self.bottleneck = nn.Conv2d(384, c * s ** 2, 1, 1, 0, bias=False)
+    self.conv_2 = nn.Conv2d(c * s ** 2, c * s ** 2, 3, 1, 1, bias=True)
+    self.shuffle = nn.PixelShuffle(upscale_factor=s)
 
   def forward(self, x):
     input = self.conv(x)
@@ -171,11 +177,12 @@ class SRnet(nn.Module):
 
 
 class SOFVSR(nn.Module):
-  def __init__(self, upscale_factor):
+  def __init__(self, scale, channel, depth):
     super(SOFVSR, self).__init__()
-    self.upscale_factor = upscale_factor
-    self.OFRnet = OFRnet(upscale_factor=upscale_factor)
-    self.SRnet = SRnet(upscale_factor=upscale_factor)
+    self.upscale_factor = scale
+    self.c = channel
+    self.OFRnet = OFRnet(upscale_factor=scale)
+    self.SRnet = SRnet(scale, channel, depth)
 
   def forward(self, x):
     input_01 = torch.cat((torch.unsqueeze(x[:, 0, :, :], dim=1),
@@ -187,12 +194,13 @@ class SOFVSR(nn.Module):
     draft_cube = x
     for i in range(self.upscale_factor):
       for j in range(self.upscale_factor):
-        draft_01 = optical_flow_warp(torch.unsqueeze(x[:, 0, :, :], dim=1),
+        draft_01 = optical_flow_warp(x[:, :self.c, :, :],
                                      flow_01_L3[:, :, i::self.upscale_factor,
                                      j::self.upscale_factor] / self.upscale_factor)
-        draft_21 = optical_flow_warp(torch.unsqueeze(x[:, 2, :, :], dim=1),
+        draft_21 = optical_flow_warp(x[:, self.c * 2:, :, :],
                                      flow_21_L3[:, :, i::self.upscale_factor,
                                      j::self.upscale_factor] / self.upscale_factor)
         draft_cube = torch.cat((draft_cube, draft_01, draft_21), 1)
     output = self.SRnet(draft_cube)
-    return output, (flow_01_L3, flow_01_L2, flow_01_L1), (flow_21_L3, flow_21_L2, flow_21_L1)
+    return output, (flow_01_L3, flow_01_L2, flow_01_L1), (
+      flow_21_L3, flow_21_L2, flow_21_L1)

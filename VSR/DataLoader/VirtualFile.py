@@ -19,6 +19,11 @@ from ..Util.Utility import to_list
 # You have to keep this
 from . import YVDecoder, NVDecoder
 
+Image.DECODERS['NV12'] = NVDecoder.NV12Decoder
+Image.DECODERS['NV21'] = NVDecoder.NV21Decoder
+Image.DECODERS['YV12'] = YVDecoder.YV12Decoder
+Image.DECODERS['YV21'] = YVDecoder.YV21Decoder
+
 
 class File:
   """An abstract file object

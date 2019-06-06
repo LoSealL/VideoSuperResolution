@@ -144,3 +144,11 @@ def test_video_pair():
   assert list(ld1.make_one_shot_iterator()) != []
   assert list(ld2.make_one_shot_iterator()) != []
   assert list(ld3.make_one_shot_iterator()) != []
+
+
+def test_seq_loader():
+  dut = DATASETS['NORMAL']
+  config = Config(batch=1, scale=4, depth=1, convert_to='RGB', crop='random')
+  config.patch_size = 48
+  ld = SequentialLoader(dut, 'train', config, split=7)
+  assert len(list(ld.make_one_shot_iterator())) == 7

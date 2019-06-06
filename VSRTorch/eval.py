@@ -16,7 +16,7 @@ except ImportError:
 from VSRTorch.Models import get_model, list_supported_models
 from VSR.DataLoader.Dataset import Dataset, _glob_absolute_pattern, \
   load_datasets
-from VSR.DataLoader.Loader import QuickLoader
+from VSR.DataLoader.Loader import QuickLoader, SequentialLoader
 from VSR.Framework.Callbacks import save_image, to_gray, to_rgb
 from VSR.Util.Config import Config
 from VSR.Tools.Run import suppress_opt_by_args, dump
@@ -52,12 +52,26 @@ parser.add_argument("--ensemble", action="store_true")
 parser.add_argument("-v", "--verbose", action="store_true")
 
 
+def str2boolean(s):
+  assert isinstance(s, str)
+  if s.lower() in ('true', 'yes', '1'):
+    return True
+  else:
+    return False
+
+
 def overwrite_from_env(flags):
   import os
-  if os.getenv('VSR_AUTO_RENAME'):
-    flags.auto_rename = True
-  if os.getenv('VSR_OUTPUT_INDEX'):
-    flags.output_index = os.getenv('VSR_OUTPUT_INDEX')
+  auto_rename = os.getenv('VSR_AUTO_RENAME')
+  output_index = os.getenv('VSR_OUTPUT_INDEX')
+  seq_loader = os.getenv('VSR_SEQ_LOADER')
+
+  if auto_rename and auto_rename != '':
+    flags.auto_rename = str2boolean(auto_rename)
+  if output_index and output_index != '':
+    flags.output_index = output_index
+  if seq_loader and seq_loader != '':
+    flags.seq_loader = str2boolean(seq_loader)
 
 
 def main():
@@ -135,8 +149,8 @@ def main():
     with trainer(model, root, verbosity, opt.pth) as t:
       if opt.seed is not None:
         t.set_seed(opt.seed)
-      loader = QuickLoader(test_data, 'test', loader_config,
-                           n_threads=opt.thread)
+      Loader = SequentialLoader if opt.seq_loader else QuickLoader
+      loader = Loader(test_data, 'test', loader_config, n_threads=opt.thread)
       loader_config.epoch = opt.epoch
       if run_benchmark:
         t.benchmark(loader, loader_config)

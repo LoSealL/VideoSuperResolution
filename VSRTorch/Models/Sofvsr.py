@@ -18,7 +18,7 @@ class SOFVSR(SuperResolution):
 
   def __init__(self, scale, channel, depth=3, **kwargs):
     super(SOFVSR, self).__init__(scale, channel, **kwargs)
-    self.sof = _SOFVSR(scale)
+    self.sof = _SOFVSR(scale, channel, depth)
     self.opt = torch.optim.Adam(self.trainable_variables(), 1e-4)
     assert depth == 3
     self.center = depth // 2

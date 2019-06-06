@@ -10,7 +10,7 @@ NOTE: [Y] means Y channel is a planar channel, [UV] means UV
   means U and V are sub-sampled by a factor of [2, 2]
 """
 import numpy as np
-from PIL import Image, ImageFile
+from PIL import ImageFile
 
 
 class NV12Decoder(ImageFile.PyDecoder):
@@ -62,7 +62,3 @@ class NV21Decoder(ImageFile.PyDecoder):
       yuv = np.concatenate([y, uv], axis=-1)
       self.set_as_raw(yuv.flatten().tobytes())
     return -1, 0
-
-
-Image.DECODERS['NV12'] = NV12Decoder
-Image.DECODERS['NV21'] = NV21Decoder
