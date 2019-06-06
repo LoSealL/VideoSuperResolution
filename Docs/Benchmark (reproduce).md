@@ -27,8 +27,8 @@ _NOTE: all results are evaluated from retrained model here._
 |:-------|:----|:-----------|:-----------|:-----------|:-----------|:----------|
 |Bicubic |x4   |23.58/0.6363| | | |     -     |
 |Bayesian|x4   |26.04/0.8151| | | |Matlab     |
-|VESPCN  |x4   |25.46/0.7432| | | |Tensorflow |
-|VESPCN  |x4   | | | | |PyTorch    |
+|VESPCN-1|x4   |25.46/0.7432| | | |Tensorflow |
+|VESPCN-3|x4   |25.04/0.7143| | | |PyTorch    |
 |SPMC    |x4   |25.65/0.7513| | | |PyTorch    |
 |SOFVSR  |x4   |26.04/0.7753| | | |PyTorch    |
 |FRVSR   |x4   |26.10/0.7755| | | |PyTorch    |

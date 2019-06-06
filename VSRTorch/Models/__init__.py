@@ -31,6 +31,7 @@ models = {
   'frvsr': ('Frvsr', 'FRVSR'),
   'qprn': ('Qprn', 'QPRN'),
   'ufvsr': ('Ufvsr', 'UFVSR'),
+  'yovsr': ('Yovsr', 'YOVSR'),
   'tecogan': ('TecoGAN', 'TeCoGAN'),
   'spmc': ('Spmc', 'SPMC'),
   'rbpn': ('Rbpn', 'RBPN'),

@@ -96,6 +96,7 @@ WEIGHTS = {
   'Tcrdn.zip': 'https://github.com/LoSealL/Model/releases/download/crdn/rsr.zip',
   'Trbpn.zip': '1Ozp5j-DBWJSpXY5GvxiEPKdfCaAbOXqu',
   'Tspmc.zip': 'https://github.com/LoSealL/Model/releases/download/spmc/spmc.zip',
+  'Tvespcn.zip': 'https://github.com/LoSealL/Model/releases/download/vespcn/Tvespcn.zip',
 }
 
 

@@ -18,6 +18,7 @@ VERSION = '0.8.2'
 REQUIRED_PACKAGES = [
   'numpy',
   'scipy',
+  'scikit-image',
   'matplotlib',
   'Pillow',
   'pypng',
