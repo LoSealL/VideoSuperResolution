@@ -81,7 +81,11 @@ class Parser(object):
   @property
   def capacity(self):
     # bytes per pixel
-    bpp = 1.5 * (1 + np.reciprocal(self.scale, dtype='float32'))
+    bpp = (1 + np.reciprocal(self.scale, dtype='float32')) * 2
+    if self.color_format != 'L':
+      bpp *= 3
+    depth = 1 if self.depth < 1 else self.depth
+    bpp *= depth
     # NOTE use uint64 to prevent sum overflow
     return np.sum([np.prod((*vf.shape, vf.frames, bpp), dtype=np.uint64)
                    for vf in self.file_objects])
