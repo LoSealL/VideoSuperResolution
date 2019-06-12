@@ -230,6 +230,8 @@ def downsample(img, scale, border='REFLECT'):
     border: padding mode. Recommend to 'REFLECT'.
   """
   kernel, s = _weights_downsample(scale)
+  if s == 1:
+    return img  # bypass
   kernel = tf.convert_to_tensor(kernel, dtype='float32')
   p1 = int(s * 3 / 2)
   p2 = 4 * s - int(s * 3 / 2)
@@ -254,6 +256,8 @@ def upsample(img, scale, border='REFLECT'):
     border: padding mode. Recommend to 'REFLECT'.
   """
   kernels, s = _weights_upsample(scale)
+  if s == 1:
+    return img  # bypass
   kernels = [tf.convert_to_tensor(k, dtype='float32') for k in kernels]
   p1 = 1 + s // 2
   p2 = 3
