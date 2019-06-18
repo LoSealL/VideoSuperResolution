@@ -33,6 +33,10 @@ Path:
   MiniFlyingChairs: FlyingChairs/data
   FlyingChairsTest: FlyingChairs/test
   FlyingChairsFlow: FlyingChairs/flow/*.flo
+  YOTRAIN-HR: youku/train/hr/png
+  YOTRAIN-LR: youku/train/lr/png
+  YOVAL-HR: youku/val/hr/png
+  YOVAL-LR: youku/val/lr/png
 
 Path_Tracked:
   SET5: Set5_SR/Set5/image_SRF_4/*HR.*
@@ -43,7 +47,8 @@ Path_Tracked:
   BSD500: BSR_bsds500/BSR/BSDS500/data/images/test/*.jpg
   VID4-HR: vid4/original/
   GOPRO-Val: GOPRO_Large_all/test
-  SIDD-VAL: NTIRE19/Denoise/validation_corrected
+  SIDD-VAL: NTIRE19/Denoise/ValidationLR
+  YOTEST: youku/test/lr/png
 
 # bind datasets to a name, called in scripts
 Dataset:
@@ -94,36 +99,62 @@ Dataset:
     test: VID4-HR
     infer: vid4/input/
 
-#  CHAIRS:  # flying chairs, a popular optical flow train-set
-#    train: FlyingChairs
-#    flow: FlyingChairsFlow
-#    val: FlyingChairsVal
-#    test: FlyingChairsTest
-
-#  MINICHAIRS:  # a small set of flying chairs, for quick testing
-#    train: MiniFlyingChairs
-#    flow: FlyingChairsFlow
-#    val: FlyingChairsVal
-#    test: FlyingChairsTest
-  #    param:
-  #      parser: flow
-
-  SIDD:
-    train: "NTIRE19/Denoise/train/drsr_patches/**/*.png"
-    train_pair: "NTIRE19/Denoise/train/noisy_patches/**/*.png"
-    val: "NTIRE19/Denoise/train/gt_patches/**/*.png"
-    val_pair: "NTIRE19/Denoise/train/noisy_patches/**/*.png"
-    infer: ["NTIRE19/Denoise/validation_corrected"]
+  SIDD:  # Denoise dataset of NTIRE 2019
+    # To parse .MAT files, use `Tools/NtireHelper.py`
+    # > python NtireHelper.py ValidationNoisyBlocksSrgb.MAT OUTPUT_DIR/
+    train: "NTIRE19/Denoise/SIDD_Medium_Srgb/Data/**/*GT*.PNG"
+    train_pair: "NTIRE19/Denoise/SIDD_Medium_Srgb/Data/**/*NOISY*.png"
+    val: "NTIRE19/Denoise/ValidationGT/*.png"
+    val_pair: "NTIRE19/Denoise/ValidationLR/*.png"
     param:
       parser: custom_pairs
 
-  RSR:
+  RSR:  # Real SR dataset of NTIRE 2019
+    # EXGT contains both training images and validation images
     train: ["NTIRE19/SR/EXGT"]
     train_pair: ["NTIRE19/SR/EXLR/"]
     val: ["NTIRE19/SR/EXGT/"]
     val_pair: ["NTIRE19/SR/EXLR/"]
     param:
       parser: custom_pairs
+
+  VIMEO:  # widely used 90K high quality videos
+    # To make into HDF5 binary, use 'Tools/Vimeo.py':
+    # > python Vimeo.py VIMEO_DIR --hdf
+    # HDF is nearly 160GB
+    train: "vimeo/vimeo_septuplet/train.hdf"
+    val: "vimeo/vimeo_septuplet/test.hdf"
+    param:
+      parser: vimeo
+
+  YOUKU:  # Youku VSR challenge dataset
+    # To pack png files into y4m format, use `Tools/YoukuPackage.py`
+    # > python YoukuPackage.py -i PNG_DIR -o RESULTS_DIR
+    train: [YOTRAIN-HR]
+    train_pair: [YOTRAIN-LR]
+    val: [YOVAL-HR]
+    val_pair: [YOVAL-LR]
+    param:
+      parser: custom_pairs
+
+  YOINIT:
+    train: [YOTRAIN-LR, YOVAL-LR, YOTEST-LR]
+    val: [YOVAL-HR]
+
+  LOWQP:  # Low quality based on low QP
+    train: "lowqp/train"
+    val: "lowqp/val"
+    test: "lowqp/test"
+    param:
+      parser: cqp
+
+#  CHAIRS:  # flying chairs, a popular optical flow train-set
+#    train: FlyingChairs
+#    flow: FlyingChairsFlow
+#    val: FlyingChairsVal
+#    test: FlyingChairsTest
+#    param:
+#      parser: flow
 
 #  CELEBA:  # center cropped and resize to 64x64
 #    # test images are randomly selected (10,000 samples)
@@ -132,26 +163,7 @@ Dataset:
 #    val: [celeba/test64/000001.png]  # just use as a placeholder
 #    test: [celeba/test64/*.png]
 #    infer: []
-#
+
 #  CIFAR10:  # well-known cifar-10
 #    param:
 #      parser: cifar10
-
-  VIMEO:
-    train: "vimeo/vimeo_septuplet/train.hdf"
-    val: "vimeo/vimeo_septuplet/test.hdf"
-    param:
-      parser: vimeo
-
-  DAVIS-VQP:
-    train: "davis/png_images_gop1"
-    val: "davis/test_images"
-    param:
-      parser: vqp
-
-  LOWQP:
-    train: "lowqp/train"
-    val: "lowqp/val"
-    test: "lowqp/test"
-    param:
-      parser: cqp
