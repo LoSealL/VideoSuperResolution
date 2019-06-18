@@ -5,7 +5,11 @@ A collection of state-of-the-art video or single-image super-resolution architec
 
 **Several referenced PyTorch implementations are also included now.**
 
-**Quick Link:** [Installation](#install) [Getting Started](#Getting-Started) [Benchmark](./Docs/Benchmark%20(reproduce).md)
+**Quick Link:**
+- [**CVPR2019 Highlight**](./Docs/Collections%20CVPR%202019.md)
+- [Installation](#install)
+- [Getting Started](#Getting-Started)
+- [Benchmark](./Docs/Benchmark%20(reproduce).md)
 
 ## Network list and reference (Updating)
 The hyperlink directs to paper site, follows the official codes if the authors open sources.

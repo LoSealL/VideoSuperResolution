@@ -119,6 +119,8 @@ def downsample(img, scale, border='reflect'):
   """
   device = img.device
   kernel, s = _weights_downsample(scale)
+  if s == 1:
+    return img  # bypass
   kernel = kernel.astype('float32')
   kernel = torch.from_numpy(kernel)
   p1 = int(s * 3 / 2)
@@ -144,6 +146,8 @@ def upsample(img, scale, border='reflect'):
   """
   device = img.device
   kernels, s = _weights_upsample(scale)
+  if s == 1:
+    return img  # bypass
   kernels = [k.astype('float32') for k in kernels]
   kernels = [torch.from_numpy(k) for k in kernels]
   p1 = 1 + s // 2
@@ -169,6 +173,6 @@ def bicubic_resize(img, scale, border='reflect'):
   elif 0 < scale < 1:
     return downsample(img, scale, border)
   elif scale == 1:
-    return img
+    return img  # bypass
   else:
     raise ValueError("Wrong scale factor!")

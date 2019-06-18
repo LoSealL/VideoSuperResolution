@@ -51,10 +51,11 @@ _NOTE: all results are copied from original papers._
 |NLRN    |     x4      |31.92/0.8916|28.36/0.7745|27.48/0.7306|25.79/0.7729|
 |RNAN    |     x4      |32.49/0.8982|28.83/0.7878|27.72/0.7421|26.61/0.8023|
 |ESRGAN  |     x4      |32.74/0.9012|28.99/0.7917|27.85/0.7455|27.03/0.8153|
+|SAN     |     x4      |32.64/0.9003|28.92/0.7888|27.78/0.7436|26.69/0.8068|
 |--------|-------------|------------|------------|------------|------------|
 
-- PSNR Top3: 1st **ESRGAN**, 2nd **RCAN**, 3rd **RNAN**, 4th **RDN**.
-- SSIM Top3: 1st **ESRGAN**, 2nd **RCAN**, 3rd **RDN**, 4th **RNAN**.
+- PSNR Top3: 1st **ESRGAN**, 2nd **SAN**, 3rd **RCAN**, 4th **RNAN**.
+- SSIM Top3: 1st **ESRGAN**, 2nd **SAN**, 3rd **RCAN**, 4th **RDN**.
 
 ## VSR (Video Super-Resolution)
 |Model   |Scale| VID4       | TBD..      | TBD..      | TBD..      |
