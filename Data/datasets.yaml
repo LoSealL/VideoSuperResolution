@@ -141,6 +141,14 @@ Dataset:
     train: [YOTRAIN-LR, YOVAL-LR, YOTEST-LR]
     val: [YOVAL-HR]
 
+  YOUKUFT:
+    train: [YOTRAIN-HR]
+    train_pair: ["../yovsr/tpng"]
+    val: [YOVAL-HR]
+    val_pair: ["../yovsr/vpng"]
+    param:
+      parser: custom_pairs
+
   LOWQP:  # Low quality based on low QP
     train: "lowqp/train"
     val: "lowqp/val"
