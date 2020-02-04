@@ -12,8 +12,8 @@ And test it on `Set14` dataset afterward.
 ## 2. Train model more customized:
 `run.py` can be used to train/benchmark/infer models collected in [VSR.Models](../VSR/Models)
 
-The model parameters can be configured through [parameters/root.yaml](./parameters/root.yaml) and
-*<parameters/model-name.yaml>* (i.e. [srcnn](./parameters/srcnn.yaml))
+The model parameters can be configured through [parameters/root.yaml](tf/root.yaml) and
+*<parameters/model-name.yaml>* (i.e. [srcnn](tf/srcnn.yaml))
 
 ```Bash
 python run.py --model <model-name> --epochs <num> --steps_per_epoch <num> --dataset <train-dataset-name> \
@@ -59,7 +59,7 @@ You can use `ben.py` for **eval** mode now. There are two ways to execute in eva
 
 #### Examples
 1. VDSR
-- Config: [vdsr.yaml](parameters/vdsr.yaml)
+- Config: [vdsr.yaml](tf/vdsr.yaml)
     - overwrite model parameters:
         ```bash
         python run.py --model=vdsr --channel=3

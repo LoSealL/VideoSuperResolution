@@ -1,20 +1,15 @@
-"""
-Copyright: Wenyi Tang 2017-2018
-Author: Wenyi Tang
-Email: wenyi.tang@intel.com
-Created Date: Jan. 11th 2018
-Updated Date: May 24th 2018
+#  Copyright (c) 2017-2020 Wenyi Tang.
+#  Author: Wenyi Tang
+#  Email: wenyitang@outlook.com
+#  Update: 2020 - 2 - 7
 
-offline dataset collector
-support random crop
-"""
-import logging
-import os
+import re
 from concurrent import futures
 from pathlib import Path
 
 import yaml
 
+from .VirtualFile import ImageFile, RawFile
 from ..Util.Config import Config
 from ..Util.Utility import to_list
 
@@ -23,76 +18,168 @@ try:
 except ImportError:
   from yaml import Loader as _Loader
 
-_logger = logging.getLogger("VSR.Dataset")
-_lazy_load = os.getenv('VSR_LAZY_LOAD')
-_executor = None
+IMAGE_SUF = ('PNG', 'JPG', 'JPEG', 'BMP', 'TIFF', 'TIF', 'GIF')
+VIDEO_SUF = {
+  'NV12': 'NV12',
+  'YUV': 'YV12',
+  'YV12': 'YV12',
+  'NV21': 'NV21',
+  'YV21': 'YV21',
+  'RGB': 'RGB'
+}
 
 
-class Dataset(Config):
-  """Dataset provides training/validation/testing data for neural network.
+def _supported_image(x: Path):
+  return x.suffix[1:].upper() in IMAGE_SUF
 
-  This is a simple wrapper provides train, val, test and additional properties
 
-  Args:
-      train: a list of file path, representing train set.
-      val: a list of file path, representing validation set.
-      test: a list of file path, representing test set.
-      infer: a list of file path, representing infer set.
-      mode: a string representing data format. 'pil-image' for formatted
-        image, or ('YV12', 'NV12', 'RGB', 'BGR'...) for raw data.
-        See `VirtualFile._ALLOWED_RAW_FORMAT`
-      flow: a list of file path representing optical flow files
+def _supported_video(x: Path):
+  return x.suffix[1:].upper() in VIDEO_SUF
+
+
+def _supported_suffix(x: Path):
+  return _supported_image(x) or _supported_video(x)
+
+
+class Dataset(object):
+  """ Make a `dataset` object
+
   """
 
-  def __init__(self, d=None, **kwargs):
-    super(Dataset, self).__init__(d, **kwargs)
-    # default attr
-    if self.mode is None:
-      self.mode = 'pil-image1'
+  def __init__(self, *folders):
+    self.dirs = map(Path, folders)
+    self.recursive = True
+    self.glob_patterns = ('*',)
+    self.inc_patterns = None
+    self.exc_patterns = None
+    self.as_video = False
+    self.compiled = None
 
-  def __getattr__(self, item):
-    try:
-      return self[item]
-    except KeyError:
-      if item in ('train', 'val', 'test', 'infer',):
-        _logger.debug('The {} files is empty!'.format(item))
-        return []
-      return None
+  def use_like_video(self):
+    self.as_video = True
+    return self
+
+  def include(self, *pattern: str):
+    self.glob_patterns = list(pattern)
+    self.inc_patterns = None
+    return self
+
+  def include_reg(self, *reg: str):
+    self.inc_patterns = [re.compile(r) for r in reg]
+    self.glob_patterns = ('*',)
+    return self
+
+  def exclude(self, *reg: str):
+    self.exc_patterns = [re.compile(r) for r in reg]
+    return self
+
+  def compile(self):
+    if self.compiled:
+      return self.compiled
+    files = []
+
+    def _exc(x: Path):
+      if self.exc_patterns:
+        for reg in self.exc_patterns:
+          if reg.search(str(x.absolute().as_posix())):
+            return False
+      return True
+
+    def _inc(x: Path):
+      if self.inc_patterns:
+        for reg in self.inc_patterns:
+          if reg.search(str(x.absolute().as_posix())):
+            return True
+      return False
+
+    for folder in self.dirs:
+      if not Path(folder).exists():
+        continue
+      nodes = []
+      fn_glob = Path.rglob if self.recursive else Path.glob
+      for pat in self.glob_patterns:
+        nodes += list(fn_glob(folder, pat))
+      if self.inc_patterns:
+        nodes = filter(_inc, nodes)
+      files += list(filter(_exc, filter(_supported_suffix, nodes)))
+    image_nodes = list(filter(_supported_image, files))
+    if not self.as_video:
+      self.compiled = Container(image_nodes, self.as_video)
+      return self.compiled
+    video_nodes = list(filter(_supported_video, files))
+    video_nodes += list(map(lambda x: x.parent, image_nodes))
+    video_nodes = list(set(video_nodes))  # remove duplicated nodes
+    self.compiled = Container(video_nodes, self.as_video)
+    return self.compiled
+
+
+class Container(object):
+  """Frames container
+
+  """
+
+  def __init__(self, urls, is_video: bool):
+    assert isinstance(urls, (list, tuple))
+    pool = futures.ThreadPoolExecutor(4)
+    fs = []
+    self.nodes = []
+
+    def _parse_image_node(url: Path):
+      if url.is_dir():
+        for i in filter(_supported_image, url.glob('*')):
+          self.nodes.append(ImageFile(i, rewind=True))
+      elif _supported_image(url):
+        self.nodes.append(ImageFile(url, rewind=True))
+
+    def _parse_video_node(url: Path):
+      if _supported_video(url):
+        size = re.findall("\\d+x\\d+", url.stem)
+        if size:
+          size = [int(x) for x in size[0].split('x')]
+          self.nodes.append(
+              RawFile(url, VIDEO_SUF[url.suffix[1:].upper()], size,
+                      rewind=True))
+      elif url.is_dir():
+        self.nodes.append(ImageFile(url))
+
+    for j in urls:
+      if is_video:
+        fs.append(pool.submit(_parse_video_node, j))
+      else:
+        fs.append(pool.submit(_parse_image_node, j))
+    futures.as_completed(fs)
+    pool.shutdown()
 
   def __getitem__(self, item):
-    if item in ('train', 'val', 'test', 'infer', 'flow',
-                'train_pair', 'val_pair', 'test_pair'):
-      _url = super(Dataset, self).__getitem__(item)
-      url = []
-      for i in _url:
-        if isinstance(i, futures.Future):
-          url += i.result()
-        else:
-          url += [i]
-      return url
-    else:
-      return super(Dataset, self).__getitem__(item)
+    return self.nodes[item]
 
-  def get(self, k, d=None):
-    if k in ('train', 'val', 'test', 'infer', 'flow',
-             'train_pair', 'val_pair', 'test_pair'):
-      _url = super(Dataset, self).get(k, [])
-      url = []
-      for i in _url:
-        if isinstance(i, futures.Future):
-          url += i.result()
-        else:
-          url += [i]
-      return url
-    else:
-      return super(Dataset, self).get(k, d)
+  def __len__(self):
+    return len(self.nodes)
+
+  @property
+  def capacity(self):
+    if not self.nodes:
+      return 0
+    pos = 0
+    max_sz = 0
+    total_frames = 0
+    for i, n in enumerate(self.nodes):
+      total_frames += n.frames
+      if n.size() > max_sz:
+        max_sz = n.size()
+        pos = i
+    shape = self.nodes[pos].shape
+    max_bpp = 3
+    return shape[0] * shape[1] * max_bpp * total_frames
 
 
-def _glob_absolute_pattern(url, lazy_load=None):
-  url = Path(url)
-  url_p = url
+def load_datasets(describe_file, key=''):
+  """load dataset described in YAML file"""
 
-  def _the_glob(url, url_p):
+  def _extend_pattern(url):
+    _url = root / Path(url)
+    url_p = _url
+
     while True:
       try:
         if url_p.exists():
@@ -104,63 +191,68 @@ def _glob_absolute_pattern(url, lazy_load=None):
         break
       url_p = url_p.parent
     # retrieve glob pattern
-    url_r = url.relative_to(url_p)
-    if url_p.is_dir():
-      if str(url_r) == '.':
-        # url is a folder contains only folders
-        ret = url_p.iterdir()
+    url_r = str(_url.relative_to(url_p))
+    if url_r == '.' and url_p.is_dir():
+      return str(Path(url) / '**/*')
+    return url
+
+  def _get_dataset(desc, use_as_video=None):
+    dataset = Config()
+    for i in desc:
+      if i not in ('train', 'val', 'test'):
+        continue
+      if isinstance(desc[i], dict):
+        hr = to_list(desc[i].get('hr'))
+        lr = to_list(desc[i].get('lr'))
       else:
-        # glob pattern
-        ret = url_p.glob(str(url_r))
-    else:
-      # iff url is a single file
-      ret = [url_p]
-    # sort is necessary for `glob` behaves differently on UNIX/Windows
-    ret = to_list(ret)
-    ret.sort()
-    return ret
+        hr = to_list(desc[i])
+        lr = []
+      if use_as_video:
+        hr_pattern = [
+          x if x not in all_path and x + '[video]' not in all_path else
+          all_path[x + '[video]'] for x in hr]
+        lr_pattern = [
+          x if x not in all_path and x + '[video]' not in all_path else
+          all_path[x + '[video]'] for x in lr]
+      else:
+        hr_pattern = [x if x not in all_path else all_path[x] for x in hr]
+        lr_pattern = [x if x not in all_path else all_path[x] for x in lr]
+      hr_data = Dataset(root).include(*(_extend_pattern(x) for x in hr_pattern))
+      lr_data = Dataset(root).include(*(_extend_pattern(x) for x in lr_pattern))
+      hr_data.recursive = False
+      lr_data.recursive = False
+      if use_as_video:
+        hr_data.use_like_video()
+        lr_data.use_like_video()
+      setattr(dataset, i, Config(hr=hr_data, lr=lr_data))
+    return dataset
 
-  if lazy_load:
-    return [_executor.submit(_the_glob, url, url_p)]
-  else:
-    return _the_glob(url, url_p)
-
-
-def load_datasets(describe_file):
-  """load dataset described in YAML file"""
-
-  datasets = {}
+  datasets = Config()
   with open(describe_file, 'r') as fd:
     config = yaml.load(fd, Loader=_Loader)
     root = Path(config["Root"])
-    if _lazy_load:
-      global _executor
-      _executor = futures.ThreadPoolExecutor(4)
     if not root.is_absolute():
       # make `root` relative to the file
       root = Path(describe_file).resolve().parent / root
       root = root.resolve()
-    all_set_path = config["Path"]
-    all_set_path.update(config["Path_Tracked"])
+    all_path = config["Path"]
+    if key.upper() in config["Dataset"]:
+      return _get_dataset(config["Dataset"][key.upper()])
+    elif key.upper() + '[video]' in config["Dataset"]:
+      return _get_dataset(config["Dataset"][key.upper() + '[video]'], True)
+    elif key.upper() in all_path:
+      return _get_dataset(Config(test=all_path[key.upper()]))
+    elif key.upper() + '[video]' in all_path:
+      return _get_dataset(Config(test=all_path[key.upper() + '[video]']), True)
     for name, value in config["Dataset"].items():
-      assert isinstance(value, dict)
-      datasets[name] = Dataset(name=name)
-      for i in value:
-        if i not in ('train', 'val', 'test', 'infer', 'flow',
-                     'train_pair', 'val_pair', 'test_pair'):
-          continue
-        sets = []
-        for j in to_list(value[i]):
-          try:
-            sets += _glob_absolute_pattern(root / all_set_path[j], _lazy_load)
-          except KeyError:
-            sets += _glob_absolute_pattern(root / j, _lazy_load)
-        setattr(datasets[name], i, sets)
-      if 'param' in value:
-        for k, v in value['param'].items():
-          setattr(datasets[name], k, v)
-    for name, path in config["Path_Tracked"].items():
-      if name not in datasets:
-        datasets[name] = Dataset(name=name)
-        datasets[name].test = _glob_absolute_pattern(root / path, _lazy_load)
-  return datasets
+      if '[video]' in name:
+        datasets[name.replace('[video]', '')] = _get_dataset(value, True)
+      else:
+        datasets[name] = _get_dataset(value)
+    for name in all_path:
+      if '[video]' in name:
+        datasets[name.replace('[video]', '')] = \
+          _get_dataset(Config(test=all_path[name]), True)
+      else:
+        datasets[name] = _get_dataset(Config(test=all_path[name]))
+    return datasets

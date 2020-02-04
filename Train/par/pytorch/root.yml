@@ -1,0 +1,9 @@
+# Common tf for all models
+# Can also be override in individual yaml
+---
+batch_shape: [16, 3, 48, 48]
+lr: 1.0e-4
+lr_decay:
+  method: multistep
+  decay_step: []
+  decay_rate: 1

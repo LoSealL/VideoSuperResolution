@@ -1,41 +1,44 @@
-"""
-Copyright: Wenyi Tang 2017-2019
-Author: Wenyi Tang
-Email: wenyi.tang@intel.com
-Created Date: May 8th 2018
-Updated Date: April 2nd 2019
+#  Copyright (c) 2017-2020 Wenyi Tang.
+#  Author: Wenyi Tang
+#  Email: wenyitang@outlook.com
+#  Update: 2020 - 2 - 7
 
-Load frames with specified filter in given directories,
-and provide inheritable API for specific loaders.
-
-changelog 2019-4-2
-- Introduce `parser` to deal with more & more complex data distribution
-
-changelog 2018-8-29
-- Added BasicLoader and QuickLoader (multiprocessor loader)
-- Deprecated BatchLoader (and Loader)
-"""
-
-import importlib
-import threading as th
+import logging
+from concurrent import futures
 
 import numpy as np
+from PIL import Image
 from psutil import virtual_memory
 
-from . import _logger
+from .Crop import RandomCrop
+from .Dataset import Container, Dataset
+from .Transform import Bicubic
+from ..Backend import DATA_FORMAT
 from ..Util import Utility
-from ..Util.Config import Config
-from ..Util.ImageProcess import crop
+from ..Util.ImageProcess import img_to_array
+
+FREE_MEMORY = virtual_memory().available * 0.5
+LOG = logging.getLogger('VSR.Loader')
 
 
 def _augment(image, op):
   """Image augmentation"""
+  assert image.ndim == 4
   if op[0]:
-    image = np.rot90(image, 1)
+    if DATA_FORMAT == 'channels_last':
+      image = np.rot90(image, 1, axes=(1, 2))
+    else:
+      image = np.rot90(image, 1, axes=(2, 3))
   if op[1]:
-    image = np.fliplr(image)
+    if DATA_FORMAT == 'channels_last':
+      image = image[:, :, ::-1]
+    else:
+      image = image[..., ::-1]
   if op[2]:
-    image = np.flipud(image)
+    if DATA_FORMAT == 'channels_last':
+      image = image[:, ::-1]
+    else:
+      image = image[:, :, ::-1]
   return image
 
 
@@ -43,357 +46,354 @@ class EpochIterator:
   """An iterator for generating batch data in one epoch
 
   Args:
-      loader: A `BasicLoader` or `QuickLoader` to provide properties.
-      grids: A list of tuple, commonly returned from
-        `BasicLoader._generate_crop_grid`.
+      loader: A `Loader` object to provide properties.
+      shape: The shape of the generated batch, 5-D requested [N, T, C, H, W].
+      steps: The number of batches to generate in one epoch.
+      shuffle: A boolean representing whether to shuffle the dataset.
+
+  Note:
+      The rules for -1 shape:
+      - If shape[1] is -1, which represents the temporal length,
+        will generate the entire video clips;
+      - if shape[2] is -1, will auto choose the channel number according to
+        color format;
+      - if shape[3] or shape[4] is -1, will deduce the frame height or width
+        to replace the value.
+
+      The rules for steps:
+      - If the `steps` is -1, will generate batches in sequential order;
   """
 
-  def __init__(self, loader, grids):
-    self.batch = loader.batch
-    self.scale = loader.scale
-    self.aug = loader.aug
+  def __init__(self, loader, shape, steps, shuffle=None):
     self.loader = loader
-    self.grids = grids
+    self.shape = shape
+    if steps <= 0:
+      t = len(self.loader.data['hr'])
+      b = self.shape[0]
+      self.steps = t // b + int(np.ceil((t % b) / b))
+    else:
+      self.steps = steps
+    self.count = 0
+    if shuffle:
+      self.index = np.random.randint(len(self.loader.data['hr']),
+                                     size=self.steps * shape[0])
+    else:
+      self.index = np.arange(self.steps * shape[0])
 
   def __len__(self):
-    t = len(self.grids)
-    b = self.batch
-    return t // b + int(np.ceil((t % b) / b))
+    return self.steps
 
   def __iter__(self):
     return self
 
   def __next__(self):
-    batch_hr, batch_lr, batch_name = [], [], []
-    if not self.grids:
-      raise StopIteration
+    pack = {'hr': [], 'lr': [], 'name': []}
+    if self.count >= self.steps:
+      raise StopIteration("All batch data generated.")
 
-    while self.grids and len(batch_hr) < self.batch:
-      hr, lr, box, name = self.grids.pop(0)
-      box = np.array(box, 'int32')
-      box_lr = box // [*self.scale, *self.scale]
-      # if self.loader.method == 'train':
-      #   assert (np.mod(box, [*self.scale, *self.scale]) == 0).all()
-      crop_hr = [crop(img, box) for img in hr]
-      crop_lr = [crop(img, box_lr) for img in lr]
-      ops = np.random.randint(0, 2, [3]) if self.aug else [0, 0, 0]
-      clip_hr = [_augment(img, ops) for img in crop_hr]
-      clip_lr = [_augment(img, ops) for img in crop_lr]
-      batch_hr.append(np.stack(clip_hr))
-      batch_lr.append(np.stack(clip_lr))
-      batch_name.append(name)
+    slc = slice(self.count * self.shape[0], (self.count + 1) * self.shape[0])
+    crop = self.loader.crop
+    cb_hr = (self.loader.hr['transform1'], self.loader.hr['transform2'])
+    cb_lr = (self.loader.lr['transform1'], self.loader.lr['transform2'])
+    for i in self.index[slc]:
+      if i >= len(self.loader.data['hr']):
+        continue
+      hr = self.loader.data['hr'][i]
+      lr = self.loader.data['lr'][i]
+      name = self.loader.data['names'][i]
+      hr2 = hr
+      for fn in cb_hr[0]:
+        hr2 = [fn(img) for img in hr2]
+      hr2 = [img.convert(self.loader.hr['color']) for img in hr2]
+      lr2 = lr
+      for fn in cb_lr[0]:
+        lr2 = [fn(img) for img in lr2]
+      lr2 = [img.convert(self.loader.lr['color']) for img in lr2]
+      hr3 = np.stack([img_to_array(img, DATA_FORMAT) for img in hr2])
+      lr3 = np.stack([img_to_array(img, DATA_FORMAT) for img in lr2])
+      del hr2, lr2
+      if hr3.shape[0] == 1 and lr3.shape[0] == 1:
+        hr3 = hr3.squeeze(0)
+        lr3 = lr3.squeeze(0)
+        hr4, lr4 = crop((hr3, lr3), shape=self.shape[2:]) if crop else (
+        hr3, lr3)
+      else:
+        hr4, lr4 = crop((hr3, lr3), shape=self.shape[1:]) if crop else (
+        hr3, lr3)
+      del hr3, lr3
+      hr4 = np.expand_dims(hr4, 0)  # 4-D or 5-D
+      lr4 = np.expand_dims(lr4, 0)  # [1, (T,) C, H, W]
+      for fn in cb_hr[1]:
+        hr4 = fn(hr4)
+      for fn in cb_lr[1]:
+        lr4 = fn(lr4)
 
-    if batch_hr and batch_lr and batch_name:
-      try:
-        batch_hr = np.squeeze(np.stack(batch_hr), 1)
-        batch_lr = np.squeeze(np.stack(batch_lr), 1)
-      except ValueError:
-        # squeeze error
-        batch_hr = np.stack(batch_hr)
-        batch_lr = np.stack(batch_lr)
-      batch_name = np.stack(batch_name)
+      if self.loader.aux['augmentation']:
+        ops = np.random.randint(0, 2, [3])
+      else:
+        ops = [0, 0, 0]
+      _shape0 = hr4.shape
+      _shape1 = lr4.shape
+      hr5 = _augment(hr4.reshape([-1, *_shape0[-3:]]), ops)
+      lr5 = _augment(lr4.reshape([-1, *_shape1[-3:]]), ops)
+      del hr4, lr4
+      pack['hr'].append(hr5.reshape(_shape0))
+      pack['lr'].append(lr5.reshape(_shape1))
+      pack['name'].append(name)
 
-    if np.ndim(batch_hr) == 3:
-      batch_hr = np.expand_dims(batch_hr, -1)
-    if np.ndim(batch_lr) == 3:
-      batch_lr = np.expand_dims(batch_lr, -1)
+    if pack['hr']:
+      pack['hr'] = np.concatenate(pack['hr'])
+    if pack['lr']:
+      pack['lr'] = np.concatenate(pack['lr'])
+    self.count += 1
+    return pack
 
-    return batch_hr, batch_lr, batch_name, batch_lr
 
-
-class BasicLoader:
-  """Basic loader in single thread
+class Loader(object):
+  """A parallel data loader that generates label and data batches each epoch.
 
   Args:
-      dataset: A `Dataset` to load by this loader.
-      method: A string in ('train', 'val', 'test') specifies which subset to
-        use in the dataset. Also 'train' set will shuffle buffers each epoch.
-      config: A `Config` class, including 'batch', 'depth', 'patch_size',
-        'scale', 'steps_per_epoch' and 'convert_to' arguments.
-      augmentation: A boolean to specify whether call `_augment` to batches.
-        `_augment` will randomly flip or rotate images.
-      kwargs: override config key-values.
+      hr_data: this is a data container from `Dataset` object, represents the
+               label (high-resolution) data.
+      lr_data: this is a data container from `Dataset` object, represents the
+               training (low-resolution) data.
+      scale: specify the scale factor for this model. If scale is not specified,
+             you must set "lr_data", and "cropper" explicitly.
+      extra_data: a dict object contains extra information. You won't use this.
+      threads: num of threads used to load the data.
+
+  Note:
+      A `Loader` object has several attributes to enhance the loader's ability.
+      See `Loader.add_data_transform`, `Loader.image_augmentation`,
+      `Loader.cropper`, `Loader.set_color_space` for details.
   """
 
-  def __init__(self, dataset, method, config, augmentation=False, **kwargs):
-    config = self._parse_config(config, **kwargs)
-    config.method = method.lower()
-    parser = dataset.get('parser', 'default_parser')
-    _logger.debug(f"Parser: [{parser}]")
-    try:
-      _m = importlib.import_module(parser)
-    except ImportError:
-      _m = importlib.import_module(f'.{parser}', 'VSR.DataLoader.Parser')
-    self.parser = _m.Parser(dataset, config)
-    self.aug = augmentation
-    if hasattr(self.parser, 'color_format'):
-      self.color_format = self.parser.color_format
+  def __init__(self, hr_data, lr_data=None, scale=None, extra_data: dict = None,
+               threads=1):
+    # check type
+    if isinstance(hr_data, Dataset):
+      hr_data = hr_data.compile()
+      assert isinstance(hr_data, Container)
+    if lr_data is not None:
+      if isinstance(lr_data, Dataset):
+        lr_data = lr_data.compile()
+        assert isinstance(lr_data, Container)
+        assert len(hr_data) == len(lr_data)
+      if scale is None and lr_data is hr_data:
+        scale = 1  # deduce to 1
     else:
-      self.color_format = 'RGB'
-    # self.pair = getattr(dataset, '{}_pair'.format(method))
+      lr_data = hr_data
+    if extra_data is not None:
+      assert isinstance(extra_data, dict)
+
+    # default params
+    self.hr = {
+      'data': hr_data,
+      'transform1': [],
+      'transform2': [],
+      'color': 'RGB'
+    }
+    self.lr = {
+      'data': lr_data,
+      'transform1': [],
+      'transform2': [],
+      'color': 'RGB'
+    }
+    self.aux = {
+      'augmentation': False,
+      'scale': scale or 1,
+      'fetchList': list(np.arange(len(hr_data)))
+    }
+    self.data = {
+      'hr': [],
+      'lr': [],
+      'names': [],
+      'extra': []
+    }
+    self.cache = {
+      'hr': [],
+      'lr': [],
+      'names': [],
+      'extra': []
+    }
+    self.extra = extra_data or {}
+    self.crop = None
+    self.threads = threads
+    self.thp = futures.ThreadPoolExecutor(max_workers=threads)
+    self.fs = []
     self.loaded = 0
-    self.frames = []  # a list of tuple represents (HR, LR, name) of a clip
-
-  def _parse_config(self, config: Config, **kwargs):
-    _config = Config(config)
-    _config.update(kwargs)
-    _needed_args = ('batch', 'depth', 'scale',
-                    'steps_per_epoch', 'convert_to', 'modcrop')
-    for _arg in _needed_args:
-      # Set default and check values
-      if _arg not in _config:
-        if _arg in ('batch', 'scale'):
-          raise ValueError(_arg + ' is required in config.')
-        elif _arg == 'depth':
-          _config.depth = 1
-        elif _arg == 'steps_per_epoch':
-          _config.steps_per_epoch = -1
-        elif _arg == 'convert_to':
-          _config.convert_to = 'RGB'
-        elif _arg == 'modcrop':
-          _config.modcrop = True
-    self.depth = _config.depth
-    self.patch_size = _config.patch_size
-    self.scale = Utility.to_list(_config.scale, 2)
-    self.patches_per_epoch = _config.steps_per_epoch * _config.batch
-    self.batch = _config.batch
-    self.crop = _config.crop
-    self.modcrop = _config.modcrop
-    self.resample = _config.resample
-    return _config
-
-  def _generate_crop_grid(self, frames, size, shuffle=False):
-    """generate randomly cropped box of `frames`
-
-    Args:
-        frames: a list of tuple, commonly returned from `_process_at_file`.
-        size: an int scalar to specify number of generated crops.
-        shuffle: a boolean, whether to shuffle the outputs.
-
-    Return:
-        list of tuple: containing (HR, LR, box, name) respectively,
-          where HR and LR are reference frames, box is a list of 4
-          int of crop coordinates.
-    """
-    if not frames:
-      _logger.warning('frames is empty. [size={}]'.format(size))
-      return []
-    patch_size = Utility.to_list(self.patch_size, 2)
-    patch_size = Utility.shrink_mod_scale(patch_size, self.scale)
-    if size < 0:
-      index = np.arange(len(frames)).tolist()
-      size = len(frames)
+    if self.hr['data'] is self.lr['data']:
+      cap = self.hr['data'].capacity
     else:
-      if self.crop == 'random':
-        index = np.random.randint(len(frames), size=size).tolist()
-      else:
-        index = np.arange(size).tolist()
-    grids = []
-    for i, (hr, lr, name) in enumerate(frames):
-      _w, _h = hr[0].width, hr[0].height
-      if self.crop in ('not', 'none') or self.crop is None:
-        _pw, _ph = _w, _h
-      else:
-        _pw, _ph = patch_size
-      amount = index.count(i)
-      if self.crop == 'random':
-        x = np.random.randint(0, _w - _pw + 1, size=amount)
-        y = np.random.randint(0, _h - _ph + 1, size=amount)
-      elif self.crop == 'center':
-        x = np.array([(_w - _pw) // 2] * amount)
-        y = np.array([(_h - _ph) // 2] * amount)
-      elif self.crop == 'stride':
-        _x = np.arange(0, _w - _pw + 1, _pw)
-        _y = np.arange(0, _h - _ph + 1, _ph)
-        x, y = np.meshgrid(_x, _y)
-        x = x.flatten()
-        y = y.flatten()
-      else:
-        x = np.zeros([amount])
-        y = np.zeros([amount])
-      x -= x % self.scale[0]
-      y -= y % self.scale[1]
-      grids += [(hr, lr, [_x, _y, _x + _pw, _y + _ph], name)
-                for _x, _y in zip(x, y)]
-    if shuffle:
-      np.random.shuffle(grids)
-    return grids[:size]
+      cap = self.hr['data'].capacity + self.lr['data'].capacity
+    if self.extra and isinstance(self.extra['data'], Container):
+      cap += self.extra['data'].capacity
+    self.aux['cap'] = cap  # estimated memory usage in bytes
+    if hr_data is lr_data and self.aux['scale'] > 1:
+      self.lr['transform1'].append(Bicubic(1 / self.aux['scale']))
 
-  def _prefetch(self, memory_usage=None, shard=1, index=0):
-    """Prefetch `size` files and load into memory. Specify `shard` will
-    divide loading files into `shard` shards in order to execute in
-    parallel.
-
-    NOTE: parallelism is implemented via `QuickLoader`
+  def add_data_transform(self, target: str, *fn, dtype='pillow'):
+    """Add data transform functions. Each function will be called before
+    generating batch data.
 
     Args:
-      memory_usage: desired virtual memory to use, could be int (bytes) or
-        a readable string ('3GB', '1TB'). Default to use all available
-        memories.
-      shard: an int scalar to specify the number of shards operating in
-        parallel.
-      index: an int scalar, representing shard index
-    """
+        target: either "hr" or "lr", specify which data to apply.
+        *fn: functions with only one argument, the type of the argument will
+             be specified through `dtype`.
+        dtype: specify the type of the function's argument.
 
-    if self.loaded & (1 << index):
-      return
+    Note:
+        `dtype` supports `numpy.ndarray` and `PIL.Image.Image`
+    """
+    assert target.lower() in ('hr', 'lr')
+    if isinstance(dtype, Image.Image):
+      dtype = 'pillow'
+    elif isinstance(dtype, np.ndarray):
+      dtype = 'numpy'
+    assert dtype.lower() in ('pillow', 'numpy', 'pil', 'np')
+    fn = filter(callable, fn)
+    if dtype.lower() in ('pillow', 'pil'):
+      getattr(self, target.lower())['transform1'] += list(fn)
+    else:
+      getattr(self, target.lower())['transform2'] += list(fn)
+
+  def image_augmentation(self):
+    """Enable data augmentation
+
+    The data augmentation for single image will randomly rotate and flip the
+    image.
+    The data augmentation for video will randomly rotate, flip and revert the
+    video.
+
+    TODO: revert is not implemented.
+    """
+    self.aux['augmentation'] = True
+
+  def cropper(self, fn):
+    assert callable(fn)
+    self.crop = fn
+
+  def set_color_space(self, target: str, mode: str):
+    if not mode.upper() in ('RGB', 'L', 'YCbCr', 'Gray'):
+      raise ValueError(f"Invalid mode: {mode}, must be RGB | L | YCbCr | Gray")
+    assert target.lower() in ('hr', 'lr')
+    getattr(self, target.lower()).update(color=mode)
+
+  def make_one_shot_iterator(self, batch_shape, steps, shuffle=None,
+                             memory_limit=None):
+    """Make an iterator object to generate batch data for models.
+
+    Args:
+        batch_shape: The shape of batch to generate.
+        steps: The number of batches to generate in one epoch.
+        shuffle: A boolean representing whether to shuffle the dataset.
+        memory_limit: the maximum system memory to use. (Not GPU memory!!)
+
+    Note:
+        The rules for -1 shape:
+        - If shape[1] is -1, which represents the temporal length,
+          will generate the entire video clips;
+        - if shape[2] is -1, will auto choose the channel number according to
+          color format;
+        - if shape[3] or shape[4] is -1, will deduce the frame height or width
+          to replace the value.
+
+        The rules for steps:
+        - If the `steps` is -1, will generate batches in sequential order;
+        - If the `steps` is an positive integer, the generated batches are
+          randomly shuffled.
+    """
+    shape = list(batch_shape)
+    if len(shape) == 4:
+      shape.insert(1, 1)
+    assert len(shape) is 5
+    if shape[-2] != -1 and self.crop is None:
+      self.cropper(RandomCrop(self.aux['scale']))
+    self.prefetch(shuffle, memory_limit)
+    futures.as_completed(self.fs)
+    for fs in self.fs:
+      if fs.exception():
+        raise fs.exception()
+      assert fs.done()
+    self.fs.clear()
+    if not (self.loaded & int(2 ** self.threads - 1)):
+      self.data, self.cache = self.cache, self.data
+      [self.cache[k].clear() for k in self.cache]
+      loaded = self.loaded >> (self.threads * 2)
+      if not shuffle:
+        loaded += 1  # move to next chunk
+        if loaded >= self.aux['cap'] / memory_limit:
+          loaded = 0
+      self.loaded = loaded << (self.threads * 2)
+    return EpochIterator(self, shape, steps, shuffle)
+
+  def prefetch(self, shuffle=None, memory_usage=None):
     # check memory usage
     if isinstance(memory_usage, str):
       memory_usage = Utility.str_to_bytes(memory_usage)
-    free_memory = virtual_memory().available
     if not memory_usage:
-      memory_usage = free_memory
-    memory_usage = np.min(
-      [np.uint64(memory_usage), free_memory])
-    if hasattr(self.parser, 'capacity'):
-      cap = self.parser.capacity
-    else:
-      cap = -1
-    if cap <= memory_usage:
-      _logger.debug("Load all data into memory.")
-      # load all clips
-      interval = int(np.ceil(len(self.parser) / shard))
-      if index == shard - 1:
-        frames = self.parser[index * interval:]
+      memory_usage = FREE_MEMORY
+    available_mem = min([np.uint64(memory_usage), np.uint64(FREE_MEMORY)])
+    if not self.fs:
+      if shuffle:
+        self.aux['fetchList'] = list(
+          np.random.permutation(self.aux['fetchList']))
+      if available_mem > self.aux['cap']:
+        LOG.debug("Loading all data into memory.")
+        for i in range(self.threads):
+          if self.loaded & (1 << i):
+            continue
+          self.fs.append(self.thp.submit(self._prefetch_all, i))
       else:
-        frames = self.parser[index * interval:(index + 1) * interval]
-      self.frames += frames
-      self.loaded |= (1 << index)
+        prop = memory_usage / self.aux['cap'] / self.threads
+        # How many frames can be read into memory each thread each epoch
+        # Note: we assume each "frame" has a close size.
+        n = max(1, int(np.round(len(self.hr['data']) * prop)))
+        LOG.debug(f"Loading {prop * self.threads * 100:.4f}% data.")
+        [self.fs.append(self.thp.submit(self._prefecth_chunk, n, i)) for i in
+         range(self.threads)]
+
+  def _prefetch_all(self, index):
+    length = len(self.hr['data'])
+    # load all clips
+    interval = int(np.ceil(length / self.threads))
+    frames = []
+    names = []
+    for img in self.hr['data'][index * interval:(index + 1) * interval]:
+      frames.append(img.read_frame(img.frames))
+      names.append(img.name)
+    self.data['hr'] += frames
+    self.data['names'] += names
+    if self.hr['data'] is self.lr['data']:
+      self.data['lr'] += frames
     else:
-      scale_factor = 0.9
-      prop = memory_usage / cap / shard * scale_factor
-      _logger.debug(f"Load {prop * 100:.1f}% data into memory.")
-      # How many frames can be read into memory each thread each epoch
-      # Note: we assume each "frame" has a close size.
-      n = max(1, int(np.round(len(self.parser) * prop)))  # at least 1 sample
       frames = []
-      for i in np.random.permutation(len(self.parser))[:n]:
-        frames += self.parser[i]
-      self.frames += frames
+      for img in self.lr['data'][index * interval:(index + 1) * interval]:
+        frames.append(img.read_frame(img.frames))
+      self.data['lr'] += frames
+    if self.extra and isinstance(self.extra['data'], Container):
+      frames = []
+      for img in self.extra['data'][index * interval:(index + 1) * interval]:
+        frames.append(img.read_frame(img.frames))
+      self.data['extra'] += frames
+    self.loaded |= (1 << index)
 
-  def make_one_shot_iterator(self, memory_usage=None, shuffle=False):
-    """make an `EpochIterator` to enumerate batches of the dataset
-
-    Args:
-        memory_usage: desired virtual memory to use, could be int (bytes) or
-          a readable string ('3GB', '1TB'). Default to use all available
-          memories.
-        shuffle: A boolean whether to shuffle the patch grids.
-
-    Returns:
-        An EpochIterator
-    """
-    self._prefetch(memory_usage, 1, 0)
-    grids = self._generate_crop_grid(self.frames, self.patches_per_epoch,
-                                     shuffle=shuffle)
-    if not (self.loaded == 1):
-      self.frames.clear()
-    return EpochIterator(self, grids)
-
-
-class QuickLoader(BasicLoader):
-  """Async data loader with high efficiency.
-
-  `QuickLoader` concurrently pre-fetches clips into memory every n iterations,
-  and provides several methods to select clips. `QuickLoader` won't loads all
-  files in the dataset into memory if your memory isn't enough.
-
-  NOTE: A clip is a bunch of consecutive frames, which can represent either a
-  dynamic video or single image.
-
-  Args:
-      dataset: A `Dataset` to load by this loader.
-      method: A string in ('train', 'val', 'test') specifies which subset to
-        use in the dataset. Also 'train' set will shuffle buffers each epoch.
-      config: A `Config` class, including 'batch', 'depth', 'patch_size',
-        'scale', 'steps_per_epoch' and 'convert_to' arguments.
-      augmentation: A boolean to specify whether call `_augment` to batches.
-        `_augment` will randomly flip or rotate images.
-      n_threads: number of threads to load dataset
-      kwargs: override config key-values.
-  """
-
-  def __init__(self, dataset, method, config, augmentation=False, n_threads=1,
-               **kwargs):
-
-    self.shard = n_threads
-    self.threads = []
-    super(QuickLoader, self).__init__(dataset, method, config,
-                                      augmentation, **kwargs)
-
-  def prefetch(self, memory_usage=None):
-    """Prefetch data.
-
-    This call will spawn threads of `_prefetch` and returns immediately.
-    The next call of `make_one_shot_iterator` will join all the threads.
-    If this is not called in advance, data will be fetched at
-    `make_one_shot_iterator`.
-
-    Args:
-        memory_usage: desired virtual memory to use, could be int (bytes) or
-          a readable string ('3GB', '1TB'). Default to use all available
-          memories.
-
-    Note: call `prefetch` twice w/o `make_one_shot_iterator` is
-      undefined behaviour.
-    """
-
-    for i in range(self.shard):
-      t = th.Thread(target=self._prefetch,
-                    args=(memory_usage, self.shard, i),
-                    name='fetch_thread_{}'.format(i))
-      t.start()
-      self.threads.append(t)
-
-  def make_one_shot_iterator(self, memory_usage=None, shuffle=False):
-    """make an `EpochIterator` to enumerate batches of the dataset. Specify
-    `shard` will divide loading files into `shard` shards in order to
-    execute in parallel.
-
-    Will create TFIterator if use TFRecordDataset.
-
-    Args:
-        memory_usage: desired virtual memory to use, could be int (bytes) or
-          a readable string ('3GB', '1TB'). Default to use all available
-          memories.
-        shuffle: A boolean whether to shuffle the patch grids.
-
-    Return:
-        An EpochIterator or TFIterator
-
-    Known issues:
-        If data of either shard is too large (i.e. use 1 shard and total
-        frames is around 6GB in my machine), windows Pipe may broke and
-        `get()` never returns.
-    """
-
-    if not self.threads:
-      self.prefetch(memory_usage)
-    for t in self.threads:
-      t.join()
-    self.threads.clear()
-    # reduce
-    grids = self._generate_crop_grid(self.frames,
-                                     self.patches_per_epoch,
-                                     shuffle=shuffle)
-    if not (self.loaded & 0xFFFF):
-      self.frames.clear()
-    return EpochIterator(self, grids)
-
-
-class SequentialLoader(BasicLoader):
-  def __init__(self, dataset, method, config, augmentation=False, n_threads=1,
-               **kwargs):
-    self.split = n_threads
-    super(SequentialLoader, self).__init__(dataset, method, config,
-                                           augmentation, **kwargs)
-
-  def make_one_shot_iterator(self, memory_usage=None, shuffle=False):
-    for i in range(self.split):
-      self._prefetch(None, self.split, i)
-      grids = self._generate_crop_grid(
-        self.frames, self.patches_per_epoch, shuffle)
-      self.frames.clear()
-      it = EpochIterator(self, grids)
-      for item in it:
-        yield item
+  def _prefecth_chunk(self, chunk_size, index):
+    loaded = self.loaded >> (self.threads * 2)
+    n = chunk_size
+    st = n * self.threads * loaded  # start chunk
+    for i in self.aux['fetchList'][st + n * index:st + n * (index + 1)]:
+      img = self.hr['data'][i]
+      self.cache['hr'].append(img.read_frame(img.frames))
+      self.cache['names'].append(img.name)
+      if self.hr['data'] is self.lr['data']:
+        self.cache['lr'].append(self.cache['hr'][-1])
+      else:
+        img = self.lr['data'][i]
+        self.cache['lr'].append(img.read_frame(img.frames))
+      if self.extra and isinstance(self.extra['data'], Container):
+        img = self.extra['data'][i]
+        self.cache['extra'].append(img.read_frame(img.frames))
+    loaded <<= self.threads
+    loaded |= (1 << index)
+    self.loaded = loaded << self.threads

@@ -1,63 +1,45 @@
 # Fake VSR Dataset Description File
 # Unit Test Only!!
-# Ver: v1.1.1
+# Ver: v1.3.0
 ---
-Root:
-  ./
+Root: ./
 
 Path:
-  FOO: flying_chair/**/*.png
-
-Path_Tracked:
-  BAR: set5_x2/*.png
+    FOO: flying_chair/**/*.png
+    BAR: set5_x2/*.png
+    XIUXIAN[video]: video/custom_pair/lr
 
 Dataset:
-  NONE:
-    train: []
-    val: []
-    test: []
+    NONE:
+        train: []
+        val: []
+        test: []
 
-  NORMAL:
-    train: [FOO, BAR]
-    val: [BAR]
-    test: ["set5_x2/img_001_SRF_2_LR.png"]
+    NORMAL:
+        train: [FOO, BAR]
+        val: [BAR]
+        test: ["set5_x2/img_001_SRF_2_LR.png"]
 
-  NUMPY:
-    # alpha version, loading ndarray data(s)
-    param:
-      parser: cifar10
+    RAW[video]:
+        train: [video/raw_32x32.yv12]
+        val: [video/raw_32x32.yv12]
+        test: [video/raw_32x32.yv12]
 
-  RAW:
-    train: [video/raw.yv12]
-    val: [video/raw.yv12]
-    test: [video/raw.yv12]
-    param:
-      parser: raw
-      mode: yv12
-      width: 32
-      height: 32
+    PAIR:
+        train:
+            hr: [FOO]
+            lr: [FOO]
 
-  FLOW:
-    train: [flying_chair/pair]
-    flow: [flying_chair/flow/*.flo]
-    param:
-      parser: flow
+    VIDEOPAIR[video]:
+        train:
+            hr: "video/custom_pair/hr"
+            lr: XIUXIAN
+        val:
+            hr: [XIUXIAN]
+            lr: "video/custom_pair/hr"
+        test:
+            hr: "video/custom_pair/hr"
+            lr: "video/custom_pair/lr"
 
-  PAIR:
-    train: [FOO]
-    train_pair: [FOO]
-    param:
-      parser: custom_pairs
-
-  VIDEOPAIR:
-    train: "video/custom_pair/hr"
-    train_pair: "video/custom_pair/lr"
-    val: "video/custom_pair/hr"
-    val_pair: "video/custom_pair/lr"
-    test: "video/custom_pair/hr"
-    test_pair: "video/custom_pair/lr"
-    param:
-      parser: custom_pairs
-
-  GHOST:
-    train: ["/what-the-fuck"]
+    GHOST:
+        train: ["/what-the-fuck"]

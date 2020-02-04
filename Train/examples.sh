@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # show model configuration
-cat parameters/edsr.yaml
+cat tf/edsr.yaml
 
 # Train selective model (checkpoint saved under ../Results/edsr/save)
 python run.py --model=edsr --dataset=div2k --threads=16 --epochs=200
