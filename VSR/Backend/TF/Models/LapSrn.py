@@ -11,8 +11,9 @@ Ref http://vllab.ucmerced.edu/wlai24/LapSRN
 import numpy as np
 import tensorflow as tf
 
+from VSR.Util import to_list
 from ..Framework.SuperResolution import SuperResolution
-from ..Util.Utility import to_list, bicubic_rescale
+from ..Util import bicubic_rescale
 
 
 class LapSRN(SuperResolution):

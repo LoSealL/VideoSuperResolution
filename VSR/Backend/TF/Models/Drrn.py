@@ -9,8 +9,14 @@ Image Super-Resolution via Deep Recursive Residual Network (CVPR 2017)
 See http://cvlab.cse.msu.edu/pdfs/Tai_Yang_Liu_CVPR2017.pdf
 """
 
+import logging
+
+import tensorflow as tf
+
 from ..Framework.SuperResolution import SuperResolution
-from ..Util.Utility import *
+from ..Util import bicubic_rescale
+
+LOG = logging.getLogger('VSR.Model.DRRN')
 
 
 class DRRN(SuperResolution):
@@ -36,8 +42,8 @@ class DRRN(SuperResolution):
 
   def display(self):
     super(DRRN, self).display()
-    tf.logging.info('Recursive Blocks: %d' % self.rb)
-    tf.logging.info('Residual Units: %d' % self.ru)
+    LOG.info('Recursive Blocks: %d' % self.rb)
+    LOG.info('Residual Units: %d' % self.ru)
 
   def _shared_resblock(self, inputs, **kwargs):
     x = self.relu_conv2d(inputs, 128, 3)
@@ -69,9 +75,9 @@ class DRRN(SuperResolution):
         for grad, var in opt.compute_gradients(loss):
           grads_and_vars.append((
             tf.clip_by_value(
-              grad,
-              -self.grad_clip / self.learning_rate,
-              self.grad_clip / self.learning_rate),
+                grad,
+                -self.grad_clip / self.learning_rate,
+                self.grad_clip / self.learning_rate),
             var))
         op = opt.apply_gradients(grads_and_vars, self.global_steps)
       else:
@@ -81,9 +87,9 @@ class DRRN(SuperResolution):
       self.train_metric['loss'] = loss
       self.metrics['mse'] = mse
       self.metrics['psnr'] = tf.reduce_mean(
-        tf.image.psnr(y_true, y_pred, 255))
+          tf.image.psnr(y_true, y_pred, 255))
       self.metrics['ssim'] = tf.reduce_mean(
-        tf.image.ssim(y_true, y_pred, 255))
+          tf.image.ssim(y_true, y_pred, 255))
 
   def build_saver(self):
     self.savers[self.name] = tf.train.Saver(tf.global_variables(self.name),

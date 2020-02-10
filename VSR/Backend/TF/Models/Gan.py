@@ -11,15 +11,15 @@ import numpy as np
 import tensorflow as tf
 import tqdm
 
-from VSR.Arch import Discriminator
-from VSR.Framework.Callbacks import save_batch_image
-from VSR.Framework.GAN import (gradient_penalty, inception_score, loss_bce_gan,
-                               loss_lsgan, loss_relative_bce_gan,
-                               loss_relative_lsgan, loss_wgan)
-from VSR.Framework.SuperResolution import SuperResolution
-from VSR.Framework.Trainer import VSR
-from VSR.Util.Config import Config
-from VSR.Util.Utility import to_list
+from VSR.Util import Config, to_list
+from ..Arch import Discriminator
+from ..Framework.GAN import (
+  gradient_penalty, inception_score, loss_bce_gan,
+  loss_lsgan, loss_relative_bce_gan,
+  loss_relative_lsgan, loss_wgan
+)
+from ..Framework.SuperResolution import SuperResolution
+from ..Framework.Trainer import VSR
 
 
 class GAN(SuperResolution):
@@ -357,8 +357,6 @@ class GanTrainer(VSR):
     """
     v = self.v
     it = v.loader.make_one_shot_iterator(v.memory_limit, shuffle=True)
-    if v.loader.method == 'val':
-      v.output_callbacks += [save_batch_image(self._logd)]
     for label, _, name, _ in tqdm.tqdm(it, 'Test', ascii=True):
       feature = np.random.uniform(-1, 1, [v.batch, self.model.z_dim])
       self.fn_benchmark_each_step(label, feature, name)

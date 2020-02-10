@@ -10,8 +10,9 @@ Ref https://arxiv.org/abs/1501.00092
 """
 import tensorflow as tf
 
+from VSR.Util import to_list
 from ..Framework.SuperResolution import SuperResolution
-from ..Util.Utility import bicubic_rescale, to_list
+from ..Util import bicubic_rescale
 
 
 class SRCNN(SuperResolution):

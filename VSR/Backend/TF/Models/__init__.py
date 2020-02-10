@@ -60,7 +60,7 @@ auto_search(Path(__file__).parent)
 
 
 def get_model(name):
-  module = f'.Models.{models[name][0]}'
+  module = f'.Backend.TF.Models.{models[name][0]}'
   package = 'VSR'
   m = importlib.import_module(module, package)
   return m.__dict__[models[name][1]]

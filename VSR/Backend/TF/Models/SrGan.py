@@ -10,10 +10,10 @@ See https://arxiv.org/abs/1609.04802
 """
 import tensorflow as tf
 
-from VSR.Arch import Discriminator
-from VSR.Framework.GAN import loss_bce_gan
-from VSR.Framework.SuperResolution import SuperResolution
-from VSR.Util.Utility import Vgg, prelu
+from ..Arch import Discriminator
+from ..Framework.GAN import loss_bce_gan
+from ..Framework.SuperResolution import SuperResolution
+from ..Util import Vgg, prelu
 
 
 def _normalize(x):

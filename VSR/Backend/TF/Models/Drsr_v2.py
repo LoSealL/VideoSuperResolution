@@ -8,11 +8,11 @@ from functools import partial
 import numpy as np
 import tensorflow as tf
 
+from VSR.Util import Config, to_list
 from ..Arch.Residual import cascade_rdn
 from ..Framework import Noise
 from ..Framework.SuperResolution import SuperResolution
-from ..Util.Config import Config
-from ..Util.Utility import clip_image, to_list
+from ..Util import clip_image
 
 _MEAN_GT = [84.1148, 68.3644, 64.8452]
 _MEAN_SR = [85.6586, 68.7887, 66.5135]

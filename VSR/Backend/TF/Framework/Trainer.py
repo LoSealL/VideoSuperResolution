@@ -8,12 +8,7 @@ Extend the pre-Environment module, provide different and extensible
 training methodology for SISR, VSR or other image tasks.
 """
 
-#  Copyright (c): Wenyi Tang 2017-2019.
-#  Author: Wenyi Tang
-#  Email: wenyi.tang@intel.com
-#  Update Date: 2019/4/3 下午8:28
-
-import csv
+import logging
 import time
 from pathlib import Path
 
@@ -21,8 +16,9 @@ import numpy as np
 import tensorflow as tf
 import tqdm
 
-from ..Util.Config import Config
-from ..Util.Utility import to_list
+from VSR.Util import Config, to_list
+
+LOG = logging.getLogger('VSR.Framework')
 
 
 def _make_ckpt_name(name, scale, step):
@@ -81,21 +77,23 @@ class Trainer:
          verbose: tf logging level
      """
 
-  def __init__(self, model, work_dir, verbose=tf.logging.INFO):
+  def __init__(self, model, work_dir):
     self._m = model
-    self._saved = Path(work_dir) / 'save'
-    self._logd = Path(work_dir) / 'log'
-    self._verb = verbose
+    self._saved = None
+    self._logd = None
+    if work_dir is not None:
+      self._saved = Path(work_dir) / 'save'
+      self._logd = Path(work_dir) / 'log'
     self._restored = False
-    self._csv = verbose <= tf.logging.INFO
 
   def _startup(self):
-    tf.logging.set_verbosity(self._verb)
-    self._saved.mkdir(parents=True, exist_ok=True)
-    self._logd.mkdir(parents=True, exist_ok=True)
-    if self._csv:
-      self._csv_file = open(Path(self._logd / 'train_metrics.csv'), 'a')
-      self._csv_writer = csv.writer(self._csv_file)
+    if isinstance(self._saved, Path):
+      self._saved.mkdir(parents=True, exist_ok=True)
+    if isinstance(self._logd, Path):
+      self._logd.mkdir(parents=True, exist_ok=True)
+      if LOG.isEnabledFor(logging.DEBUG):
+        hdl = logging.FileHandler(self._logd / 'training.txt')
+        LOG.addHandler(hdl)
     if self.model.compiled:
       self.graph = tf.get_default_graph()
     else:
@@ -108,10 +106,11 @@ class Trainer:
 
     self._startup()
     conf = tf.ConfigProto(
-      allow_soft_placement=True,
-      gpu_options=tf.GPUOptions(allow_growth=True))
+        allow_soft_placement=True,
+        gpu_options=tf.GPUOptions(allow_growth=True))
     sess = tf.Session(graph=self.graph, config=conf)
     sess.__enter__()
+    self.model.display()
     self.savers = self.model.savers
     sess.run(tf.global_variables_initializer())
     return self
@@ -124,17 +123,20 @@ class Trainer:
 
   def _find_last_ckpt(self):
     # restore the latest checkpoint in save dir
-    ckpt = tf.train.get_checkpoint_state(self._saved)
-    if ckpt and ckpt.model_checkpoint_path:
-      return tf.train.latest_checkpoint(self._saved)
-    # try another way
-    ckpt = to_list(self._saved.glob('*.ckpt.index'))
-    # sort as modification time
-    ckpt = sorted(ckpt, key=lambda x: x.stat().st_mtime_ns)
-    return self._saved / ckpt[-1].stem if ckpt else None
+    if self._saved is not None:
+      ckpt = tf.train.get_checkpoint_state(self._saved)
+      if ckpt and ckpt.model_checkpoint_path:
+        return tf.train.latest_checkpoint(self._saved)
+      # try another way
+      ckpt = to_list(self._saved.glob('*.ckpt.index'))
+      # sort as modification time
+      ckpt = sorted(ckpt, key=lambda x: x.stat().st_mtime_ns)
+      return self._saved / ckpt[-1].stem if ckpt else None
 
   def _restore_model(self, sess):
     last_checkpoint_step = 0
+    if self._saved is None:
+      return last_checkpoint_step
     for name in self.savers:
       saver = self.savers.get(name)
       ckpt = to_list(self._saved.glob('{}*.index'.format(name)))
@@ -145,12 +147,14 @@ class Trainer:
           saver.restore(sess, str(ckpt))
         except tf.errors.NotFoundError:
           tf.logging.warning(
-            '{} of model {} could not be restored'.format(
-              name, self.model.name))
+              '{} of model {} could not be restored'.format(
+                  name, self.model.name))
         last_checkpoint_step = _parse_ckpt_name(ckpt)
     return last_checkpoint_step
 
   def _save_model(self, sess, step):
+    if self._saved is None:
+      return
     for name in self.savers:
       saver = self.savers.get(name)
       file = self._saved / _make_ckpt_name(name, self.model.scale[0], step)
@@ -208,31 +212,33 @@ class VSR(Trainer):
   """
 
   def query_config(self, config, **kwargs) -> Config:
-    assert isinstance(config, Config)
+    config = Config(config)
     config.update(kwargs)  # override parameters
     self.v.epoch = config.epoch  # current epoch
-    self.v.epochs = config.epochs  # total epochs
-    self.v.lr = config.lr  # learning rate
+    self.v.epochs = config.epochs or 1  # total epochs
+    self.v.lr = config.lr or 1e-4  # learning rate
+    self.v.batch_shape = config.batch_shape or [1, -1, -1, -1]
+    self.v.train_steps = config.steps or 200
+    self.v.val_steps = config.val_steps or 10
     self.v.lr_schedule = config.lr_schedule
     self.v.memory_limit = config.memory_limit
-    self.v.feature_callbacks = config.feature_callbacks or []
-    self.v.label_callbacks = config.label_callbacks or []
-    self.v.output_callbacks = config.output_callbacks or []
+    self.v.inference_results_hooks = config.inference_results_hooks or []
     self.v.validate_every_n_epoch = config.validate_every_n_epoch or 1
-    self.v.subdir = config.subdir
-    self.v.random_val = config.random_val
+    self.v.traced_val = config.traced_val
     self.v.ensemble = config.ensemble
+    self.v.cuda = config.cuda
     return self.v
 
   def fit_init(self) -> bool:
     v = self.v
     v.sess = self._restore()
     if self.last_epoch >= v.epochs:
+      LOG.info(f'Found pre-trained epoch {v.epoch}>=target {v.epochs},'
+               ' quit fitting.')
       return False
-    tf.logging.info('Fitting: {}'.format(self.model.name.upper()))
-    self.model.display()
+    LOG.info('Fitting: {}'.format(self.model.name.upper()))
     v.summary_writer = tf.summary.FileWriter(
-      str(self._logd), graph=tf.get_default_graph())
+        str(self._logd), graph=tf.get_default_graph())
     v.global_step = self.model.global_steps.eval()
     return True
 
@@ -240,45 +246,36 @@ class VSR(Trainer):
     # flush all pending summaries to disk
     if self.v.summary_writer:
       self.v.summary_writer.close()
-    if self._csv:
-      self._csv_file.close()
+    LOG.info(f'Training {self.model.name.upper()} finished.')
 
   def fn_train_each_epoch(self):
     v = self.v
     mem = v.memory_limit
-    train_iter = v.train_loader.make_one_shot_iterator(mem, shuffle=True)
-    if hasattr(v.train_loader, 'prefetch'):
-      v.train_loader.prefetch(v.memory_limit)
+    train_iter = v.train_loader.make_one_shot_iterator(v.batch_shape,
+                                                       v.train_steps,
+                                                       shuffle=True,
+                                                       memory_limit=mem)
+    v.train_loader.prefetch(v.memory_limit)
     date = time.strftime('%Y-%m-%d %T', time.localtime())
     v.avg_meas = {}
     if v.lr_schedule and callable(v.lr_schedule):
       v.lr = v.lr_schedule(steps=v.global_step)
     print('| {} | Epoch: {}/{} | LR: {:.2g} |'.format(
-      date, v.epoch, v.epochs, v.lr))
+        date, v.epoch, v.epochs, v.lr))
     with tqdm.tqdm(train_iter, unit='batch', ascii=True) as r:
       for items in r:
-        label, feature, name, post = items[:4]
-        self.fn_train_each_step(label, feature, name, post)
+        self.fn_train_each_step(items)
         r.set_postfix(v.loss)
     for _k, _v in v.avg_meas.items():
       print('| Epoch average {} = {:.6f} |'.format(_k, np.mean(_v)))
-    if self._csv:
-      if self._csv_file.tell() == 0:
-        self._csv_writer.writerow(v.avg_meas.keys())
-      self._csv_writer.writerow([np.mean(s) for s in v.avg_meas.values()])
-      self._csv_file.flush()
-    if v.epoch % v.validate_every_n_epoch == 0:
+    if v.epoch % v.validate_every_n_epoch == 0 and v.val_loader:
       self.benchmark(v.val_loader, v, epoch=v.epoch, memory_limit='1GB')
       v.summary_writer.add_summary(self.model.summary(), v.global_step)
-      self._save_model(v.sess, v.epoch)
+    self._save_model(v.sess, v.epoch)
 
-  def fn_train_each_step(self, label=None, feature=None, name=None, post=None):
+  def fn_train_each_step(self, pack):
     v = self.v
-    for fn in v.feature_callbacks:
-      feature = fn(feature, name=name)
-    for fn in v.label_callbacks:
-      label = fn(label, name=name)
-    loss = self.model.train_batch(feature, label, learning_rate=v.lr,
+    loss = self.model.train_batch(pack['lr'], pack['hr'], learning_rate=v.lr,
                                   epochs=v.epoch)
     v.global_step = self.model.global_steps.eval()
     for _k, _v in loss.items():
@@ -287,14 +284,11 @@ class VSR(Trainer):
       loss[_k] = '{:08.5f}'.format(_v)
     v.loss = loss
 
-  def fn_infer_each_step(self, label=None, feature=None, name=None, post=None):
+  def fn_infer_each_step(self, pack):
     v = self.v
-    origin_feat = feature
-    for fn in v.feature_callbacks:
-      feature = fn(feature, name=name)
     if v.ensemble:
       # add self-ensemble boosting metric score
-      feature_ensemble = _ensemble_expand(feature)
+      feature_ensemble = _ensemble_expand(pack['lr'])
       outputs_ensemble = []
       for f in feature_ensemble:
         y, _ = self.model.test_batch(f, None)
@@ -304,34 +298,32 @@ class VSR(Trainer):
         outputs.append([j[i] for j in outputs_ensemble])
       outputs = _ensemble_reduce_mean(outputs)
     else:
-      outputs, _ = self.model.test_batch(feature, None)
-    for fn in v.output_callbacks:
-      outputs = fn(outputs, input=origin_feat, name=name,
-                   subdir=v.subdir, mode=v.color_format)
+      outputs, _ = self.model.test_batch(pack['lr'], None)
+    for fn in v.inference_results_hooks:
+      outputs = fn(outputs, names=pack['name'])
+      if outputs is None:
+        break
 
-  def fn_benchmark_each_step(self, label=None, feature=None, name=None,
-                             post=None):
+  def fn_benchmark_each_step(self, pack):
     v = self.v
-    origin_feat = feature
-    for fn in v.feature_callbacks:
-      feature = fn(feature, name=name)
-    for fn in v.label_callbacks:
-      label = fn(label, name=name)
-    outputs, metrics = self.model.test_batch(feature, label, epochs=v.epoch)
+    outputs, metrics = self.model.test_batch(pack['lr'], pack['hr'],
+                                             epochs=v.epoch)
     for _k, _v in metrics.items():
       if _k not in v.mean_metrics:
         v.mean_metrics[_k] = []
       v.mean_metrics[_k] += [_v]
-    for fn in v.output_callbacks:
-      outputs = fn(outputs, input=origin_feat, label=label, name=name,
-                   mode=v.color_format, subdir=v.subdir)
+    for fn in v.inference_results_hooks:
+      outputs = fn(outputs, names=pack['name'])
+      if outputs is None:
+        break
 
   def fn_benchmark_body(self):
     v = self.v
-    it = v.loader.make_one_shot_iterator(v.memory_limit, shuffle=v.random_val)
+    it = v.loader.make_one_shot_iterator(v.batch_shape, v.val_steps,
+                                         shuffle=not v.traced_val,
+                                         memory_limit=v.memory_limit)
     for items in tqdm.tqdm(it, 'Test', ascii=True):
-      label, feature, name, post = items[:4]
-      self.fn_benchmark_each_step(label, feature, name, post)
+      self.fn_benchmark_each_step(items)
 
   """=======================================
       Interface: fit, benchmark, infer
@@ -365,20 +357,17 @@ class VSR(Trainer):
         kwargs: additional arguments to override the same ones in config.
     """
     v = self.query_config(config, **kwargs)
-    v.color_format = loader.color_format
-
     self._restore()
-    it = loader.make_one_shot_iterator()
-    if len(it):
-      tf.logging.info('Inferring {} at epoch {}'.format(
-        self.model.name, self.last_epoch))
-    else:
-      return
+    it = loader.make_one_shot_iterator([1, -1, -1, -1], -1)
+    if hasattr(it, '__len__'):
+      if len(it):
+        LOG.info('Inferring {} at epoch {}'.format(
+            self.model.name, self.last_epoch))
+      else:
+        return
     # use original images in inferring
     for items in tqdm.tqdm(it, 'Infer', ascii=True):
-      feature = items[0]
-      name = items[2]
-      self.fn_infer_each_step(None, feature, name)
+      self.fn_infer_each_step(items)
 
   def benchmark(self, loader, config, **kwargs):
     """Benchmark/validate the model.
@@ -389,8 +378,6 @@ class VSR(Trainer):
         kwargs: additional arguments to override the same ones in config.
     """
     v = self.query_config(config, **kwargs)
-    v.color_format = loader.color_format
-
     self._restore()
     v.mean_metrics = {}
     v.loader = loader

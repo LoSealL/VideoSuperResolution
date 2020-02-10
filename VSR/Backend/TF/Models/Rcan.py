@@ -10,7 +10,7 @@ See https://arxiv.org/abs/1807.02758
 
 import tensorflow as tf
 
-from VSR.Framework.SuperResolution import SuperResolution
+from ..Framework.SuperResolution import SuperResolution
 
 
 class RCAN(SuperResolution):

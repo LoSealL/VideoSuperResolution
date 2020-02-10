@@ -10,8 +10,8 @@ Ref https://arxiv.org/abs/1609.05158
 """
 import tensorflow as tf
 
+from VSR.Util import to_list
 from ..Framework.SuperResolution import SuperResolution
-from ..Util.Utility import to_list
 
 
 def _normalize(x):

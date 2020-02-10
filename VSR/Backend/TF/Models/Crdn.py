@@ -16,7 +16,7 @@ import tensorflow as tf
 
 from ..Arch.Residual import cascade_rdn
 from ..Framework.SuperResolution import SuperResolution
-from ..Util.Utility import clip_image
+from ..Util import clip_image
 
 
 def _denormalize(inputs):

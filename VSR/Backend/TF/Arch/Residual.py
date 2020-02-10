@@ -8,8 +8,8 @@ Architectures of common residual blocks used in SR researches
 """
 import tensorflow as tf
 
+from VSR.Util import to_list
 from ..Framework.LayersHelper import Layers
-from ..Util.Utility import to_list
 
 
 def rdn(layers: Layers, inputs, depth, scaling=1.0,

@@ -10,7 +10,7 @@ if not os.getcwd().endswith('UTest'):
   os.chdir('UTest')
 from VSR.DataLoader import Dataset, Loader
 from VSR.Model import get_model
-
+from VSR.Backend import DATA_FORMAT
 
 def test_train_srcnn():
   data = Dataset('data')
@@ -18,17 +18,20 @@ def test_train_srcnn():
   ld = Loader(data, scale=2)
   ld.set_color_space('lr', 'L')
   ld.set_color_space('hr', 'L')
-  m = get_model('srcnn')(2, 1)
+  m = get_model('srcnn')(scale=2, channel=1)
   with m.executor as t:
     config = t.query_config({})
     config.epochs = 5
     config.steps = 10
-    config.batch_shape = [16, 1, 16, 16]
+    if DATA_FORMAT == 'channels_first':
+      config.batch_shape = [16, 1, 16, 16]
+    else:
+      config.batch_shape = [16, 16, 16, 1]
     t.fit([ld, None], config)
 
 
 def test_infer_srcnn():
-  m = get_model('srcnn')(2, 3)
+  m = get_model('srcnn')(scale=2, channel=3)
   data = Dataset('data')
   data.include_reg('set5')
   ld = Loader(data, scale=2)

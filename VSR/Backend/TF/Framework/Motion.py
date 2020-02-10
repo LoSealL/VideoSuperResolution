@@ -26,7 +26,7 @@ def _grid_norm(width, height, bounds=(-1.0, 1.0)):
   """
   x_t = tf.matmul(tf.ones(shape=tf.stack([height, 1])),
                   tf.transpose(tf.expand_dims(
-                    tf.linspace(*bounds, width), 1), [1, 0]))
+                      tf.linspace(*bounds, width), 1), [1, 0]))
   y_t = tf.matmul(tf.expand_dims(tf.linspace(*bounds, height), 1),
                   tf.ones(shape=tf.stack([1, width])))
 
@@ -194,7 +194,7 @@ def epe(label, predict):
 
 def viz_flow(flow):
   """Visualize optical flow in TF"""
-  from .Callbacks import _color_wheel
+  from VSR.Util.VisualizeOpticalFlow import _color_wheel
   with tf.name_scope('VizFlow'):
     color_wheel = _color_wheel().astype('float32')
     n_cols = color_wheel.shape[0]

@@ -13,7 +13,7 @@ import numpy as np
 import tensorflow as tf
 
 from ..Framework.SuperResolution import SuperResolution
-from ..Util.Utility import bicubic_rescale
+from ..Util import bicubic_rescale
 
 
 class DRCN(SuperResolution):

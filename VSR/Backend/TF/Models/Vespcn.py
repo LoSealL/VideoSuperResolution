@@ -10,9 +10,9 @@ See https://arxiv.org/abs/1611.05250
 
 import tensorflow as tf
 
-from VSR.Framework.Motion import viz_flow, warp
-from VSR.Framework.SuperResolution import SuperResolution
-from VSR.Util.Utility import pixel_shift, pad_if_divide
+from ..Framework.Motion import viz_flow, warp
+from ..Framework.SuperResolution import SuperResolution
+from ..Util import pixel_shift, pad_if_divide
 
 
 class VESPCN(SuperResolution):

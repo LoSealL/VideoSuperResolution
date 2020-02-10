@@ -8,8 +8,10 @@ commonly used layers helper
 """
 import tensorflow as tf
 
-from ..Util.Utility import (SpectralNorm, pixel_shift, pop_dict_wo_keyerror,
-                            prelu, to_list, TorchInitializer)
+from VSR.Util import to_list
+from ..Util import (
+  SpectralNorm, TorchInitializer, pixel_shift, pop_dict_wo_keyerror, prelu
+)
 
 
 class Layers(object):
@@ -25,23 +27,23 @@ class Layers(object):
   def instance_norm(self, x, trainable=True, name=None, reuse=None):
     with tf.variable_scope(name, 'InstanceNorm', reuse=reuse):
       return tf.contrib.layers.instance_norm(
-        x,
-        trainable=trainable,
-        variables_collections=[tf.GraphKeys.GLOBAL_VARIABLES])
+          x,
+          trainable=trainable,
+          variables_collections=[tf.GraphKeys.GLOBAL_VARIABLES])
 
   def layer_norm(self, x, trainable=True, name=None, reuse=None):
     with tf.variable_scope(name, 'LayerNorm', reuse=reuse):
       return tf.contrib.layers.layer_norm(
-        x,
-        trainable=trainable,
-        variables_collections=[tf.GraphKeys.GLOBAL_VARIABLES])
+          x,
+          trainable=trainable,
+          variables_collections=[tf.GraphKeys.GLOBAL_VARIABLES])
 
   def group_norm(self, x, group, axis, trainable=True, name=None, reuse=None):
     with tf.variable_scope(name, 'GroupNorm', reuse=reuse):
       return tf.contrib.layers.group_norm(
-        x, group, axis,
-        trainable=trainable,
-        variables_collections=[tf.GraphKeys.GLOBAL_VARIABLES])
+          x, group, axis,
+          trainable=trainable,
+          variables_collections=[tf.GraphKeys.GLOBAL_VARIABLES])
 
   def conv2d(self, x, filters, kernel_size, strides=(1, 1), padding='same',
              data_format='channels_last', dilation_rate=(1, 1),
@@ -280,10 +282,10 @@ class Layers(object):
     if isinstance(kernel_regularizer, str):
       if kernel_regularizer == 'l1':
         kr = tf.keras.regularizers.l1(
-          self.weight_decay) if self.weight_decay else None
+            self.weight_decay) if self.weight_decay else None
       elif kernel_regularizer == 'l2':
         kr = tf.keras.regularizers.l2(
-          self.weight_decay) if self.weight_decay else None
+            self.weight_decay) if self.weight_decay else None
     elif callable(kernel_regularizer):
       kr = kernel_regularizer
     elif kernel_regularizer:
@@ -318,14 +320,14 @@ class Layers(object):
       if scale_x % 2 == 1 or scale_y % 2 == 1:
         if method == 'espcn':
           image = pixel_shift(self.conv2d(
-            image, features * scale_x * scale_y, 3,
-            use_bias=use_bias, kernel_initializer=ki, kernel_regularizer=kr),
-            [scale_x, scale_y], features)
+              image, features * scale_x * scale_y, 3,
+              use_bias=use_bias, kernel_initializer=ki, kernel_regularizer=kr),
+              [scale_x, scale_y], features)
         elif method == 'nearest':
           image = pixel_shift(
-            tf.concat([image] * scale_x * scale_y, -1),
-            [scale_x, scale_y],
-            image.shape[-1])
+              tf.concat([image] * scale_x * scale_y, -1),
+              [scale_x, scale_y],
+              image.shape[-1])
         elif method == 'deconv':
           image = self.deconv2d(image, features, 3,
                                 strides=[scale_y, scale_x],
@@ -340,13 +342,13 @@ class Layers(object):
         scale_y //= 2
         if method == 'espcn':
           image = pixel_shift(self.conv2d(
-            image, features * 4, 3, use_bias=use_bias,
-            kernel_initializer=ki, kernel_regularizer=kr), [2, 2], features)
+              image, features * 4, 3, use_bias=use_bias,
+              kernel_initializer=ki, kernel_regularizer=kr), [2, 2], features)
         elif method == 'nearest':
           image = pixel_shift(
-            tf.concat([image] * 4, -1),
-            [2, 2],
-            image.shape[-1])
+              tf.concat([image] * 4, -1),
+              [2, 2],
+              image.shape[-1])
         elif method == 'deconv':
           image = self.deconv2d(image, features, 3, strides=2,
                                 use_bias=use_bias,
@@ -471,7 +473,7 @@ class Layers(object):
         act = self._act(activation)
         if use_batchnorm:
           x = tf.layers.batch_normalization(
-            x, training=self.training_phase)
+              x, training=self.training_phase)
         if callable(act):
           x = act(x)
       x = self.conv2d(x, filters, kernel_size, **kwargs)
@@ -530,7 +532,7 @@ class Layers(object):
         act = self._act(activation)
         if use_batchnorm:
           x = tf.layers.batch_normalization(
-            x, training=self.training_phase)
+              x, training=self.training_phase)
         if act:
           x = act(x)
       x = self.conv3d(x, filters, kernel_size, **kwargs)

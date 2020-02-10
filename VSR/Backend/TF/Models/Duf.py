@@ -11,8 +11,9 @@ See http://openaccess.thecvf.com/content_cvpr_2018/papers/Jo_Deep_Video_Super-Re
 import numpy as np
 import tensorflow as tf
 
-from VSR.Framework.SuperResolution import SuperResolution
-from VSR.Util import *
+from VSR.Util import to_list
+from ..Framework.SuperResolution import SuperResolution
+from ..Util import pixel_shift
 
 
 class DUF(SuperResolution):
@@ -27,7 +28,7 @@ class DUF(SuperResolution):
                **kwargs):
     super(DUF, self).__init__(**kwargs)
     self.layers = layers
-    self.filter_size = Utility.to_list(filter_size, 2)
+    self.filter_size = to_list(filter_size, 2)
     self.depth = depth
     self.name = name
 
@@ -95,7 +96,7 @@ class DUF(SuperResolution):
       r = self.relu_conv3d(t, 256, 1)
       r = self.relu_conv3d(r, np.prod([self.channel, *self.scale]), 1)
       r = r[:, 0]
-      r = Utility.pixel_shift(r, self.scale, self.channel)
+      r = pixel_shift(r, self.scale, self.channel)
 
       f = self.relu_conv3d(t, 512, 1)
       f = self.conv3d(f, np.prod(self.filter_size) * np.prod(self.scale), 1)
@@ -107,7 +108,7 @@ class DUF(SuperResolution):
       sr = []
       for i in range(self.channel):
         x = self._dyn_filter3d(input_norm[:, self.depth // 2, ..., i], f[:, 0])
-        sr.append(Utility.pixel_shift(x, self.scale))
+        sr.append(pixel_shift(x, self.scale))
       sr = tf.concat(sr, axis=-1)
       sr += r
       self.outputs.append(self._denormalize(sr))

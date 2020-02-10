@@ -7,10 +7,10 @@
 import numpy as np
 import tensorflow as tf
 
+from VSR.Util import Config
 from ..Framework import Noise, Trainer
 from ..Framework.SuperResolution import SuperResolution
-from ..Util.Config import Config
-from ..Util.Utility import summary_tensor_image
+from ..Util import summary_tensor_image
 
 _MEAN_GT = [84.1148, 68.3644, 64.8452]
 _MEAN_SR = [85.6586, 68.7887, 66.5135]

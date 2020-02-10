@@ -9,12 +9,11 @@ Framework for network model (tensorflow)
 """
 from pathlib import Path
 
-import numpy as np
 import tensorflow as tf
 
+from VSR.Util import to_list
 from .LayersHelper import Layers
 from .Trainer import VSR
-from ..Util.Utility import to_list
 
 
 class SuperResolution(Layers):
@@ -72,8 +71,18 @@ class SuperResolution(Layers):
     return super(SuperResolution, self).__getattr__(item)
 
   @property
-  def trainer(self):
-    return self._trainer
+  def executor(self):
+    return self.get_executor(None)
+
+  def get_executor(self, root):
+    if issubclass(self._trainer.__class__, type):
+      self._trainer = self._trainer(self, root)
+      return self._trainer
+    else:
+      return self._trainer
+
+  def cuda(self):
+    pass
 
   def compile(self):
     """build entire graph and training ops"""
@@ -113,16 +122,16 @@ class SuperResolution(Layers):
       scratch
     """
     self.inputs.append(
-      tf.placeholder(tf.uint8, shape=[None, None, None, None],
-                     name='input/lr'))
+        tf.placeholder(tf.uint8, shape=[None, None, None, None],
+                       name='input/lr'))
     inputs_f = tf.to_float(self.inputs[0])
     # separate additional channels (e.g. alpha channel)
     self.inputs_preproc.append(inputs_f[..., self.channel:])
     self.inputs_preproc.append(inputs_f[..., :self.channel])
     self.inputs_preproc[-1].set_shape([None, None, None, self.channel])
     self.label.append(
-      tf.placeholder(tf.float32, shape=[None, None, None, self.channel],
-                     name='label/hr'))
+        tf.placeholder(tf.float32, shape=[None, None, None, self.channel],
+                       name='label/hr'))
 
   def build_loss(self):
     """help to build mse loss via `self.label[-1]` and `self.outputs[-1]`
@@ -162,7 +171,7 @@ class SuperResolution(Layers):
     feature = to_list(feature)
     label = to_list(label)
     self.feed_dict.update(
-      {self.training_phase: True, self.learning_rate: learning_rate})
+        {self.training_phase: True, self.learning_rate: learning_rate})
     for i in range(len(self.inputs)):
       self.feed_dict[self.inputs[i]] = feature[i]
     for i in range(len(self.label)):
@@ -170,7 +179,7 @@ class SuperResolution(Layers):
     loss = kwargs.get('loss') or self.loss
     loss = to_list(loss)
     loss = tf.get_default_session().run(
-      list(self.train_metric.values()) + loss, feed_dict=self.feed_dict)
+        list(self.train_metric.values()) + loss, feed_dict=self.feed_dict)
     ret = {}
     for k, v in zip(self.train_metric, loss):
       ret[k] = v
@@ -198,8 +207,8 @@ class SuperResolution(Layers):
       for i in range(len(self.label)):
         self.feed_dict[self.label[i]] = label[i]
       results = tf.get_default_session().run(
-        self.outputs + list(self.metrics.values()),
-        feed_dict=self.feed_dict)
+          self.outputs + list(self.metrics.values()),
+          feed_dict=self.feed_dict)
       outputs, metrics = results[:len(self.outputs)], results[
                                                       len(self.outputs):]
     else:
@@ -235,7 +244,7 @@ class SuperResolution(Layers):
     graph = sess.graph.as_graph_def()
     graph = tf.graph_util.remove_training_nodes(graph)
     graph = tf.graph_util.convert_variables_to_constants(
-      sess, graph, [outp.name.split(':')[0] for outp in self.outputs])
+        sess, graph, [outp.name.split(':')[0] for outp in self.outputs])
     tf.train.write_graph(graph, export_path, self.name, as_text=False)
     tf.logging.info("Model exported to {}/{}.".format(export_path, self.name))
 
@@ -264,13 +273,13 @@ class SuperResolution(Layers):
       tag = 'output_' + str(n)
       outputs[tag] = tf.saved_model.utils.build_tensor_info(outp)
     sig = tf.saved_model.signature_def_utils.build_signature_def(
-      inputs=inputs, outputs=outputs,
-      method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME)
+        inputs=inputs, outputs=outputs,
+        method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME)
 
     builder.add_meta_graph_and_variables(
-      sess, [tf.saved_model.tag_constants.SERVING],
-      signature_def_map={
-        tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY: sig
-      },
-      strip_default_attrs=True)
+        sess, [tf.saved_model.tag_constants.SERVING],
+        signature_def_map={
+          tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY: sig
+        },
+        strip_default_attrs=True)
     builder.save()

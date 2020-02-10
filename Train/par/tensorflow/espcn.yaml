@@ -5,10 +5,9 @@ espcn:
   filters: [64, 32, 32]
   kernel: [5, 3, 3]
   scale: 4
-  channel: 1
+  channel: 3
 
-batch: 64
-patch_size: 96
+batch_shape: [16, 16, 16, 3]
 lr: 1.0e-2
 lr_decay:
     method: multistep
