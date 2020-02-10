@@ -4,7 +4,7 @@
 #  Update: 2020 - 2 - 7
 
 from .Crop import CenterCrop, RandomCrop
-from .Dataset import Container, Dataset
+from .Dataset import Container, Dataset, load_datasets
 from .Loader import Loader
 from .Transform import (
   Bicubic, Brightness, Contrast, FixedVideoLengthBatch, GaussianBlur,
@@ -12,6 +12,7 @@ from .Transform import (
 )
 
 __all__ = [
+  'load_datasets',
   'Dataset',
   'Loader',
   'CenterCrop',

@@ -23,7 +23,6 @@ if not HOME:
 HOME.mkdir(exist_ok=True, parents=True)
 CONFIG = {
   'backend': 'pytorch',
-  'data_format': 'channels_first',
   'verbose': 'info',
 }
 if Path(HOME / 'config.yml').exists():
@@ -44,6 +43,7 @@ if BACKEND not in ('tensorflow', 'tensorflow2', 'pytorch'):
 if BACKEND in ('tensorflow', 'tensorflow2'):
   try:
     tf = import_module('tensorflow')
+    CONFIG['data_format'] = 'channels_last'
     if BACKEND is 'tensorflow2' and tf.__version__.split('.')[0] != '2':
       LOG.warning(f"[!] Current tensorflow version is {tf.__version__}")
       LOG.info("[*] Fallback to use tensorflow")
@@ -56,6 +56,7 @@ if BACKEND in ('tensorflow', 'tensorflow2'):
 if BACKEND is 'pytorch':
   try:
     torch = import_module('torch')
+    CONFIG['data_format'] = 'channels_first'
     _ver = torch.__version__.split('.')
     if _ver[0] != '1' or _ver[1] <= '1':
       LOG.warning(

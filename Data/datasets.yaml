@@ -5,7 +5,7 @@
 
 ---
 # Add root dir to dataset. Take effect on all patterns below.
-Root: /mnt/data/datasets/
+Root: .
 # Collect your dataset directory and name them!
 Path:
     91-IMAGE: 91-image/
@@ -13,8 +13,8 @@ Path:
     BSD500-Train: BSR_bsds500/BSR/BSDS500/data/images/train/*.jpg
     BSD500-Val: BSR_bsds500/BSR/BSDS500/data/images/val/*.jpg
     BSD500-Test: BSR_bsds500/BSR/BSDS500/data/images/test/*.jpg
-    GOPRO-Train: GOPRO_Large_all/train
-    GOPRO-Val: GOPRO_Large_all/test
+    GOPRO-Train[video]: GOPRO_Large_all/train
+    GOPRO-Val[video]: GOPRO_Large_all/test
     WATERLOO: exploration_database_and_code/pristine_images/
     DIV2K-Train: DIV2K/DIV2K_train_HR/
     DIV2K-Raw: DIV2K/DIV2K_train_LR/
@@ -35,6 +35,9 @@ Dataset:
         train: []
         val: []
         test: []
+
+    TOY:
+        train: toy/*.bmp
 
     # The training data is collected from list of `train`.
     # They are treated as the ground-truth HR images, and LR

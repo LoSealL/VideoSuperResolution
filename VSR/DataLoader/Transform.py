@@ -39,6 +39,14 @@ class _Transformer1(Transformer):
     raise NotImplementedError
 
 
+class Tidy(_Transformer1):
+  def call(self, img: Image.Image):
+    scale = self.value
+    shape = np.array((img.width, img.height))
+    shape -= shape % scale
+    return img.crop([0, 0, *shape.tolist()])
+
+
 class Bicubic(_Transformer1):
   def call(self, img: Image.Image):
     scale = self.value
@@ -102,5 +110,5 @@ class FixedVideoLengthBatch(_Transformer2):
       return img
     ret = []
     for i in range(shape[1] - depth + 1):
-      ret.append(img[:, i * depth : (i + 1) * depth])
+      ret.append(img[:, i * depth: (i + 1) * depth])
     return np.stack(ret, 1).reshape([-1, depth, *shape[-3:]])

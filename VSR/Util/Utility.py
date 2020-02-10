@@ -3,8 +3,10 @@
 #  Email: wenyitang@outlook.com
 #  Update: 2020 - 2 - 7
 
+import logging
 from typing import Generator
-from . import LOG
+
+LOG = logging.getLogger('VSR.Util')
 
 
 def to_list(x, repeat=1):
@@ -45,15 +47,17 @@ def str_to_bytes(s):
     return float(s)
   if not _unit in ('B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'):
     raise ValueError('invalid unit', _unit)
-  carry = {'B': 1,
-           'KB': 1024,
-           'MB': 1024 ** 2,
-           'GB': 1024 ** 3,
-           'TB': 1024 ** 4,
-           'PB': 1024 ** 5,
-           'EB': 1024 ** 6,
-           'ZB': 1024 ** 7,
-           'YB': 1024 ** 8}
+  carry = {
+    'B': 1,
+    'KB': 1024,
+    'MB': 1024 ** 2,
+    'GB': 1024 ** 3,
+    'TB': 1024 ** 4,
+    'PB': 1024 ** 5,
+    'EB': 1024 ** 6,
+    'ZB': 1024 ** 7,
+    'YB': 1024 ** 8
+  }
   return float(_num) * carry[_unit]
 
 
@@ -70,7 +74,7 @@ def cross_type_assign(value, dtype):
       return True
     else:
       LOG.warning(
-        "suspect wrong typo {}, do you mean true/false?".format(value))
+          "suspect wrong typo {}, do you mean true/false?".format(value))
       return True
   return dtype(value)
 

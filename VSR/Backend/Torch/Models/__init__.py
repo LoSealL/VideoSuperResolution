@@ -48,7 +48,7 @@ models = {
 
 
 def get_model(name):
-  module = f'VSRTorch.Models.{models[name][0]}'
+  module = f'.Backend.Torch.Models.{models[name][0]}'
   package = 'VSR'
   m = importlib.import_module(module, package)
   return m.__dict__[models[name][1]]

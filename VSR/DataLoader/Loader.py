@@ -12,7 +12,7 @@ from psutil import virtual_memory
 
 from .Crop import RandomCrop
 from .Dataset import Container, Dataset
-from .Transform import Bicubic
+from .Transform import Bicubic, Tidy
 from ..Backend import DATA_FORMAT
 from ..Util import Utility
 from ..Util.ImageProcess import img_to_array
@@ -116,10 +116,10 @@ class EpochIterator:
         hr3 = hr3.squeeze(0)
         lr3 = lr3.squeeze(0)
         hr4, lr4 = crop((hr3, lr3), shape=self.shape[2:]) if crop else (
-        hr3, lr3)
+          hr3, lr3)
       else:
         hr4, lr4 = crop((hr3, lr3), shape=self.shape[1:]) if crop else (
-        hr3, lr3)
+          hr3, lr3)
       del hr3, lr3
       hr4 = np.expand_dims(hr4, 0)  # 4-D or 5-D
       lr4 = np.expand_dims(lr4, 0)  # [1, (T,) C, H, W]
@@ -174,15 +174,15 @@ class Loader(object):
     if isinstance(hr_data, Dataset):
       hr_data = hr_data.compile()
       assert isinstance(hr_data, Container)
-    if lr_data is not None:
-      if isinstance(lr_data, Dataset):
-        lr_data = lr_data.compile()
-        assert isinstance(lr_data, Container)
-        assert len(hr_data) == len(lr_data)
-      if scale is None and lr_data is hr_data:
-        scale = 1  # deduce to 1
+    if isinstance(lr_data, Dataset):
+      lr_data = lr_data.compile()
+      assert isinstance(lr_data, Container)
+    if lr_data is not None and hr_data is not None:
+      assert len(hr_data) == len(lr_data)
     else:
-      lr_data = hr_data
+      hr_data = hr_data or lr_data
+      lr_data = lr_data or hr_data
+    scale = scale or 1  # deduce to 1
     if extra_data is not None:
       assert isinstance(extra_data, dict)
 
@@ -201,7 +201,7 @@ class Loader(object):
     }
     self.aux = {
       'augmentation': False,
-      'scale': scale or 1,
+      'scale': scale,
       'fetchList': list(np.arange(len(hr_data)))
     }
     self.data = {
@@ -229,8 +229,9 @@ class Loader(object):
     if self.extra and isinstance(self.extra['data'], Container):
       cap += self.extra['data'].capacity
     self.aux['cap'] = cap  # estimated memory usage in bytes
-    if hr_data is lr_data and self.aux['scale'] > 1:
-      self.lr['transform1'].append(Bicubic(1 / self.aux['scale']))
+    if hr_data is lr_data and scale > 1:
+      self.add_data_transform('hr', Tidy(scale))
+      self.add_data_transform('lr', Tidy(scale), Bicubic(1 / scale))
 
   def add_data_transform(self, target: str, *fn, dtype='pillow'):
     """Add data transform functions. Each function will be called before
@@ -337,7 +338,7 @@ class Loader(object):
     if not self.fs:
       if shuffle:
         self.aux['fetchList'] = list(
-          np.random.permutation(self.aux['fetchList']))
+            np.random.permutation(self.aux['fetchList']))
       if available_mem > self.aux['cap']:
         LOG.debug("Loading all data into memory.")
         for i in range(self.threads):

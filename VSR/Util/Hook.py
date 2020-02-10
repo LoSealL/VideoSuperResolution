@@ -40,7 +40,7 @@ def _save_model_predicted_images(output, names, save_dir, index, auto_rename):
     for i, n in enumerate(img):
       rep = 0
       if auto_rename:
-        while not (path / f"{name}_id{i:04d}_{rep:04d}.png").exists():
+        while (path / f"{name}_id{i:04d}_{rep:04d}.png").exists():
           rep += 1
       path /= f"{name}_id{i:04d}_{rep:04d}.png"
       array_to_img(n).convert('RGB').save(str(path))

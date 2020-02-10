@@ -106,14 +106,16 @@ class BasicModel:
     raise NotImplementedError("Should implement in specific model!")
 
   @property
-  def trainer(self):
+  def executor(self):
     """Return the trainer class type for this model."""
-    return self._trainer
+    return self.get_executor(None)
 
-  @property
-  def loader(self):
-    """Return the loader class type for this model."""
-    return self._loader
+  def get_executor(self, root):
+    if issubclass(self._trainer.__class__, type):
+      self._trainer = self._trainer(self, root)
+      return self._trainer
+    else:
+      return self._trainer
 
 
 class SuperResolution(BasicModel):

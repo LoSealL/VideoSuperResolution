@@ -7,12 +7,10 @@ import argparse
 from pathlib import Path
 
 from VSR.Backend import BACKEND
-from VSR.DataLoader import Loader, RandomCrop, CenterCrop
-from VSR.DataLoader.Dataset import load_datasets
+from VSR.DataLoader import CenterCrop, Loader, RandomCrop
+from VSR.DataLoader import load_datasets
 from VSR.Model import get_model, list_supported_models
-from VSR.Util.Config import Config
-from VSR.Util.LearningRateScheduler import lr_decay
-from VSR.Util.Utility import suppress_opt_by_args
+from VSR.Util import Config, lr_decay, suppress_opt_by_args
 
 parser = argparse.ArgumentParser(description=f'VSR ({BACKEND}) Training Tool v1.0')
 g0 = parser.add_argument_group("basic options")
@@ -69,20 +67,23 @@ def main():
 
   dataset = load_datasets(data_config_file, opt.dataset)
   # construct data loader for training
-  lt = Loader(dataset.train_hr, dataset.train_lr, opt.scale, threads=opt.threads)
+  lt = Loader(dataset.train.hr, dataset.train.lr, opt.scale, threads=opt.threads)
   # construct data loader for validating
-  lv = Loader(dataset.val_hr, dataset.val_lr, opt.scale, threads=opt.threads)
+  lv = None
+  if dataset.val is not None:
+    lv = Loader(dataset.val.hr, dataset.val.lr, opt.scale, threads=opt.threads)
   lt.cropper(RandomCrop(opt.scale))
-  if opt.traced_val:
+  if opt.traced_val and lv is not None:
     lv.cropper(CenterCrop(opt.scale))
-  else:
+  elif lv is not None:
     lv.cropper(RandomCrop(opt.scale))
   if opt.channel == 1:
     # convert data color space to grayscale
     lt.set_color_space('hr', 'L')
     lt.set_color_space('lr', 'L')
-    lv.set_color_space('hr', 'L')
-    lv.set_color_space('lr', 'L')
+    if lv is not None:
+      lv.set_color_space('hr', 'L')
+      lv.set_color_space('lr', 'L')
   # enter model executor environment
   with model.get_executor(root) as t:
     config = t.query_config(opt)

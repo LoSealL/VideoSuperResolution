@@ -2,10 +2,9 @@ espcn:
   scale: 4
   channel: 3
   image_weight: 1
-  feature_weight: 0.1  # perceptual loss
+  feature_weight: 0  # perceptual loss
 
-batch: 64
-patch_size: 96
+batch_shape: [16, 3, 16, 16]
 lr: 1.0e-2
 lr_decay:
     method: multistep

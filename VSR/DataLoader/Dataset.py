@@ -104,12 +104,12 @@ class Dataset(object):
       files += list(filter(_exc, filter(_supported_suffix, nodes)))
     image_nodes = list(filter(_supported_image, files))
     if not self.as_video:
-      self.compiled = Container(image_nodes, self.as_video)
+      self.compiled = Container(sorted(image_nodes), self.as_video)
       return self.compiled
     video_nodes = list(filter(_supported_video, files))
     video_nodes += list(map(lambda x: x.parent, image_nodes))
     video_nodes = list(set(video_nodes))  # remove duplicated nodes
-    self.compiled = Container(video_nodes, self.as_video)
+    self.compiled = Container(sorted(video_nodes), self.as_video)
     return self.compiled
 
 
@@ -196,8 +196,8 @@ def load_datasets(describe_file, key=''):
       return str(Path(url) / '**/*')
     return url
 
-  def _get_dataset(desc, use_as_video=None):
-    dataset = Config()
+  def _get_dataset(desc, use_as_video=None, name=None):
+    dataset = Config(name=name)
     for i in desc:
       if i not in ('train', 'val', 'test'):
         continue
@@ -218,12 +218,15 @@ def load_datasets(describe_file, key=''):
         hr_pattern = [x if x not in all_path else all_path[x] for x in hr]
         lr_pattern = [x if x not in all_path else all_path[x] for x in lr]
       hr_data = Dataset(root).include(*(_extend_pattern(x) for x in hr_pattern))
-      lr_data = Dataset(root).include(*(_extend_pattern(x) for x in lr_pattern))
+      lr_data = Dataset(root).include(
+          *(_extend_pattern(x) for x in lr_pattern)) if lr_pattern else None
       hr_data.recursive = False
-      lr_data.recursive = False
+      if lr_data is not None:
+        lr_data.recursive = False
       if use_as_video:
         hr_data.use_like_video()
-        lr_data.use_like_video()
+        if lr_data is not None:
+          lr_data.use_like_video()
       setattr(dataset, i, Config(hr=hr_data, lr=lr_data))
     return dataset
 
@@ -237,22 +240,26 @@ def load_datasets(describe_file, key=''):
       root = root.resolve()
     all_path = config["Path"]
     if key.upper() in config["Dataset"]:
-      return _get_dataset(config["Dataset"][key.upper()])
+      return _get_dataset(config["Dataset"][key.upper()], name=key)
     elif key.upper() + '[video]' in config["Dataset"]:
-      return _get_dataset(config["Dataset"][key.upper() + '[video]'], True)
+      return _get_dataset(config["Dataset"][key.upper() + '[video]'], True,
+                          name=key)
     elif key.upper() in all_path:
-      return _get_dataset(Config(test=all_path[key.upper()]))
+      return _get_dataset(Config(test=all_path[key.upper()]), name=key)
     elif key.upper() + '[video]' in all_path:
-      return _get_dataset(Config(test=all_path[key.upper() + '[video]']), True)
+      return _get_dataset(Config(test=all_path[key.upper() + '[video]']), True,
+                          name=key)
     for name, value in config["Dataset"].items():
       if '[video]' in name:
-        datasets[name.replace('[video]', '')] = _get_dataset(value, True)
+        name = name.replace('[video]', '')
+        datasets[name] = _get_dataset(value, True, name=name)
       else:
-        datasets[name] = _get_dataset(value)
+        datasets[name] = _get_dataset(value, name=name)
     for name in all_path:
       if '[video]' in name:
-        datasets[name.replace('[video]', '')] = \
-          _get_dataset(Config(test=all_path[name]), True)
+        _name = name.replace('[video]', '')
+        datasets[_name] = _get_dataset(Config(test=all_path[name]), True,
+                                       name=_name)
       else:
-        datasets[name] = _get_dataset(Config(test=all_path[name]))
+        datasets[name] = _get_dataset(Config(test=all_path[name]), name=name)
     return datasets
