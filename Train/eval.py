@@ -103,7 +103,7 @@ def main():
       ld.set_color_space('lr', 'L')
     # enter model executor environment
     with model.get_executor(root) as t:
-      config = t.query_config(opt)
+      config = t.query_config(opt, batch_shape=[1, -1, -1, -1], val_steps=-1)
       config.inference_results_hooks = [save_inference_images(root / data.name,
                                                               opt.output_index,
                                                               opt.auto_rename)]

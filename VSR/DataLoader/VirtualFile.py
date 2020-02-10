@@ -223,7 +223,7 @@ class RawFile(File):
     if not mode.upper() in _ALLOWED_RAW_FORMAT:
       raise TypeError('unknown mode: ' + mode)
     self.mode = mode.upper()
-    self.size = size
+    self._size = size
     self.pitch, self.channel_pitch = self._get_frame_pitch()
     super(RawFile, self).__init__(path, rewind)
     self._pair = None
@@ -239,7 +239,7 @@ class RawFile(File):
       - **channel2** of YV12 is V, YV21 is U
     """
     mode = self.mode
-    w, h = self.size
+    w, h = self._size
     if mode in ('YV12', 'YV21'):
       return h * w * 3 // 2, [h * w, h * w // 4, h * w // 4]
     if mode in ('NV12', 'NV21'):
@@ -254,7 +254,7 @@ class RawFile(File):
     For the detail of mode fourcc, please see https://www.fourcc.org/
     """
     mode = self.mode
-    w, h = self.size
+    w, h = self._size
     if mode in ('YV12', 'YV21'):
       return (np.array([1, h, w]),
               np.array([1, h // 2, w // 2]),
@@ -276,13 +276,13 @@ class RawFile(File):
       ret = []
       for _ in range(frames):
         data = self.read(self.pitch)
-        ret.append(Image.frombytes('YCbCr', self.size, data, self.mode))
+        ret.append(Image.frombytes('YCbCr', self._size, data, self.mode))
       return ret
     elif self.mode in ('RGB', 'RGBA'):
       ret = []
       for _ in range(frames):
         data = self.read(self.pitch)
-        ret.append(Image.frombytes(self.mode, self.size, data))
+        ret.append(Image.frombytes(self.mode, self._size, data))
       return ret
     elif self.mode in ('BGR',):
       _image_mode = 'RGB'
@@ -290,7 +290,7 @@ class RawFile(File):
       for _ in range(frames):
         data = b''.join(
           (self.read(3)[::-1] for _ in range(self.pitch // 3)))
-        ret.append(Image.frombytes('RGB', self.size, data))
+        ret.append(Image.frombytes('RGB', self._size, data))
       return ret
     elif self.mode in ('BGRA',):
       ret = []
@@ -299,7 +299,7 @@ class RawFile(File):
         for _ in range(self.pitch // 4):
           c = self.read(4)
           buf.join((c[2::-1], c[3:]))
-        ret.append(Image.frombytes('RGBA', self.size, buf))
+        ret.append(Image.frombytes('RGBA', self._size, buf))
       return ret
 
   def seek(self, offset, where=SEEK_SET):
@@ -323,7 +323,7 @@ class RawFile(File):
     print(" [!] warning: pad is not supported in RawFile")
 
   def attach_pair(self, pair_file):
-    self._pair = RawFile(pair_file, self.mode, self.size, self.rewind)
+    self._pair = RawFile(pair_file, self.mode, self._size, self.rewind)
     return self
 
   @property
@@ -332,7 +332,7 @@ class RawFile(File):
 
   @property
   def shape(self):
-    return self.size
+    return self._size
 
   @property
   def frames(self):

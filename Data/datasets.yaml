@@ -5,7 +5,7 @@
 
 ---
 # Add root dir to dataset. Take effect on all patterns below.
-Root: .
+Root: /mnt/data/datasets
 # Collect your dataset directory and name them!
 Path:
     91-IMAGE: 91-image/
@@ -35,10 +35,6 @@ Dataset:
         train: []
         val: []
         test: []
-
-    TOY:
-        train: toy/train/*.bmp
-        val: toy/eval/*.bmp
 
     # The training data is collected from list of `train`.
     # They are treated as the ground-truth HR images, and LR

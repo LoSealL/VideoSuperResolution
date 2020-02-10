@@ -8,8 +8,7 @@ carn:
   scale: 4
   channel: 3
 
-batch: 16
-patch_size: 256
+batch_shape: [4, 16, 16, 3]
 lr: 1.0e-4
 lr_decay:
   method: multistep

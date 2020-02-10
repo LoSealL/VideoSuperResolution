@@ -169,6 +169,8 @@ def compat_param(par):
       batch_shape.append(channel)
     else:
       batch_shape.insert(1, channel)
+    if 'depth' in _par and _par.depth != 1:
+      batch_shape.insert(1, _par.depth)
     par.batch_shape = batch_shape
     delattr(par, 'batch')
     delattr(par, 'patch_size')

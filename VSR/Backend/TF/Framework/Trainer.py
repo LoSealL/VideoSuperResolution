@@ -222,7 +222,7 @@ class VSR(Trainer):
     self.v.epochs = config.epochs or 1  # total epochs
     self.v.lr = config.lr or 1e-4  # learning rate
     self.v.batch_shape = config.batch_shape or [1, -1, -1, -1]
-    self.v.train_steps = config.steps or 200
+    self.v.steps = config.steps or 200
     self.v.val_steps = config.val_steps or 10
     self.v.lr_schedule = config.lr_schedule
     self.v.memory_limit = config.memory_limit
@@ -256,7 +256,7 @@ class VSR(Trainer):
     v = self.v
     mem = v.memory_limit
     train_iter = v.train_loader.make_one_shot_iterator(v.batch_shape,
-                                                       v.train_steps,
+                                                       v.steps,
                                                        shuffle=True,
                                                        memory_limit=mem)
     v.train_loader.prefetch(v.memory_limit)
