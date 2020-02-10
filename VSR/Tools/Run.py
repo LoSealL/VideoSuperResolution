@@ -71,7 +71,6 @@ tf.flags.DEFINE_bool('random_val', True,
                      " (i.e. GAN).")
 tf.flags.DEFINE_bool('ensemble', False,
                      "Enable self-ensemble at inferring. (ONLY INFER)")
-tf.flags.DEFINE_bool('v', False, help="show verbose info")
 
 
 def cross_type_assign(value, dtype):

@@ -127,6 +127,9 @@ class QPRN(SuperResolution):
         for param_group in opt.param_groups:
           param_group["lr"] = learning_rate
     self.adam.zero_grad()
+    if self.debug.reverse:
+      frames.reverse()
+      labels.reverse()
     # # time extension
     # frames_rev, labels_rev = frames.copy(), labels.copy()
     # frames_rev.reverse()
