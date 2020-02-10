@@ -6,12 +6,12 @@
 import re
 from concurrent import futures
 from pathlib import Path
+import copy
 
 import yaml
 
 from .VirtualFile import ImageFile, RawFile
-from ..Util.Config import Config
-from ..Util.Utility import to_list
+from ..Util import Config, to_list
 
 try:
   from yaml import FullLoader as _Loader
@@ -47,7 +47,7 @@ class Dataset(object):
   """
 
   def __init__(self, *folders):
-    self.dirs = map(Path, folders)
+    self.dirs = list(map(Path, folders))
     self.recursive = True
     self.glob_patterns = ('*',)
     self.inc_patterns = None
@@ -55,23 +55,43 @@ class Dataset(object):
     self.as_video = False
     self.compiled = None
 
-  def use_like_video(self):
+  def use_like_video_(self):
     self.as_video = True
-    return self
 
-  def include(self, *pattern: str):
+  def use_like_video(self):
+    d = copy.copy(self)
+    d.compiled = None
+    d.use_like_video_()
+    return d
+
+  def include_(self, *pattern: str):
     self.glob_patterns = list(pattern)
     self.inc_patterns = None
-    return self
 
-  def include_reg(self, *reg: str):
+  def include(self, *pattern: str):
+    d = copy.copy(self)
+    d.compiled = None
+    d.include_(*pattern)
+    return d
+
+  def include_reg_(self, *reg: str):
     self.inc_patterns = [re.compile(r) for r in reg]
     self.glob_patterns = ('*',)
-    return self
+
+  def include_reg(self, *reg: str):
+    d = copy.copy(self)
+    d.compiled = None
+    d.include_reg_(*reg)
+    return d
+
+  def exclude_(self, *reg: str):
+    self.exc_patterns = [re.compile(r) for r in reg]
 
   def exclude(self, *reg: str):
-    self.exc_patterns = [re.compile(r) for r in reg]
-    return self
+    d = copy.copy(self)
+    d.compiled = None
+    d.exclude_(*reg)
+    return d
 
   def compile(self):
     if self.compiled:
@@ -224,9 +244,9 @@ def load_datasets(describe_file, key=''):
       if lr_data is not None:
         lr_data.recursive = False
       if use_as_video:
-        hr_data.use_like_video()
+        hr_data.use_like_video_()
         if lr_data is not None:
-          lr_data.use_like_video()
+          lr_data.use_like_video_()
       setattr(dataset, i, Config(hr=hr_data, lr=lr_data))
     return dataset
 

@@ -216,14 +216,14 @@ class VSR(Trainer):
   """
 
   def query_config(self, config, **kwargs) -> Config:
-    config = Config(config)
+    config = Config(config or {})
     config.update(kwargs)  # override parameters
     self.v.epoch = config.epoch  # current epoch
     self.v.epochs = config.epochs or 1  # total epochs
     self.v.lr = config.lr or 1e-4  # learning rate
     self.v.batch_shape = config.batch_shape or [1, -1, -1, -1]
     self.v.steps = config.steps or 200
-    self.v.val_steps = config.val_steps or 10
+    self.v.val_steps = config.val_steps or -1
     self.v.lr_schedule = config.lr_schedule
     self.v.memory_limit = config.memory_limit
     self.v.inference_results_hooks = config.inference_results_hooks or []

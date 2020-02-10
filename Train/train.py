@@ -68,6 +68,7 @@ def main():
   dataset = load_datasets(data_config_file, opt.dataset)
   # construct data loader for training
   lt = Loader(dataset.train.hr, dataset.train.lr, opt.scale, threads=opt.threads)
+  lt.image_augmentation()
   # construct data loader for validating
   lv = None
   if dataset.val is not None:

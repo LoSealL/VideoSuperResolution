@@ -39,13 +39,9 @@ def test_simplest_loader():
 
 
 def test_complex_loader():
-  d = Dataset('data')
-  d.use_like_video()
-  d.include_reg('hr/xiuxian')
+  d = Dataset('data').use_like_video().include_reg('hr/xiuxian')
   hr = d.compile()
-  d = Dataset('data')
-  d.use_like_video()
-  d.include_reg('lr/xiuxian')
+  d = Dataset('data').use_like_video().include_reg('lr/xiuxian')
   lr = d.compile()
   ld = Loader(hr, lr, threads=4)
   ld.image_augmentation()
@@ -58,7 +54,7 @@ def test_complex_loader():
 
 def test_memory_limit():
   d = Dataset('data/')
-  d.include('*.png')
+  d = d.include('*.png')
   data = d.compile()
   ld = Loader(data, data, threads=4)
   ld.cropper(RandomCrop(1))
@@ -75,7 +71,7 @@ def test_memory_limit():
 
 def test_no_shuffle():
   d = Dataset('data/')
-  d.include('*.png')
+  d = d.include('*.png')
   data = d.compile()
   ld = Loader(data, data, threads=4)
   ld.cropper(RandomCrop(1))
@@ -91,8 +87,7 @@ def test_no_shuffle():
 
 
 def test_auto_deduce_shape():
-  d = Dataset('data')
-  d.include_reg('set5')
+  d = Dataset('data').include_reg('set5')
   ld = Loader(d, scale=1)
   itr = ld.make_one_shot_iterator([1, -1, -1, -1], -1)
   ret = list(itr)

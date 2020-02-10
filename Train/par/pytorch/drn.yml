@@ -1,14 +1,13 @@
 drn:
-  scale: 4
-  channel: 3
-  n_cb: 4
-  noise: 0
-  offset: 0
+    scale: 4
+    channel: 3
+    n_cb: 4
+    noise: 0
+    offset: 0
 
-batch: 16
-patch_size: 128
+batch_shape: [16, 3, 32, 32]
 lr: 1.0e-4
 lr_decay:
-  method: multistep
-  decay_step: []
-  decay_rate: 0.5
+    method: multistep
+    decay_step: [500]
+    decay_rate: 0.1

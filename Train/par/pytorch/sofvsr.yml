@@ -1,12 +1,11 @@
 sofvsr:
-  channel: 1
-  scale: 4
-  depth: 3
+    channel: 1
+    scale: 4
+    depth: 3
 
-batch: 16
-patch_size: 64
+batch_shape: [16, 3, 1, 32, 32]
 lr: 1.0e-4
 lr_decay:
-  method: multistep
-  decay_step: [250, 500, 750, 1000, 1250]
-  decay_rate: 0.5
+    method: multistep
+    decay_step: [250, 500, 750, 1000, 1250]
+    decay_rate: 0.5

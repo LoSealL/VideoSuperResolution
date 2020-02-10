@@ -13,8 +13,7 @@ def test_image_data():
 
 
 def test_video_data():
-  d = Dataset('data/video/custom_pair')
-  d.use_like_video()
+  d = Dataset('data/video/custom_pair').use_like_video()
   data = d.compile()
   assert len(data) is 2
 
@@ -27,14 +26,12 @@ def test_multi_url():
 
 def test_include_exclude():
   d = Dataset('data')
-  d.include('xiuxian*')
+  d.include_('xiuxian*')
   data1 = d.compile()
   d = Dataset('data')
-  d.include_reg('set5')
+  d.include_reg_('set5')
   data2 = d.compile()
-  d = Dataset('data')
-  d.include_reg('set5')
-  d.exclude('png')
+  d = Dataset('data').include_reg('set5').exclude('png')
   data3 = d.compile()
 
   assert len(data1) is 6

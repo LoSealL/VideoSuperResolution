@@ -14,8 +14,7 @@ from VSR.Backend import DATA_FORMAT
 
 
 def test_train_srcnn():
-  data = Dataset('data')
-  data.include_reg('set5')
+  data = Dataset('data').include_reg('set5')
   ld = Loader(data, scale=2)
   ld.set_color_space('lr', 'L')
   ld.set_color_space('hr', 'L')
@@ -33,8 +32,7 @@ def test_train_srcnn():
 
 def test_infer_srcnn():
   m = get_model('srcnn')(scale=2, channel=3)
-  data = Dataset('data')
-  data.include_reg('set5')
+  data = Dataset('data').include_reg('set5')
   ld = Loader(data, scale=2)
   with m.executor as t:
     config = t.query_config({})
@@ -42,9 +40,7 @@ def test_infer_srcnn():
 
 
 def test_train_vespcn():
-  data = Dataset('data/video')
-  data.include_reg("xiuxian")
-  data.use_like_video()
+  data = Dataset('data/video').include_reg("xiuxian").use_like_video()
   ld = Loader(data, scale=2)
   m = get_model('vespcn')(scale=2, channel=3)
   with m.executor as t:

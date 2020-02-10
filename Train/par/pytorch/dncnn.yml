@@ -1,14 +1,13 @@
 dncnn:
-  scale: 1
-  channel: 3
-  noise: 25  # noise level added during training
-  image_weight: 1
-  feature_weight: 0  # perceptual loss
+    scale: 1
+    channel: 3
+    noise: 25  # noise level added during training
+    image_weight: 1
+    feature_weight: 0  # perceptual loss
 
-batch: 64
-patch_size: 96
+batch_shape: [64, 3, 96, 96]
 lr: 1.0e-3
 lr_decay:
-  method: multistep
-  decay_step: [50]
-  decay_rate: 0.1
+    method: multistep
+    decay_step: [50]
+    decay_rate: 0.1

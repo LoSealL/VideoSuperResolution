@@ -1,15 +1,14 @@
 vdsr:
-  scale: 4
-  channel: 3
-  layers: 20
-  upsample: true
-  image_weight: 1
-  feature_weight: 0  # perceptual loss
+    scale: 4
+    channel: 3
+    layers: 20
+    upsample: true
+    image_weight: 1
+    feature_weight: 0  # perceptual loss
 
-batch: 64
-patch_size: 96
+batch_shape: [16, 3, 24, 24]
 lr: 1.0e-2
 lr_decay:
-  method: multistep
-  decay_step: [50, 75]
-  decay_rate: 0.1
+    method: multistep
+    decay_step: [50, 75]
+    decay_rate: 0.1

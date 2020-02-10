@@ -1,6 +1,13 @@
 drrn:
-  scale: 4
-  channel: 3
-  n_ru: 3
-  n_rb: 3
-  clip: 0.01
+    scale: 4
+    channel: 3
+    n_ru: 3
+    n_rb: 3
+    clip: 0.01
+
+batch_shape: [16, 3, 32, 32]
+lr: 1.0e-4
+lr_decay:
+    method: multistep
+    decay_step: [500]
+    decay_rate: 0.1

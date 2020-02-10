@@ -47,11 +47,16 @@ All these models are implemented in **ONE** framework.
 |NLRN|[NIPS18](https://papers.nips.cc/paper/7439-non-local-recurrent-network-for-image-restoration.pdf)|[Tensorflow](https://github.com/Ding-Liu/NLRN)|T|-| Non-local, Recurrent ||
 |SRCliqueNet|[NIPS18](https://arxiv.org/abs/1809.04508)|-|-|-| Wavelet ||
 |FFDNet|[TIP18](https://ieeexplore.ieee.org/document/8365806/)|[Matlab](https://github.com/cszn/FFDNet)|Y|Y| Conditional denoise||
-|CBDNet|[arXiv](https://arxiv.org/abs/1807.04686)|[Matlab](https://github.com/GuoShi28/CBDNet)|T|-| Blind-denoise ||
+|CBDNet|[CVPR19](https://arxiv.org/abs/1807.04686)|[Matlab](https://github.com/GuoShi28/CBDNet)|T|-| Blind-denoise ||
 |SOFVSR|[ACCV18](http://arxiv.org/abs/1809.08573)|[PyTorch](https://github.com/LongguangWang/SOF-VSR)|-|Y| VideoSR |[√](https://github.com/LoSealL/Model/releases/download/sofvsr/SOFVSR_x4.zip)|
 |ESRGAN|[ECCVW18](http://arxiv.org/abs/1809.00219)|[PyTorch](https://github.com/xinntao/ESRGAN)|-|Y|1st place PIRM 2018|[√](https://github.com/LoSealL/Model/releases/download/esrgan/esrgan.zip)|
 |TecoGAN|[arXiv](http://arxiv.org/abs/1811.09393)|[Tensorflow](https://github.com/thunil/TecoGAN)|-|T| VideoSR GAN|[√](https://github.com/LoSealL/Model/releases/download/tecogan/tecogan.zip)|
 |RBPN|[CVPR19](https://arxiv.org/abs/1903.10128)|[PyTorch](https://github.com/alterzero/RBPN-PyTorch)|-|Y| VideoSR |[√](https://drive.google.com/open?id=1Ozp5j-DBWJSpXY5GvxiEPKdfCaAbOXqu)|
+|DPSR|[CVPR19](https://arxiv.org/abs/1903.12529)|[Pytorch](https://github.com/cszn/DPSR)|-|-|||
+|SRFBN|[CVPR19](https://arxiv.org/abs/1903.09814)|[Pytorch](https://github.com/Paper99/SRFBN_CVPR19)|-|-||||
+|SRNTT|[CVPR19](https://arxiv.org/abs/1903.00834)|[Tensorflow](https://github.com/ZZUTK/SRNTT)|-|-|Adobe||
+|SAN|[CVPR19](http://openaccess.thecvf.com/content_CVPR_2019/papers/Dai_Second-Order_Attention_Network_for_Single_Image_Super-Resolution_CVPR_2019_paper.pdf)|[empty](https://github.com/daitao/SAN)|-|-| AliDAMO SOTA ||
+|AdaFM|[CVPR19](https://arxiv.org/abs/1904.08118)|[Pytorch](https://github.com/hejingwenhejingwen/AdaFM)|-|-| SenseTime Oral ||
 
 \*The 1st repo is by paper author.
 
