@@ -182,6 +182,8 @@ class Loader(object):
     else:
       hr_data = hr_data or lr_data
       lr_data = lr_data or hr_data
+    if hr_data is None and lr_data is None:
+      hr_data = lr_data = Container([], False)
     scale = scale or 1  # deduce to 1
     if extra_data is not None:
       assert isinstance(extra_data, dict)

@@ -9,7 +9,7 @@ from .ImageProcess import (
   array_to_img, img_to_array, imread, imresize, rgb_to_yuv
 )
 from .LearningRateScheduler import lr_decay
-from .Utility import (str_to_bytes, suppress_opt_by_args, to_list)
+from .Utility import (str_to_bytes, suppress_opt_by_args, to_list, compat_param)
 
 
 __all__ = [
@@ -24,4 +24,5 @@ __all__ = [
   'img_to_array',
   'rgb_to_yuv',
   'save_inference_images',
+  'compat_param',
 ]

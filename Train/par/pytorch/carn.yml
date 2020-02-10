@@ -3,3 +3,5 @@ carn:
   channel: 3
   multi_scale: 0
   group: 1
+
+batch_shape: [4, 3, 16, 16]

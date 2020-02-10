@@ -7,8 +7,8 @@ import os
 
 import numpy as np
 
-if not os.getcwd().endswith('UTest'):
-  os.chdir('UTest')
+if not os.getcwd().endswith('Tests'):
+  os.chdir('Tests')
 from VSR.DataLoader.Loader import Loader
 from VSR.DataLoader.Dataset import Dataset
 from VSR.DataLoader.Crop import RandomCrop

@@ -3,10 +3,11 @@ unit test for VSR.Framework.Motion package
 """
 import os
 
-if not os.getcwd().endswith('UTest'):
-  os.chdir('UTest')
-from VSR.Framework import Motion as M
-from VSRTorch.Models.video import motion as MT
+if not os.getcwd().endswith('Tests'):
+  os.chdir('Tests')
+from VSR.Backend.TF.Framework import Motion as M
+from VSR.Backend.Torch.Models.video import motion as MT
+from VSR.DataLoader.FloDecoder import open_flo, KITTI
 
 import tensorflow as tf
 import torch
@@ -27,12 +28,12 @@ def _assert_same(x, y, epsilon=1e-6):
 
 
 def test_open_flo():
-  X = M.open_flo(TEST_FLO_FILE)
+  X = open_flo(TEST_FLO_FILE)
   assert X.shape == (384, 512, 2)
 
 
 def test_open_png16():
-  X = M.open_png16(TEST_PNG16_FILE)
+  X = KITTI.open_png16(TEST_PNG16_FILE)
   assert X.shape == (375, 1242, 3)
 
 
@@ -60,8 +61,8 @@ def test_sample():
 
 
 def test_warp_car():
-  flow = M.KITTI.open_flow(TEST_PNG16_FILE)
-  car = M.open_png16('./data/kitti_car/c_11.png')
+  flow = KITTI.open_flow(TEST_PNG16_FILE)
+  car = KITTI.open_png16('./data/kitti_car/c_11.png')
   flow = flow.reshape([1, *flow.shape])
   car = car.reshape([1, *car.shape])
   car_bar = M.warp(car, flow[..., 0], flow[..., 1], True)
@@ -72,7 +73,7 @@ def test_warp_car():
 
 
 def test_warp_chair():
-  flow = M.open_flo(TEST_FLO_FILE)
+  flow = open_flo(TEST_FLO_FILE)
   img1 = Image.open('./data/flying_chair/pair/0000/img1.png')
   ch0 = np.array(img1).astype('float32')
   flow = flow.reshape([1, *flow.shape])
@@ -112,3 +113,14 @@ def test_sttn_permute():
   d = torch.ones(1, 8, 8) * 2
   f4 = tr(f2, d, u, v).squeeze(2)
   _assert_same(f4, f0)
+
+
+if __name__ == '__main__':
+  test_open_flo()
+  test_open_png16()
+  test_grid()
+  test_sample()
+  test_warp_car()
+  test_warp_chair()
+  test_sttn()
+  test_sttn_permute()

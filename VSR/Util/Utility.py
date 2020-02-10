@@ -6,6 +6,8 @@
 import logging
 from typing import Generator
 
+from .Config import Config
+
 LOG = logging.getLogger('VSR.Util')
 
 
@@ -147,3 +149,27 @@ def suppress_opt_by_args(opt, *args):
 
   if prev_arg:
     raise KeyError("Parameter missing value: {}".format(prev_arg))
+
+
+def compat_param(par):
+  from ..Backend import DATA_FORMAT
+
+  _par = Config(par)
+  for i in par:
+    if isinstance(par[i], (dict, Config)):
+      _par.update(**par[i])
+  if 'batch_shape' not in _par:
+    assert 'batch' in _par and 'patch_size' in _par and 'channel' in _par
+    batch = _par.batch
+    channel = _par.channel
+    patch_size = _par.patch_size
+    patch_size = [x // _par.scale for x in to_list(patch_size, 2)]
+    batch_shape = [batch, *patch_size]
+    if DATA_FORMAT == 'channels_last':
+      batch_shape.append(channel)
+    else:
+      batch_shape.insert(1, channel)
+    par.batch_shape = batch_shape
+    delattr(par, 'batch')
+    delattr(par, 'patch_size')
+  return par

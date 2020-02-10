@@ -8,10 +8,14 @@ Updated Date: May 8th 2018
 utility functions
 """
 
+import logging
+
 import numpy as np
 import tensorflow as tf
 
 from VSR.Util import to_list
+
+LOG = logging.getLogger('VSR.TF.Util')
 
 
 def shrink_mod_scale(x, scale):
@@ -655,7 +659,7 @@ class Vgg:
 
   def dump_layer_names(self):
     if not self.built:
-      tf.logging.warning((
+      LOG.warning((
         "This VGG hasn't been built yet, "
         "make inference on any tensor to build the model."))
 

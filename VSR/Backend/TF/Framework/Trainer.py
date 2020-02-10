@@ -135,18 +135,22 @@ class Trainer:
 
   def _restore_model(self, sess):
     last_checkpoint_step = 0
-    if self._saved is None:
+    if self.model.pre_ckpt is not None:
+      _saved = Path(self.model.pre_ckpt)
+    else:
+      _saved = self._saved
+    if _saved is None:
       return last_checkpoint_step
     for name in self.savers:
       saver = self.savers.get(name)
-      ckpt = to_list(self._saved.glob('{}*.index'.format(name)))
+      ckpt = to_list(_saved.glob('{}*.index'.format(name)))
       if ckpt:
         ckpt = sorted(ckpt, key=lambda x: x.stat().st_mtime_ns)
-        ckpt = self._saved / ckpt[-1].stem
+        ckpt = _saved / ckpt[-1].stem
         try:
           saver.restore(sess, str(ckpt))
         except tf.errors.NotFoundError:
-          tf.logging.warning(
+          LOG.warning(
               '{} of model {} could not be restored'.format(
                   name, self.model.name))
         last_checkpoint_step = _parse_ckpt_name(ckpt)

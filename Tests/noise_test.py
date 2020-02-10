@@ -1,9 +1,9 @@
 import os
 
-if not os.getcwd().endswith('UTest'):
-  os.chdir('UTest')
+if not os.getcwd().endswith('Tests'):
+  os.chdir('Tests')
 from PIL import Image
-from VSR.Framework.Noise import *
+from VSR.Backend.TF.Framework.Noise import *
 
 CRF = np.load('./data/crf_s.npz')
 URL = "data/set5_x2/img_001_SRF_2_LR.png"

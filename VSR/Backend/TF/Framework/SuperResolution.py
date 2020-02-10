@@ -7,6 +7,7 @@ Updated Date: June 15th 2018
 
 Framework for network model (tensorflow)
 """
+import logging
 from pathlib import Path
 
 import tensorflow as tf
@@ -15,6 +16,7 @@ from VSR.Util import to_list
 from .LayersHelper import Layers
 from .Trainer import VSR
 
+LOG = logging.getLogger('VSR.Framework.TF')
 
 class SuperResolution(Layers):
   """A utility class helps for building SR architectures easily
@@ -62,6 +64,7 @@ class SuperResolution(Layers):
     self.summary_op = None
     self.summary_writer = None
     self.compiled = False
+    self.pre_ckpt = None
     self.unknown_args = kwargs
 
   def __getattr__(self, item):
@@ -83,6 +86,9 @@ class SuperResolution(Layers):
 
   def cuda(self):
     pass
+
+  def load(self, ckpt):
+    self.pre_ckpt = ckpt
 
   def compile(self):
     """build entire graph and training ops"""
@@ -246,7 +252,7 @@ class SuperResolution(Layers):
     graph = tf.graph_util.convert_variables_to_constants(
         sess, graph, [outp.name.split(':')[0] for outp in self.outputs])
     tf.train.write_graph(graph, export_path, self.name, as_text=False)
-    tf.logging.info("Model exported to {}/{}.".format(export_path, self.name))
+    LOG.info("Model exported to {}/{}.".format(export_path, self.name))
 
   def export_saved_model(self, export_dir='.', version=1):
     """export a saved model
@@ -262,7 +268,7 @@ class SuperResolution(Layers):
       version += 1  # step ahead 1 version
       export_path = Path(export_dir) / str(version)
     export_path = str(export_path)
-    tf.logging.debug("exporting to {}".format(export_path))
+    LOG.debug("exporting to {}".format(export_path))
     builder = tf.saved_model.builder.SavedModelBuilder(export_path)
     # build the signature_def_map
     inputs, outputs = {}, {}

@@ -3,8 +3,8 @@ Unit test for DataLoader.VirtualFile
 """
 import os
 
-if not os.getcwd().endswith('UTest'):
-  os.chdir('UTest')
+if not os.getcwd().endswith('Tests'):
+  os.chdir('Tests')
 from VSR.DataLoader.VirtualFile import *
 from VSR.Util.ImageProcess import img_to_array
 
@@ -16,7 +16,6 @@ VID = 'data/video/custom_pair/lr/xiuxian'
 def test_image_read():
   vf = ImageFile(IMG)
   assert vf.name == 'img_001_SRF_2_LR'
-  assert vf.full_name == 'img_001_SRF_2_LR.png'
   img = vf.read_frame()
   assert isinstance(img, list)
   assert len(img) is 1
@@ -28,7 +27,6 @@ def test_image_read():
 def test_video_read():
   vf = ImageFile(VID)
   assert vf.name == 'xiuxian'
-  assert vf.full_name == 'xiuxian'
   vid = vf.read_frame(3)
   assert isinstance(vid, list)
   assert len(vid) is 3
@@ -38,8 +36,7 @@ def test_video_read():
 
 def test_raw_read():
   vf = RawFile(RAW, 'YV12', [32, 32])
-  assert vf.name == 'raw'
-  assert vf.full_name == 'raw_32x32.yv12'
+  assert vf.name == 'raw_32x32'
   raw = vf.read_frame(vf.frames)
   assert len(raw) == vf.frames
   assert raw[0].width is 32

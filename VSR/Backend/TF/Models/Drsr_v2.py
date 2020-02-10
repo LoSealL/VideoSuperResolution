@@ -4,6 +4,7 @@
 #  Update Date: 2019 - 2 - 28
 
 from functools import partial
+import logging
 
 import numpy as np
 import tensorflow as tf
@@ -16,6 +17,7 @@ from ..Util import clip_image
 
 _MEAN_GT = [84.1148, 68.3644, 64.8452]
 _MEAN_SR = [85.6586, 68.7887, 66.5135]
+LOG = logging.getLogger('VSR.Model.DRSRv2')
 
 
 def _denormalize(inputs, shift):
@@ -49,7 +51,7 @@ class DRSR(SuperResolution):
     self.to_sum = []
 
   def display(self):
-    tf.logging.info(str(self.noise))
+    LOG.info(str(self.noise))
 
   def noise_cond(self, inputs, noise, layers, scope='NCL'):
     with tf.variable_scope(None, scope):
@@ -204,7 +206,7 @@ class DRSR(SuperResolution):
     labels_norm = self.norm(self.label[-1])
     n = self.noise
     if n.valid:
-      tf.logging.info("adding noise")
+      LOG.info("adding noise")
       awgn = self.gen_noise(inputs_norm, 'gaussian', n.max)
       gp = self.gen_noise(inputs_norm, 'crf', 5 / 255, n.max)
     else:

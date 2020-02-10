@@ -4,6 +4,8 @@
 #  Update Date: 2019 - 1 - 11
 #  Degradation-restore Super-resolution Network
 
+import logging
+
 import numpy as np
 import tensorflow as tf
 
@@ -15,6 +17,7 @@ from ..Util import summary_tensor_image
 _MEAN_GT = [84.1148, 68.3644, 64.8452]
 _MEAN_SR = [85.6586, 68.7887, 66.5135]
 _MEAN = np.array(_MEAN_SR, 'float32')
+LOG = logging.getLogger('VSR.Model.DRSR')
 
 
 def _denormalize(inputs):
@@ -56,10 +59,10 @@ class DRSR(SuperResolution):
 
   def display(self):
     # stats = tf.profiler.profile()
-    # tf.logging.info("Total parameters: {}".format(stats.total_parameters))
-    tf.logging.info("Noisy scaling {}, bias sigma {}".format(
+    # LOG.info("Total parameters: {}".format(stats.total_parameters))
+    LOG.info("Noisy scaling {}, bias sigma {}".format(
       self.noise.scale, self.noise.offset))
-    tf.logging.info("Using {}".format(self.trainer))
+    LOG.info("Using {}".format(self.trainer))
 
   def _dncnn(self, inputs):
     n = self.noise

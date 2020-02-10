@@ -8,10 +8,14 @@ Non-Local Recurrent Network for Image Restoration
 See https://arxiv.org/abs/1806.02919
 """
 
+import logging
+
 import tensorflow as tf
 
 from ..Arch.Residual import non_local
 from ..Framework.SuperResolution import SuperResolution
+
+LOG = logging.getLogger('VSR.Model.NLRN')
 
 
 def _denormalize(inputs):
@@ -35,7 +39,7 @@ class NLRN(SuperResolution):
     self.filters = kwargs.get('filters', 128)
 
   def display(self):
-    tf.logging.info(f"Recurrents: {self.recurrents}")
+    LOG.info(f"Recurrents: {self.recurrents}")
 
   def rnn(self, x, y):
     with tf.variable_scope('RNN', reuse=tf.AUTO_REUSE):

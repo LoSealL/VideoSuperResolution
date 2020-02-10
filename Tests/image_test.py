@@ -1,14 +1,15 @@
 import os
 
-if not os.getcwd().endswith('UTest'):
-  os.chdir('UTest')
-from VSR.Util.ImageProcess import imread, rgb_to_yuv
-from VSR.Util import Utility as U
-import tensorflow as tf
+if not os.getcwd().endswith('Tests'):
+  os.chdir('Tests')
 
+import tensorflow as tf
 tf.enable_eager_execution()
+
+import torchvision
 import numpy as np
 from PIL import Image
+from VSR.Util import imread, rgb_to_yuv
 
 URL = 'data/set5_x2/img_001_SRF_2_LR.png'
 
@@ -23,6 +24,7 @@ def test_rgb2yuv():
 
 
 def test_resize_upsample():
+  from VSR.Backend.TF.Util import upsample
   Im = Image.open(URL)
   for X in [Im, Im.convert('L')]:
     w = X.width
@@ -31,12 +33,13 @@ def test_resize_upsample():
       GT = X.resize([w * ss, h * ss], Image.BICUBIC)
       gt = np.asarray(GT, dtype='float32') / 255
       x = tf.constant(np.asarray(X), dtype='float32') / 255
-      y = U.upsample(x, ss).numpy().clip(0, 1)
+      y = upsample(x, ss).numpy().clip(0, 1)
       assert np.all(np.abs(y[16:-16, 16:-16] - gt[16:-16, 16:-16]) < 1.0e-2), \
         f"Scale: {ss}. Mode: {X.mode}"
 
 
 def test_resize_downsample():
+  from VSR.Backend.TF.Util import downsample
   Im = Image.open(URL)
   for X in [Im, Im.convert('L')]:
     w = X.width
@@ -48,16 +51,14 @@ def test_resize_downsample():
       GT = X.resize([w_ // ss, h_ // ss], Image.BICUBIC)
       gt = np.asarray(GT, dtype='float32') / 255
       x = tf.constant(np.asarray(X), dtype='float32') / 255
-      y = U.downsample(x, ss).numpy().clip(0, 1)
+      y = downsample(x, ss).numpy().clip(0, 1)
       assert np.all(np.abs(y[8:-8, 8:-8] - gt[8:-8, 8:-8]) < 1.0e-2), \
         f"Scale: {ss}. Mode: {X.mode}"
 
 
-from VSRTorch.Util.Utility import upsample, downsample
-import torchvision
-
 
 def test_resize_upsample_VSRT():
+  from VSR.Backend.Torch.Util.Utility import upsample
   Im = Image.open(URL)
   trans = torchvision.transforms.ToTensor()
   for X in [Im, Im.convert('L')]:
@@ -69,11 +70,12 @@ def test_resize_upsample_VSRT():
       x = trans(X)
       y = upsample(x, ss).numpy().clip(0, 1)
       assert np.all(
-        np.abs(y[..., 16:-16, 16:-16] - gt[..., 16:-16, 16:-16]) < 1.0e-2), \
+          np.abs(y[..., 16:-16, 16:-16] - gt[..., 16:-16, 16:-16]) < 1.0e-2), \
         f"Scale: {ss}. Mode: {X.mode}"
 
 
 def test_resize_downsample_VSRT():
+  from VSR.Backend.Torch.Util.Utility import downsample
   Im = Image.open(URL)
   trans = torchvision.transforms.ToTensor()
   for X in [Im, Im.convert('L')]:

@@ -37,7 +37,8 @@ Dataset:
         test: []
 
     TOY:
-        train: toy/*.bmp
+        train: toy/train/*.bmp
+        val: toy/eval/*.bmp
 
     # The training data is collected from list of `train`.
     # They are treated as the ground-truth HR images, and LR

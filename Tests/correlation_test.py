@@ -1,9 +1,9 @@
 import os
 
-if not os.getcwd().endswith('UTest'):
-  os.chdir('UTest')
+if not os.getcwd().endswith('Tests'):
+  os.chdir('Tests')
 import tensorflow as tf
-from VSR.Util.Utility import _make_vector, _make_displacement, correlation
+from VSR.Backend.TF.Util import _make_vector, _make_displacement, correlation
 
 
 def test_make_vector():

@@ -1,7 +1,7 @@
 import os
 
-if not os.getcwd().endswith('UTest'):
-  os.chdir('UTest')
+if not os.getcwd().endswith('Tests'):
+  os.chdir('Tests')
 from VSR.DataLoader.Dataset import Dataset, load_datasets
 
 

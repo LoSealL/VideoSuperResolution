@@ -1,8 +1,8 @@
 import os
 
-if not os.getcwd().endswith('UTest'):
-  os.chdir('UTest')
-from VSR.Util.Utility import Vgg
+if not os.getcwd().endswith('Tests'):
+  os.chdir('Tests')
+from VSR.Backend.TF.Util import Vgg
 from PIL import Image
 import tensorflow as tf
 import numpy as np

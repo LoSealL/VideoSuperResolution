@@ -6,8 +6,8 @@ srcnn:
   image_weight: 1
   feature_weight: 0  # perceptual loss
 
-batch: 64
-patch_size: 96
+batch: 4
+patch_size: 64
 lr: 1.0e-2
 lr_decay:
   method: multistep

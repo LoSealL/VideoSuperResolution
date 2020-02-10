@@ -6,8 +6,8 @@
 # ##############################################################################
 import os
 
-if not os.getcwd().endswith('UTest'):
-  os.chdir('UTest')
+if not os.getcwd().endswith('Tests'):
+  os.chdir('Tests')
 from VSR.DataLoader import Dataset, Loader
 from VSR.Model import get_model
 from VSR.Backend import DATA_FORMAT

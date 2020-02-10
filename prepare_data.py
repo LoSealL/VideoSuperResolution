@@ -21,7 +21,7 @@ from pathlib import Path
 import tensorflow as tf
 
 kutils = tf.keras.utils
-from VSR.Tools.GoogleDriveDownloader import drive_download
+from VSR.Util.GoogleDriveDownloader import drive_download
 
 # For now VSR requires python>=3.5
 if sys.version_info.major == 3 and sys.version_info.minor < 5:

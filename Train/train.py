@@ -10,7 +10,7 @@ from VSR.Backend import BACKEND
 from VSR.DataLoader import CenterCrop, Loader, RandomCrop
 from VSR.DataLoader import load_datasets
 from VSR.Model import get_model, list_supported_models
-from VSR.Util import Config, lr_decay, suppress_opt_by_args
+from VSR.Util import Config, lr_decay, suppress_opt_by_args, compat_param
 
 parser = argparse.ArgumentParser(description=f'VSR ({BACKEND}) Training Tool v1.0')
 g0 = parser.add_argument_group("basic options")
@@ -50,7 +50,7 @@ def main():
     else:
       model_config_file = Path(f'par/{BACKEND}/{opt.model}.{_ext}')
     if model_config_file.exists():
-      opt.update(Config(str(model_config_file)))
+      opt.update(compat_param(Config(str(model_config_file))))
   # get model parameters from pre-defined YAML file
   model_params = opt.get(opt.model, {})
   suppress_opt_by_args(model_params, *args)

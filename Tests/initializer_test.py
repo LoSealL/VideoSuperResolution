@@ -5,22 +5,22 @@
 
 import os
 
-if not os.getcwd().endswith('UTest'):
-  os.chdir('UTest')
+if not os.getcwd().endswith('Tests'):
+  os.chdir('Tests')
 import numpy as np
 import tensorflow as tf
-import torch
-from torch import nn, utils
-from VSR.Util.Utility import TorchInitializer
 
 tf.enable_eager_execution()
+
+from torch import nn
+from VSR.Backend.TF.Util import TorchInitializer
 
 
 def test_torch_initializer():
   x = np.ones([4, 16, 16, 16], np.float32)
   c2dtf = tf.layers.Conv2D(16, 3, padding='same',
                            kernel_initializer=TorchInitializer(),
-                           bias_initializer=TorchInitializer(9*16))
+                           bias_initializer=TorchInitializer(9 * 16))
   c2dtf.build(x.shape)
   w1 = c2dtf.kernel
   y1 = c2dtf.apply(x)

@@ -43,7 +43,6 @@ models = {
   'edrn': ('NTIRE19', 'EDRN'),
   'frn': ('NTIRE19', 'FRN'),
   'ran': ('NTIRE19', 'RAN'),
-  'magici': ('MagicI', 'MAGICI'),
 }
 
 

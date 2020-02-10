@@ -117,6 +117,18 @@ class BasicModel:
     else:
       return self._trainer
 
+  def load(self, pth, map_location=None):
+    for key, model in self.modules.items():
+      if not isinstance(pth, dict):
+        model.load_state_dict(torch.load(str(pth), map_location=map_location))
+        break
+      model.load_state_dict(
+        torch.load(str(pth[key]), map_location=map_location))
+    for key, opt in self.opts.items():
+      if isinstance(pth, dict):
+        opt.load_state_dict(
+          torch.load(str(pth[key]), map_location=map_location))
+
 
 class SuperResolution(BasicModel):
   """A default model for (video) super-resolution"""

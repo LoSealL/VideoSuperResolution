@@ -203,7 +203,6 @@ class PerceptualOptimizer(SuperResolution):
     return {
       'loss': loss.detach().cpu().numpy(),
       'image': image_loss.detach().cpu().numpy(),
-      'grad0': self.trainable_variables()[0].grad.abs().mean().cpu().numpy(),
     }
 
   def eval(self, inputs, labels=None, **kwargs):

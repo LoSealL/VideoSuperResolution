@@ -35,7 +35,7 @@ hdl.setFormatter(logging.Formatter("%(asctime)s %(levelname)s: %(message)s"))
 LOG.addHandler(hdl)
 
 BACKEND = CONFIG['backend'].lower()
-if BACKEND is 'auto':
+if BACKEND == 'auto':
   BACKEND = 'tensorflow'
 if BACKEND not in ('tensorflow', 'tensorflow2', 'pytorch'):
   BACKEND = 'pytorch'
@@ -44,7 +44,7 @@ if BACKEND in ('tensorflow', 'tensorflow2'):
   try:
     tf = import_module('tensorflow')
     CONFIG['data_format'] = 'channels_last'
-    if BACKEND is 'tensorflow2' and tf.__version__.split('.')[0] != '2':
+    if BACKEND == 'tensorflow2' and tf.__version__.split('.')[0] != '2':
       LOG.warning(f"[!] Current tensorflow version is {tf.__version__}")
       LOG.info("[*] Fallback to use tensorflow")
       BACKEND = 'tensorflow'
@@ -53,7 +53,7 @@ if BACKEND in ('tensorflow', 'tensorflow2'):
     LOG.info("[*] Fallback to use PyTorch...")
     BACKEND = 'pytorch'
 
-if BACKEND is 'pytorch':
+if BACKEND == 'pytorch':
   try:
     torch = import_module('torch')
     CONFIG['data_format'] = 'channels_first'
