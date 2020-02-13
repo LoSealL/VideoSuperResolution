@@ -47,6 +47,8 @@ class CARN(SuperResolution):
 
     # ONNX needs input placeholder to export model!
     # Sounds stupid to set a 48x48 inputs.
-    inputs = torch.randn(1, self.channel, 48, 48, requires_grad=True)
-    scale = torch.Tensor(self.scale)
+
+    device = list(self.carn.parameters())[0].device
+    inputs = torch.randn(1, self.channel, 48, 48, device=device)
+    scale = torch.tensor(self.scale, device=device)
     torch.onnx.export(self.carn, (inputs, scale), export_dir / 'carn.onnx')

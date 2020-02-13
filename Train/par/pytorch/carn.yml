@@ -1,7 +1,7 @@
 carn:
     scale: 4
     channel: 3
-    multi_scale: 0  # change to 1 if use official pth file
+    multi_scale: 1  # change to 1 if use official pth file
     group: 1
 
 batch_shape: [16, 3, 64, 64]

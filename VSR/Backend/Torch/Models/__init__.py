@@ -35,6 +35,7 @@ models = {
   'tecogan': ('TecoGAN', 'TeCoGAN'),
   'spmc': ('Spmc', 'SPMC'),
   'rbpn': ('Rbpn', 'RBPN'),
+  'srmd': ('Srmd', 'SRMD'),
   # NTIRE 2019 Collections
   'didn': ('NTIRE19', 'DIDN'),
   'dhdn': ('NTIRE19', 'DHDN'),

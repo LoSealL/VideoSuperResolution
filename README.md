@@ -35,7 +35,7 @@ All these models are implemented in **ONE** framework.
 |DCSCN|[arXiv](https://arxiv.org/abs/1707.05425)|[Tensorflow](https://github.com/jiny2001/dcscn-super-resolution)|Y|-|||
 |IDN|[CVPR18](https://arxiv.org/abs/1803.09454)|[Caffe](https://github.com/Zheng222/IDN-Caffe)|Y|-| Fast |[√](https://drive.google.com/open?id=1Fh3rtvrKKLAK27r518T1M_JET_LWZAFQ)|
 |RDN|[CVPR18](https://arxiv.org/abs/1802.08797)|[Torch](https://github.com/yulunzhang/RDN)|Y|-| Deep, BI-BD-DN ||
-|SRMD|[CVPR18](https://arxiv.org/abs/1712.06116)|[Matlab](https://github.com/cszn/SRMD)|T|-| Denoise/Deblur/SR ||
+|SRMD|[CVPR18](https://arxiv.org/abs/1712.06116)|[Matlab](https://github.com/cszn/SRMD)|-|Y| Denoise/Deblur/SR |[√](https://drive.google.com/open?id=1ORKH05-aLSbQaWB4qQulIm2INoRufuD_)|
 |DBPN|[CVPR18](https://arxiv.org/abs/1803.02735)|[PyTorch](https://github.com/alterzero/DBPN-Pytorch)|Y|Y| NTIRE18 Champion |[√](https://drive.google.com/open?id=1ymtlOjhkGmad-od0zw7yTf17nWD4KMVi)|
 |ZSSR|[CVPR18](http://www.wisdom.weizmann.ac.il/~vision/zssr/)|[Tensorflow](https://github.com/assafshocher/ZSSR)|-|-| Zero-shot ||
 |FRVSR|[CVPR18](https://arxiv.org/abs/1801.04590)|[PDF](https://github.com/msmsajjadi/FRVSR)|T|Y| VideoSR |[√](https://github.com/LoSealL/Model/releases)|

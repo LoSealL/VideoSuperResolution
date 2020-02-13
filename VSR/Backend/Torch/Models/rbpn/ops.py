@@ -1,8 +1,3 @@
-#  Copyright (c): Wenyi Tang 2017-2019.
-#  Author: Wenyi Tang
-#  Email: wenyi.tang@intel.com
-#  Update Date: 2019/5/26 下午3:21
-
 import torch.nn as nn
 
 from .base_network import *

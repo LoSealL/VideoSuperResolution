@@ -116,6 +116,9 @@ class Dataset(object):
       if not Path(folder).exists():
         continue
       nodes = []
+      if folder.is_file():
+        # if points to a file rather than a directory
+        nodes.append(folder)
       fn_glob = Path.rglob if self.recursive else Path.glob
       for pat in self.glob_patterns:
         nodes += list(fn_glob(folder, pat))

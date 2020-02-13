@@ -75,8 +75,11 @@ class EpochIterator:
       self.steps = steps
     self.count = 0
     if shuffle:
-      self.index = np.random.randint(len(self.loader.data['hr']),
-                                     size=self.steps * shape[0])
+      mmax = len(self.loader.data['hr'])
+      if mmax > 0:
+        self.index = np.random.randint(mmax, size=self.steps * shape[0])
+      else:
+        self.steps = 0
     else:
       self.index = np.arange(self.steps * shape[0])
 
