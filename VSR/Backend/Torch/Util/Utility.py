@@ -3,9 +3,10 @@
 #  Email: wenyitang@outlook.com
 #  Update: 2020 - 2 - 7
 
-import numpy as np
 import torch
 import torch.nn.functional as F
+
+from VSR.Util.Math import weights_downsample, weights_upsample
 
 
 def pad_if_divide(x: torch.Tensor, value, mode='constant'):
@@ -68,78 +69,6 @@ def irtranspose(x: torch.Tensor, dims):
   return transpose(x, _ir_dims)
 
 
-def nd_meshgrid(*size, permute=None):
-  _error_msg = ("Permute index must match mesh dimensions, "
-                "should have {} indexes but got {}")
-  size = np.array(size)
-  ranges = []
-  for x in size:
-    ranges.append(np.linspace(-1, 1, x))
-  mesh = np.stack(np.meshgrid(*ranges, indexing='ij'))
-  if permute is not None:
-    if len(permute) != len(size):
-      raise ValueError(_error_msg.format(len(size), len(permute)))
-    mesh = mesh[permute]
-  return mesh.transpose(*range(1, mesh.ndim), 0)
-
-
-def _bicubic_filter(x, a=-0.5):
-  # https://en.wikipedia.org/wiki/Bicubic_interpolation#Bicubic_convolution_algorithm
-  if x < 0:
-    x = -x
-  if x < 1:
-    return ((a + 2.0) * x - (a + 3.0)) * x * x + 1
-  if x < 2:
-    return (((x - 5) * x + 8) * x - 4) * a
-  return 0
-
-
-def list_rshift(l, s):
-  for _ in range(s):
-    l.insert(0, l.pop(-1))
-  return l
-
-
-def _weights_downsample(scale_factor):
-  if scale_factor < 1:
-    ss = int(1 / scale_factor + 0.5)
-  else:
-    ss = int(scale_factor + 0.5)
-  support = 2 * ss
-  ksize = support * 2 + 1
-  weights = []
-  for lambd in range(ksize):
-    dist = -2 + (2 * lambd + 1) / support
-    weights.append(_bicubic_filter(dist))
-  h = np.array([weights])
-  h /= h.sum()
-  v = h.transpose()
-  kernel = np.matmul(v, h)
-  assert kernel.shape == (ksize, ksize), f"{kernel.shape} != [{ksize}]"
-  return kernel, ss
-
-
-def _weights_upsample(scale_factor):
-  if scale_factor < 1:
-    ss = int(1 / scale_factor + 0.5)
-  else:
-    ss = int(scale_factor + 0.5)
-  support = 2
-  ksize = support * 2 + 1
-  weights = [[] for _ in range(ss)]
-  for i in range(ss):
-    for lambd in range(ksize):
-      dist = int((1 + ss + 2 * i) / 2 / ss) + lambd - 1.5 - (2 * i + 1) / 2 / ss
-      weights[i].append(_bicubic_filter(dist))
-  w = [np.array([i]) / np.sum(i) for i in weights]
-  w = list_rshift(w, ss - ss // 2)
-  kernels = []
-  for i in range(len(w)):
-    for j in range(len(w)):
-      kernels.append(np.matmul(w[i].transpose(), w[j]))
-  return kernels, ss
-
-
 def _push_shape_4d(x):
   dim = x.dim()
   if dim == 2:
@@ -172,7 +101,7 @@ def downsample(img, scale, border='reflect'):
     border: padding mode. Recommend to 'REFLECT'.
   """
   device = img.device
-  kernel, s = _weights_downsample(scale)
+  kernel, s = weights_downsample(scale)
   if s == 1:
     return img  # bypass
   kernel = kernel.astype('float32')
@@ -199,7 +128,7 @@ def upsample(img, scale, border='reflect'):
     border: padding mode. Recommend to 'REFLECT'.
   """
   device = img.device
-  kernels, s = _weights_upsample(scale)
+  kernels, s = weights_upsample(scale)
   if s == 1:
     return img  # bypass
   kernels = [k.astype('float32') for k in kernels]
@@ -230,3 +159,55 @@ def bicubic_resize(img, scale, border='reflect'):
     return img  # bypass
   else:
     raise ValueError("Wrong scale factor!")
+
+
+def imfilter(image: torch.Tensor, kernel: torch.Tensor):
+  with torch.no_grad():
+    if image.dim() == 3:
+      image = image.unsqueeze(0)
+    assert image.dim() == 4
+    if kernel.dim() == 2:
+      kernel = kernel.unsqueeze(0)
+      kernel = torch.cat([kernel] * image.shape[0])
+    assert kernel.dim() == 3
+
+    ret = []
+    for i, k in zip(image.split(1), kernel.split(1)):
+      _c = i.shape[1]
+      _k = k.unsqueeze(0)
+      _p = torch.zeros_like(_k)
+      _m = []
+      for j in range(_c):
+        t = [_p] * _c
+        t[j] = _k
+        _m.append(torch.cat(t, dim=1))
+      _k = torch.cat(_m, dim=0)
+      ret.append(F.conv2d(i, _k, padding=[x // 2 for x in kernel.shape[1:]]))
+    return torch.cat(ret)
+
+
+def poisson_noise(inputs, stddev=None, sigma_max=0.16):
+  """Add poisson noise to inputs."""
+
+  if stddev is None:
+    stddev = np.random.rand(inputs.shape[-1]) * sigma_max
+  stddev = np.reshape(stddev, [1] * (inputs.ndim - 1) + [-1])
+  sigma_map = (1 - inputs) * stddev
+  return np.random.randn(*inputs.shape) * sigma_map
+
+
+def gaussian_noise(inputs, stddev=None, sigma_max=0.06, channel_wise=True):
+  """Add channel wise gaussian noise."""
+
+  channel = inputs.shape[-1] if channel_wise else 1
+  if stddev is None:
+    stddev = np.random.rand(channel) * sigma_max
+  stddev = np.reshape(stddev, [1] * (inputs.ndim - 1) + [-1])
+  noise_map = np.random.randn(*inputs.shape) * stddev
+  return noise_map
+
+
+def gaussian_poisson_noise(inputs, stddev_s=None, stddev_c=None,
+                           max_s=0.16, max_c=0.06):
+  noise = poisson_noise(inputs, stddev_s, max_s)
+  return noise + gaussian_noise(inputs, stddev_c, max_c)

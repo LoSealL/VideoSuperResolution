@@ -1,0 +1,13 @@
+---
+srmd:
+    scale: 4
+    channel: 3
+    degradation:
+        kernel_type: 'isotropic'  # isotropic or anisotropic
+        l1: 2.0   # scaling of eigen values on base 0. [0.1, 10]
+        l2: 2.0   # scaling of eigen values on base 1. [0.1, l1]
+        theta: 0  # rotation angle (rad) of the kernel. [0, pi]
+        noise: 5  # noise stddev (0, 75]
+
+batch_shape: [16, 3, 64, 64]
+lr: 1e-4

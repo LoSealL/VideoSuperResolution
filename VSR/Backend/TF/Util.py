@@ -10,10 +10,10 @@ utility functions
 
 import logging
 
-import numpy as np
 import tensorflow as tf
 
 from VSR.Util import to_list
+from VSR.Util.Math import weights_downsample, weights_upsample
 
 LOG = logging.getLogger('VSR.TF.Util')
 
@@ -39,12 +39,6 @@ def repeat(x, n):
   x = tf.expand_dims(x, 1)
   pattern = tf.stack([1, n, 1])
   return tf.tile(x, pattern)
-
-
-def list_rshift(l, s):
-  for _ in range(s):
-    l.insert(0, l.pop(-1))
-  return l
 
 
 def pixel_shift(image, scale, channel=1):
@@ -102,57 +96,6 @@ def bicubic_rescale(img, scale):
     return tf.image.resize_bicubic(img, shape_enlarge[1:3], False)
 
 
-def _bicubic_filter(x, a=-0.5):
-  # https://en.wikipedia.org/wiki/Bicubic_interpolation#Bicubic_convolution_algorithm
-  if x < 0:
-    x = -x
-  if x < 1:
-    return ((a + 2.0) * x - (a + 3.0)) * x * x + 1
-  if x < 2:
-    return (((x - 5) * x + 8) * x - 4) * a
-  return 0
-
-
-def _weights_downsample(scale_factor):
-  if scale_factor < 1:
-    ss = int(1 / scale_factor + 0.5)
-  else:
-    ss = int(scale_factor + 0.5)
-  support = 2 * ss
-  ksize = support * 2 + 1
-  weights = []
-  for lambd in range(ksize):
-    dist = -2 + (2 * lambd + 1) / support
-    weights.append(_bicubic_filter(dist))
-  h = np.array([weights])
-  h /= h.sum()
-  v = h.transpose()
-  kernel = np.matmul(v, h)
-  assert kernel.shape == (ksize, ksize), f"{kernel.shape} != [{ksize}]"
-  return kernel, ss
-
-
-def _weights_upsample(scale_factor):
-  if scale_factor < 1:
-    ss = int(1 / scale_factor + 0.5)
-  else:
-    ss = int(scale_factor + 0.5)
-  support = 2
-  ksize = support * 2 + 1
-  weights = [[] for _ in range(ss)]
-  for i in range(ss):
-    for lambd in range(ksize):
-      dist = int((1 + ss + 2 * i) / 2 / ss) + lambd - 1.5 - (2 * i + 1) / 2 / ss
-      weights[i].append(_bicubic_filter(dist))
-  w = [np.array([i]) / np.sum(i) for i in weights]
-  w = list_rshift(w, ss - ss // 2)
-  kernels = []
-  for i in range(len(w)):
-    for j in range(len(w)):
-      kernels.append(np.matmul(w[i].transpose(), w[j]))
-  return kernels, ss
-
-
 def _push_shape_4d(x):
   shape = tf.shape(x)
   if shape.shape[0] == 2:
@@ -184,7 +127,7 @@ def downsample(img, scale, border='REFLECT'):
     scale: n or 1/n. `n` must be integer >= 2.
     border: padding mode. Recommend to 'REFLECT'.
   """
-  kernel, s = _weights_downsample(scale)
+  kernel, s = weights_downsample(scale)
   if s == 1:
     return img  # bypass
   kernel = tf.convert_to_tensor(kernel, dtype='float32')
@@ -210,7 +153,7 @@ def upsample(img, scale, border='REFLECT'):
     scale: must be integer >= 2.
     border: padding mode. Recommend to 'REFLECT'.
   """
-  kernels, s = _weights_upsample(scale)
+  kernels, s = weights_upsample(scale)
   if s == 1:
     return img  # bypass
   kernels = [tf.convert_to_tensor(k, dtype='float32') for k in kernels]
@@ -251,18 +194,6 @@ def prelu(x, initialize=0, name=None, scope='PReLU'):
         'Variable', shape=(x.shape[-1],), dtype='float32',
         initializer=tf.initializers.constant(initialize))
     return tf.nn.relu(x) + tf.multiply(alphas, (x - tf.abs(x))) * 0.5
-
-
-def gaussian_kernel(kernel_size, width):
-  """generate a gaussian kernel"""
-
-  kernel_size = np.asarray(to_list(kernel_size, 2), np.int32)
-  kernel_size = kernel_size - kernel_size % 2
-  half_ksize = kernel_size // 2
-  x, y = np.mgrid[-half_ksize[0]:half_ksize[0] + 1,
-         -half_ksize[1]:half_ksize[1] + 1]
-  kernel = np.exp(-(x ** 2 + y ** 2) / 2 * width) / (2 * np.pi * width ** 2)
-  return kernel / kernel.sum()
 
 
 def imfilter(image, kernel, name=None):
@@ -695,7 +626,7 @@ class TorchInitializer(tf.keras.initializers.Initializer):
     if self.fan_in is None:
       self.fan_in, _ = self._compute_fans(scale_shape)
     gain2 = 2.0 / (1 + self.a)  # 1/3
-    bound = np.sqrt(3.0 * gain2 / int(self.fan_in))
+    bound = tf.sqrt(3.0 * gain2 / int(self.fan_in))
     return tf.random_uniform(shape, -bound, bound, dtype, self.seed)
 
   def get_config(self):
@@ -753,8 +684,10 @@ class FixedInitializer(tf.keras.initializers.Initializer):
     if self.fan_in is None:
       self.fan_in, _ = self._compute_fans(scale_shape)
     gain2 = 2.0
-    bound = np.sqrt(3.0 * gain2 / int(self.fan_in))
-    np.random.seed(self.seed)
+    bound = tf.sqrt(3.0 * gain2 / int(self.fan_in))
+    tf.set_random_seed(self.seed)
+
+    tf.set_random_seed(None)
     return np.random.uniform(-bound, bound, size=shape)
 
   def get_config(self):

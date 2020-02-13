@@ -33,6 +33,25 @@ class EasyConv2d(nn.Module):
   def forward(self, x):
     return self.body(x)
 
+  def initialize_(self, kernel, bias=None):
+    """initialize the convolutional weights from external sources
+
+    Args:
+        kernel: kernel weight. Shape=[OUT, IN, K, K]
+        bias: bias weight. Shape=[OUT]
+    """
+
+    dtype = self.body[0].weight.dtype
+    device = self.body[0].weight.device
+    kernel = torch.tensor(kernel, dtype=dtype, device=device,
+                          requires_grad=True)
+    assert kernel.shape == self.body[0].weight.shape, "Wrong kernel shape!"
+    if bias is not None:
+      bias = torch.tensor(bias, dtype=dtype, device=device, requires_grad=True)
+      assert bias.shape == self.body[0].bias.shape, "Wrong bias shape!"
+    self.body[0].weight.data.copy_(kernel)
+    self.body[0].bias.data.copy_(bias)
+
 
 class RB(nn.Module):
   def __init__(self, channels, kernel_size, activation=None, use_bias=True,
@@ -40,9 +59,9 @@ class RB(nn.Module):
     super(RB, self).__init__()
     in_c, out_c = to_list(channels, 2)
     conv1 = nn.Conv2d(
-      in_c, out_c, kernel_size, 1, kernel_size // 2, bias=use_bias)
+        in_c, out_c, kernel_size, 1, kernel_size // 2, bias=use_bias)
     conv2 = nn.Conv2d(
-      out_c, out_c, kernel_size, 1, kernel_size // 2, bias=use_bias)
+        out_c, out_c, kernel_size, 1, kernel_size // 2, bias=use_bias)
     if use_sn:
       conv1 = nn.utils.spectral_norm(conv1)
       conv2 = nn.utils.spectral_norm(conv2)
@@ -82,7 +101,7 @@ class Rdb(nn.Module):
     act = kwargs.get('activation', 'relu')
     for i in range(depth):
       conv = nn.Conv2d(
-        in_c + out_c * i, out_c, ks, stride, padding, dilation, group, bias)
+          in_c + out_c * i, out_c, ks, stride, padding, dilation, group, bias)
       if i < depth - 1:  # no activation after last layer
         conv = nn.Sequential(conv, Activation(act))
       setattr(self, f'conv_{i}', conv)
@@ -109,15 +128,15 @@ class Rcab(nn.Module):
     group = kwargs.get('group', 1)
     bias = kwargs.get('bias', True)
     self.c1 = nn.Sequential(
-      nn.Conv2d(in_c, out_c, ks, 1, padding, 1, group, bias),
-      nn.ReLU(True))
+        nn.Conv2d(in_c, out_c, ks, 1, padding, 1, group, bias),
+        nn.ReLU(True))
     self.c2 = nn.Conv2d(out_c, out_c, ks, 1, padding, 1, group, bias)
     self.c3 = nn.Sequential(
-      nn.Conv2d(out_c, out_c // ratio, 1, groups=group, bias=bias),
-      nn.ReLU(True))
+        nn.Conv2d(out_c, out_c // ratio, 1, groups=group, bias=bias),
+        nn.ReLU(True))
     self.c4 = nn.Sequential(
-      nn.Conv2d(out_c // ratio, in_c, 1, groups=group, bias=bias),
-      nn.Sigmoid())
+        nn.Conv2d(out_c // ratio, in_c, 1, groups=group, bias=bias),
+        nn.Sigmoid())
     self.pooling = nn.AdaptiveAvgPool2d(1)
 
   def forward(self, inputs):
@@ -337,9 +356,9 @@ class CBAM(nn.Module):
       self.max_pool = nn.AdaptiveMaxPool2d(1)
       self.avg_pool = nn.AdaptiveAvgPool2d(1)
       self.mlp = nn.Sequential(
-        nn.Conv2d(channels, channels // ratio, 1),
-        nn.ReLU(),
-        nn.Conv2d(channels // ratio, channels, 1))
+          nn.Conv2d(channels, channels // ratio, 1),
+          nn.ReLU(),
+          nn.Conv2d(channels // ratio, channels, 1))
 
     def forward(self, x):
       maxpool = self.max_pool(x)
