@@ -20,8 +20,8 @@ jobs:
 
   - script: |
       python -m pip install --upgrade pip
-      pip install -q tensorflow google-api-python-client oauth2client
-      pip install torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
+      pip install -q tensorflow==1.15.0 google-api-python-client oauth2client
+      pip install -q torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
       pip install -U -q -e .
     displayName: 'Install dependencies'
 
