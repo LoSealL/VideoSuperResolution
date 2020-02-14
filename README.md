@@ -35,7 +35,7 @@ All these models are implemented in **ONE** framework.
 |DCSCN|[arXiv](https://arxiv.org/abs/1707.05425)|[Tensorflow](https://github.com/jiny2001/dcscn-super-resolution)|Y|-|||
 |IDN|[CVPR18](https://arxiv.org/abs/1803.09454)|[Caffe](https://github.com/Zheng222/IDN-Caffe)|Y|-| Fast |[√](https://drive.google.com/open?id=1Fh3rtvrKKLAK27r518T1M_JET_LWZAFQ)|
 |RDN|[CVPR18](https://arxiv.org/abs/1802.08797)|[Torch](https://github.com/yulunzhang/RDN)|Y|-| Deep, BI-BD-DN ||
-|SRMD|[CVPR18](https://arxiv.org/abs/1712.06116)|[Matlab](https://github.com/cszn/SRMD)|T|-| Denoise/Deblur/SR ||
+|SRMD|[CVPR18](https://arxiv.org/abs/1712.06116)|[Matlab](https://github.com/cszn/SRMD)|-|Y| Denoise/Deblur/SR |[√](https://drive.google.com/open?id=1ORKH05-aLSbQaWB4qQulIm2INoRufuD_)|
 |DBPN|[CVPR18](https://arxiv.org/abs/1803.02735)|[PyTorch](https://github.com/alterzero/DBPN-Pytorch)|Y|Y| NTIRE18 Champion |[√](https://drive.google.com/open?id=1ymtlOjhkGmad-od0zw7yTf17nWD4KMVi)|
 |ZSSR|[CVPR18](http://www.wisdom.weizmann.ac.il/~vision/zssr/)|[Tensorflow](https://github.com/assafshocher/ZSSR)|-|-| Zero-shot ||
 |FRVSR|[CVPR18](https://arxiv.org/abs/1801.04590)|[PDF](https://github.com/msmsajjadi/FRVSR)|T|Y| VideoSR |[√](https://github.com/LoSealL/Model/releases)|
@@ -47,11 +47,16 @@ All these models are implemented in **ONE** framework.
 |NLRN|[NIPS18](https://papers.nips.cc/paper/7439-non-local-recurrent-network-for-image-restoration.pdf)|[Tensorflow](https://github.com/Ding-Liu/NLRN)|T|-| Non-local, Recurrent ||
 |SRCliqueNet|[NIPS18](https://arxiv.org/abs/1809.04508)|-|-|-| Wavelet ||
 |FFDNet|[TIP18](https://ieeexplore.ieee.org/document/8365806/)|[Matlab](https://github.com/cszn/FFDNet)|Y|Y| Conditional denoise||
-|CBDNet|[arXiv](https://arxiv.org/abs/1807.04686)|[Matlab](https://github.com/GuoShi28/CBDNet)|T|-| Blind-denoise ||
+|CBDNet|[CVPR19](https://arxiv.org/abs/1807.04686)|[Matlab](https://github.com/GuoShi28/CBDNet)|T|-| Blind-denoise ||
 |SOFVSR|[ACCV18](http://arxiv.org/abs/1809.08573)|[PyTorch](https://github.com/LongguangWang/SOF-VSR)|-|Y| VideoSR |[√](https://github.com/LoSealL/Model/releases/download/sofvsr/SOFVSR_x4.zip)|
 |ESRGAN|[ECCVW18](http://arxiv.org/abs/1809.00219)|[PyTorch](https://github.com/xinntao/ESRGAN)|-|Y|1st place PIRM 2018|[√](https://github.com/LoSealL/Model/releases/download/esrgan/esrgan.zip)|
 |TecoGAN|[arXiv](http://arxiv.org/abs/1811.09393)|[Tensorflow](https://github.com/thunil/TecoGAN)|-|T| VideoSR GAN|[√](https://github.com/LoSealL/Model/releases/download/tecogan/tecogan.zip)|
 |RBPN|[CVPR19](https://arxiv.org/abs/1903.10128)|[PyTorch](https://github.com/alterzero/RBPN-PyTorch)|-|Y| VideoSR |[√](https://drive.google.com/open?id=1Ozp5j-DBWJSpXY5GvxiEPKdfCaAbOXqu)|
+|DPSR|[CVPR19](https://arxiv.org/abs/1903.12529)|[Pytorch](https://github.com/cszn/DPSR)|-|-|||
+|SRFBN|[CVPR19](https://arxiv.org/abs/1903.09814)|[Pytorch](https://github.com/Paper99/SRFBN_CVPR19)|-|-||||
+|SRNTT|[CVPR19](https://arxiv.org/abs/1903.00834)|[Tensorflow](https://github.com/ZZUTK/SRNTT)|-|-|Adobe||
+|SAN|[CVPR19](http://openaccess.thecvf.com/content_CVPR_2019/papers/Dai_Second-Order_Attention_Network_for_Single_Image_Super-Resolution_CVPR_2019_paper.pdf)|[empty](https://github.com/daitao/SAN)|-|-| AliDAMO SOTA ||
+|AdaFM|[CVPR19](https://arxiv.org/abs/1904.08118)|[Pytorch](https://github.com/hejingwenhejingwen/AdaFM)|-|-| SenseTime Oral ||
 
 \*The 1st repo is by paper author.
 

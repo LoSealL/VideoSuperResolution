@@ -1,0 +1,20 @@
+esrgan:
+    scale: 4
+    in_nc: 3
+    out_nc: 3
+    nf: 64
+    nb: 23
+    gc: 32
+    act_type: 'leakyrelu'
+    mode: 'CNA'
+    res_scale: 1
+    upsample_mode: 'upconv'
+    weights: [0.01, 1, 5.0e-3]
+    patch_size: 128
+
+batch_shape: [16, 3, 32, 32]
+lr: 1.0e-4
+lr_decay:
+    method: multistep
+    decay_step: [250, 500, 1000, 1500]
+    decay_rate: 0.5

@@ -1,0 +1,20 @@
+---
+qprn:
+    gain: 64
+    depth: 10
+    channel: 3
+    scale: 1
+    weights: [1, 10, 1.0e-4, 0.1, 0]
+    debug:
+        see_warp: false
+        see_flow: false
+        reverse: false
+        ablation: N
+        gan: false
+
+batch_shape: [16, 3, 32, 32]
+lr: 1.0e-4
+lr_decay:
+    method: multistep
+    decay_step: [100, 250, 500]
+    decay_rate: 0.5

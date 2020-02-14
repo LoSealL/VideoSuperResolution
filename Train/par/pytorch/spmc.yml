@@ -1,0 +1,20 @@
+---
+spmc:
+    scale: 4
+    channel: 3
+    depth: 3
+    # stage 1: optimize ME only
+    # stage 2: optimize SR only
+    # stage 3: jointly optimize
+    stage: 3
+    lambda1: 0.01
+    lambda2: 0.01
+    # add bicubic to output
+    residual: false
+
+batch_shape: [16, 3, 3, 16, 16]
+lr: 1.0e-4
+lr_decay:
+    method: multistep
+    decay_step: [500]
+    decay_rate: 0.1

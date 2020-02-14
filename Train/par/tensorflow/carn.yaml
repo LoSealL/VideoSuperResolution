@@ -1,0 +1,16 @@
+carn:
+  recursive: false
+  n_residual: 3
+  n_blocks: 3
+  filters: 64
+  clip: 10
+  weight_decay: 0
+  scale: 4
+  channel: 3
+
+batch_shape: [4, 16, 16, 3]
+lr: 1.0e-4
+lr_decay:
+  method: multistep
+  decay_step: [150000]
+  decay_rate: 0.1

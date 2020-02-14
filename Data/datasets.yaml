@@ -1,177 +1,80 @@
+# Copyright (c) 2018-2020 Wenyi Tang
 # VSR Dataset Description File
 # Date: Oct 17th 2018
-# Ver: v1.2.2
+# Ver: v1.3
 
-# changelog 2019-5-20:
-# - Add "Lazy Load". Defer globing process via concurrent.futures.Future
-# changelog 2019-4-1:
-# - Introduce `parser`: see VSR.DataLoader.Parser for details.
-
-# changelog 2019-1-9:
-# - `Root` will affect absolute url in `Dataset` as well
 ---
 # Add root dir to dataset. Take effect on all patterns below.
-Root:
-  /mnt/data/datasets/
-#  c:/work/datasets
+Root: /mnt/data/datasets
+# Collect your dataset directory and name them!
 Path:
-  BSD100: BSD100_SR/image_SRF_2/*HR.*
-  BSD500-Train: BSR_bsds500/BSR/BSDS500/data/images/train/*.jpg
-  BSD500-Val: BSR_bsds500/BSR/BSDS500/data/images/val/*.jpg
-  91-IMAGE: 91-image/
-  IMAGENET: Imagenet/20180122/*.jpg
-  GOPRO-Train: GOPRO_Large_all/train
-  MCL-V: MCL-V/train/*.yuv
-  WATERLOO: exploration_database_and_code/pristine_images/
-  DIV2K-Train: DIV2K/DIV2K_train_HR/
-  DIV2K-Val: DIV2K/DIV2K_valid_HR/
-  # FlyingChairs datasets are split with below file >>
-  # https://lmb.informatik.uni-freiburg.de/resources/datasets/FlyingChairs/FlyingChairs_train_val.txt
-  # but for convenience, all .flo files are put into a separate folder 'flow'
-  FlyingChairs: FlyingChairs/train
-  FlyingChairsVal: FlyingChairs/validate
-  MiniFlyingChairs: FlyingChairs/data
-  FlyingChairsTest: FlyingChairs/test
-  FlyingChairsFlow: FlyingChairs/flow/*.flo
-  YOTRAIN-HR: youku/train/hr/png
-  YOTRAIN-LR: youku/train/lr/png
-  YOVAL-HR: youku/val/hr/png
-  YOVAL-LR: youku/val/lr/png
-
-Path_Tracked:
-  SET5: Set5_SR/Set5/image_SRF_4/*HR.*
-  SET14: Set14_SR/Set14/image_SRF_4/*HR.*
-  BSD100: BSD100_SR/image_SRF_4/*HR.*
-  URBAN100: Urban100_SR/image_SRF_4/*HR.*
-  SUNHAY80: SunHays80_SR/image_SRF_8/*HR.*
-  BSD500: BSR_bsds500/BSR/BSDS500/data/images/test/*.jpg
-  VID4-HR: vid4/original/
-  GOPRO-Val: GOPRO_Large_all/test
-  SIDD-VAL: NTIRE19/Denoise/ValidationLR
-  YOTEST: youku/test/lr/png
+    91-IMAGE: 91-image/
+    BSD100: BSD100_SR/image_SRF_4/*HR.*
+    BSD500-Train: BSR_bsds500/BSR/BSDS500/data/images/train/*.jpg
+    BSD500-Val: BSR_bsds500/BSR/BSDS500/data/images/val/*.jpg
+    BSD500-Test: BSR_bsds500/BSR/BSDS500/data/images/test/*.jpg
+    GOPRO-Train[video]: GOPRO_Large_all/train
+    GOPRO-Val[video]: GOPRO_Large_all/test
+    WATERLOO: exploration_database_and_code/pristine_images/
+    DIV2K-Train: DIV2K/DIV2K_train_HR/
+    DIV2K-Raw: DIV2K/DIV2K_train_LR/
+    DIV2K-Val: DIV2K/DIV2K_valid_HR/
+    SET5: Set5_SR/Set5/image_SRF_4/*HR.*
+    SET14: Set14_SR/Set14/image_SRF_4/*HR.*
+    URBAN100: Urban100_SR/image_SRF_4/*HR.*
+    SUNHAY80: SunHays80_SR/image_SRF_8/*HR.*
+    VID4[video]: vid4/original/
+    YOTRAIN-HR[video]: youku/train/hr/png
+    YOTRAIN-LR[video]: youku/train/lr/png
+    YOVAL-HR[video]: youku/val/hr/png
+    YOVAL-LR[video]: youku/val/lr/png
 
 # bind datasets to a name, called in scripts
 Dataset:
-  NONE:  # empty set, do nothing
-    train: []
-    val: []
-    test: []
+    NONE:  # empty set, do nothing
+        train: []
+        val: []
+        test: []
 
-  BSD:  # Combined BSD100 and BSD500 data
-    train: [BSD100, BSD500-Train]  # collected in array
-    val: BSD500-Val                # point as a single set
-    test: [BSD500-Test]
+    # The training data is collected from list of `train`.
+    # They are treated as the ground-truth HR images, and LR
+    # counterparts are automatically generated using bicubic interpolation.
+    BSD:  # Combined BSD100 and BSD500 data
+        train: [BSD100, BSD500-Train]  # collected in array
+        val: BSD500-Val                # point as a single set
+        test: [BSD500-Test]
 
-  91-IMAGE:  # Yang's 91 images
-    train: 91-IMAGE
-    val: [SET5]
-    test: [SET5, SET14]
+    91-IMAGE:  # Yang's 91 images
+        train: 91-IMAGE
+        val: [SET5]
+        test: [SET5, SET14]
 
-  WATERLOO:  # https://ece.uwaterloo.ca/~k29ma/exploration/
-    train: WATERLOO
-    val: [SET5, SET14]
-    test: [URBAN100, SUNHAY80]
+    WATERLOO:  # https://ece.uwaterloo.ca/~k29ma/exploration/
+        train: WATERLOO
+        val: [SET5, SET14]
+        test: [URBAN100, SUNHAY80]
 
-  DIV2K:  # NTIRE-2017 Challenge
-    train: DIV2K-Train
-    val: [DIV2K-Val]
+    DIV2K:  # NTIRE-2017 Challenge
+        train:
+            hr: DIV2K-Train
+            lr: DIV2K-Raw
+        val: [DIV2K-Val]
 
-  DW2K: # Combined DIV2K & Waterloo
-    train: [DIV2K-Train, WATERLOO, BSD500-Train]
-    val: [DIV2K-Val]
+    DW2K: # Combined DIV2K & Waterloo
+        train: [DIV2K-Train, WATERLOO, BSD500-Train]
+        val: [DIV2K-Val]
 
-  MCL-V:  # http://mcl.usc.edu/mcl-v-database/, small set videos
-    train: MCL-V
-    val: MCL-V/test/*.yuv     # You can still write absolute path patterns like this,
-    test: [MCL-V/test/*.yuv]  # or as array like this
-    param:  # For MCL-V is raw data, these param must be specified
-      mode: YV12
-      parser: raw
-      width: 1920
-      height: 1080
+    GOPRO[video]: # https://github.com/SeungjunNah/DeepDeblur_release
+        train: [GOPRO-Train]
+        val: [GOPRO-Val]
+        test: [VID4]
 
-  GOPRO: # https://github.com/SeungjunNah/DeepDeblur_release
-    train: [GOPRO-Train]
-    val: [GOPRO-Val]
-    test: [VID4-HR]
-
-  VID4:  # popular video benchmark baseline
-    test: VID4-HR
-    infer: vid4/input/
-
-  SIDD:  # Denoise dataset of NTIRE 2019
-    # To parse .MAT files, use `Tools/NtireHelper.py`
-    # > python NtireHelper.py ValidationNoisyBlocksSrgb.MAT OUTPUT_DIR/
-    train: "NTIRE19/Denoise/SIDD_Medium_Srgb/Data/**/*GT*.PNG"
-    train_pair: "NTIRE19/Denoise/SIDD_Medium_Srgb/Data/**/*NOISY*.png"
-    val: "NTIRE19/Denoise/ValidationGT/*.png"
-    val_pair: "NTIRE19/Denoise/ValidationLR/*.png"
-    param:
-      parser: custom_pairs
-
-  RSR:  # Real SR dataset of NTIRE 2019
-    # EXGT contains both training images and validation images
-    train: ["NTIRE19/SR/EXGT"]
-    train_pair: ["NTIRE19/SR/EXLR/"]
-    val: ["NTIRE19/SR/EXGT/"]
-    val_pair: ["NTIRE19/SR/EXLR/"]
-    param:
-      parser: custom_pairs
-
-  VIMEO:  # widely used 90K high quality videos
-    # To make into HDF5 binary, use 'Tools/Vimeo.py':
-    # > python Vimeo.py VIMEO_DIR --hdf
-    # HDF is nearly 160GB
-    train: "vimeo/vimeo_septuplet/train.hdf"
-    val: "vimeo/vimeo_septuplet/test.hdf"
-    param:
-      parser: vimeo
-
-  YOUKU:  # Youku VSR challenge dataset
-    # To pack png files into y4m format, use `Tools/YoukuPackage.py`
-    # > python YoukuPackage.py -i PNG_DIR -o RESULTS_DIR
-    train: [YOTRAIN-HR]
-    train_pair: [YOTRAIN-LR]
-    val: [YOVAL-HR]
-    val_pair: [YOVAL-LR]
-    param:
-      parser: custom_pairs
-
-  YOINIT:
-    train: [YOTRAIN-LR, YOVAL-LR, YOTEST-LR]
-    val: [YOVAL-HR]
-
-  YOUKUFT:
-    train: [YOTRAIN-HR]
-    train_pair: ["../yovsr/tpng"]
-    val: [YOVAL-HR]
-    val_pair: ["../yovsr/vpng"]
-    param:
-      parser: custom_pairs
-
-  LOWQP:  # Low quality based on low QP
-    train: "lowqp/train"
-    val: "lowqp/val"
-    test: "lowqp/test"
-    param:
-      parser: cqp
-
-#  CHAIRS:  # flying chairs, a popular optical flow train-set
-#    train: FlyingChairs
-#    flow: FlyingChairsFlow
-#    val: FlyingChairsVal
-#    test: FlyingChairsTest
-#    param:
-#      parser: flow
-
-#  CELEBA:  # center cropped and resize to 64x64
-#    # test images are randomly selected (10,000 samples)
-#    # please refer to VSR/Tools/DataProcessing/CelebA.py for more details
-#    train: celeba/resize64/*.png
-#    val: [celeba/test64/000001.png]  # just use as a placeholder
-#    test: [celeba/test64/*.png]
-#    infer: []
-
-#  CIFAR10:  # well-known cifar-10
-#    param:
-#      parser: cifar10
+    # If LR is pre-generated from HR or somewhere else, one can specify
+    # customized LR data like this.
+    YOUKU[video]:
+        train:
+            hr: YOTRAIN-HR
+            lr: YOTRAIN-LR
+        val:
+            hr: YOVAL-HR
+            lr: YOVAL-LR

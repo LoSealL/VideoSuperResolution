@@ -1,28 +1,21 @@
-"""
-Copyright: Wenyi Tang 2017-2018
-Author: Wenyi Tang
-Email: wenyi.tang@intel.com
-Created Date: May 9th 2018
-Updated Date: May 9th 2018
+#  Copyright (c) 2017-2020 Wenyi Tang.
+#  Author: Wenyi Tang
+#  Email: wenyitang@outlook.com
+#  Update: 2020 - 2 - 7
 
-virtual file is an abstraction of a file or
-a collection of ordered frames
-"""
 from io import BytesIO, SEEK_CUR, SEEK_END, SEEK_SET
 from pathlib import Path
 
 import numpy as np
 from PIL import Image
 
-from ..Framework.Motion import KITTI, open_flo
-from ..Util.Utility import to_list
-# You have to keep this
-from . import YVDecoder, NVDecoder
+from . import NVDecoder, YVDecoder
+from .FloDecoder import open_flo, KITTI
 
-Image.DECODERS['NV12'] = NVDecoder.NV12Decoder
-Image.DECODERS['NV21'] = NVDecoder.NV21Decoder
-Image.DECODERS['YV12'] = YVDecoder.YV12Decoder
-Image.DECODERS['YV21'] = YVDecoder.YV21Decoder
+Image.register_decoder('NV12', NVDecoder.NV12Decoder)
+Image.register_decoder('NV21', NVDecoder.NV21Decoder)
+Image.register_decoder('YV12', YVDecoder.YV12Decoder)
+Image.register_decoder('YV21', YVDecoder.YV21Decoder)
 
 
 class File:
@@ -42,6 +35,7 @@ class File:
     self.file = []
     self.length = dict()
     self.name = self.path.stem
+    self.full_name = self.path.absolute().as_posix()
     if self.path.is_file():
       self.file = [self.path]
       self.length[self.path.name] = self.path.stat().st_size
@@ -128,13 +122,22 @@ class File:
       self.cur_fd = self.file[0].open('rb')
       self.read_file.append(self.file.pop(0))
     elif not self.cur_fd:
-      raise FileNotFoundError('No frames in File')
+      if self.rewind and self.read_file:
+        self.reopen()
+        return self.read(count)
+      else:
+        raise EOFError(f'End of File! {self.name}')
     read_bytes = self.cur_fd.read(count)
     if read_bytes:
       self.read_pointer += len(read_bytes)
       if count and count > len(read_bytes):
         return read_bytes + self.read(count - len(read_bytes))
+      elif count:
+        return read_bytes
       else:
+        # read entire file, close the file descriptor
+        self.cur_fd.close()
+        self.cur_fd = None
         return read_bytes
     else:
       if self.file:
@@ -146,7 +149,7 @@ class File:
         self.reopen()
         return self.read(count)
       else:
-        raise EOFError('End of File!')
+        raise EOFError(f'End of File! {self.name}')
 
   def read_frame(self, frames=1, *args):
     """An abstract interface"""
@@ -170,7 +173,7 @@ class File:
     """Tell the current position of the read pointer."""
     return self.read_pointer
 
-  def size(self, name):
+  def size(self, name=None):
     """Get the length of the file named `name`
 
     Args:
@@ -179,6 +182,8 @@ class File:
     Return:
         int: length in bytes
     """
+    if name is None:
+      return sum(self.length.values())
     path = Path(name)
     name = path.stem if path.exists() else name
     return self.length.get(name)
@@ -218,7 +223,7 @@ class RawFile(File):
     if not mode.upper() in _ALLOWED_RAW_FORMAT:
       raise TypeError('unknown mode: ' + mode)
     self.mode = mode.upper()
-    self.size = to_list(size)
+    self._size = size
     self.pitch, self.channel_pitch = self._get_frame_pitch()
     super(RawFile, self).__init__(path, rewind)
     self._pair = None
@@ -234,7 +239,7 @@ class RawFile(File):
       - **channel2** of YV12 is V, YV21 is U
     """
     mode = self.mode
-    w, h = self.size
+    w, h = self._size
     if mode in ('YV12', 'YV21'):
       return h * w * 3 // 2, [h * w, h * w // 4, h * w // 4]
     if mode in ('NV12', 'NV21'):
@@ -249,7 +254,7 @@ class RawFile(File):
     For the detail of mode fourcc, please see https://www.fourcc.org/
     """
     mode = self.mode
-    w, h = self.size
+    w, h = self._size
     if mode in ('YV12', 'YV21'):
       return (np.array([1, h, w]),
               np.array([1, h // 2, w // 2]),
@@ -271,13 +276,13 @@ class RawFile(File):
       ret = []
       for _ in range(frames):
         data = self.read(self.pitch)
-        ret.append(Image.frombytes('YCbCr', self.size, data, self.mode))
+        ret.append(Image.frombytes('YCbCr', self._size, data, self.mode))
       return ret
     elif self.mode in ('RGB', 'RGBA'):
       ret = []
       for _ in range(frames):
         data = self.read(self.pitch)
-        ret.append(Image.frombytes(self.mode, self.size, data))
+        ret.append(Image.frombytes(self.mode, self._size, data))
       return ret
     elif self.mode in ('BGR',):
       _image_mode = 'RGB'
@@ -285,7 +290,7 @@ class RawFile(File):
       for _ in range(frames):
         data = b''.join(
           (self.read(3)[::-1] for _ in range(self.pitch // 3)))
-        ret.append(Image.frombytes('RGB', self.size, data))
+        ret.append(Image.frombytes('RGB', self._size, data))
       return ret
     elif self.mode in ('BGRA',):
       ret = []
@@ -294,7 +299,7 @@ class RawFile(File):
         for _ in range(self.pitch // 4):
           c = self.read(4)
           buf.join((c[2::-1], c[3:]))
-        ret.append(Image.frombytes('RGBA', self.size, buf))
+        ret.append(Image.frombytes('RGBA', self._size, buf))
       return ret
 
   def seek(self, offset, where=SEEK_SET):
@@ -318,7 +323,7 @@ class RawFile(File):
     print(" [!] warning: pad is not supported in RawFile")
 
   def attach_pair(self, pair_file):
-    self._pair = RawFile(pair_file, self.rewind)
+    self._pair = RawFile(pair_file, self.mode, self._size, self.rewind)
     return self
 
   @property
@@ -327,7 +332,7 @@ class RawFile(File):
 
   @property
   def shape(self):
-    return self.size
+    return self._size
 
   @property
   def frames(self):
@@ -358,7 +363,8 @@ class ImageFile(File):
     return [Image.open(fp) for fp in image_bytes]
 
   def read_frame2(self, frames=1, *args):
-    """new API, saving memory while loading frames.
+    """new API, saving memory while loading frames. But will consume a lot of
+    file descriptors.
 
     Args:
         frames: number of frames to be loaded
@@ -411,7 +417,10 @@ class ImageFile(File):
       padding: a integer or a list of 2 integers.
     """
 
-    padding = to_list(padding, 2)
+    if not isinstance(padding, (list, tuple)):
+      padding = [padding, padding]
+    else:
+      assert len(padding) is 2
     if self.read_file:
       raise RuntimeError(
         "pad must be called when reading cursor is at the beginning.")

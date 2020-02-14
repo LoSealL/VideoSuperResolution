@@ -1,14 +1,13 @@
-"""
-Copyright: Wenyi Tang 2017-2018
-Author: Wenyi Tang
-Email: wenyi.tang@intel.com
-Created Date: Sep 13th 2018
+#  Copyright (c) 2017-2020 Wenyi Tang.
+#  Author: Wenyi Tang
+#  Email: wenyitang@outlook.com
+#  Update: 2020 - 2 - 7
 
-Image customized decoder for NV12([Y][UV/4]), NV21([Y][VU/4])
-NOTE: [Y] means Y channel is a planar channel, [UV] means UV
-  channels together is planar, but U and V are packed. [UV/4]
-  means U and V are sub-sampled by a factor of [2, 2]
-"""
+# Image customized decoder for NV12([Y][UV/4]), NV21([Y][VU/4])
+# NOTE: [Y] means Y channel is a planar channel, [UV] means UV
+#   channels together is planar, but U and V are packed. [UV/4]
+#   means U and V are sub-sampled by a factor of [2, 2]
+
 import numpy as np
 from PIL import ImageFile
 

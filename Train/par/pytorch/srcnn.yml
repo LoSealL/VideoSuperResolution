@@ -1,0 +1,14 @@
+srcnn:
+    scale: 4
+    channel: 3
+    filters: [9, 5, 5]
+    upsample: true
+    image_weight: 1
+    feature_weight: 0  # perceptual loss
+
+batch_shape: [16, 3, 32, 32]
+lr: 1.0e-2
+lr_decay:
+    method: multistep
+    decay_step: [50, 75]
+    decay_rate: 0.1

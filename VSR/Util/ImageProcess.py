@@ -1,66 +1,46 @@
-"""
-Copyright: Wenyi Tang 2017-2018
-Author: Wenyi Tang
-Email: wenyi.tang@intel.com
-Created Date: May 8th 2018
-Updated Date: May 8th 2018
-
-Image processing tools
-"""
-
-#  Copyright (c): Wenyi Tang 2017-2019.
+#  Copyright (c) 2017-2020 Wenyi Tang.
 #  Author: Wenyi Tang
-#  Email: wenyi.tang@intel.com
-#  Update Date: 2019/4/3 下午5:03
-
-from pathlib import Path
+#  Email: wenyitang@outlook.com
+#  Update: 2020 - 2 - 7
 
 import numpy as np
 from PIL import Image
 
-
-def _resample(name):
-  if 'cubic' in name:
-    return Image.BICUBIC
-  if 'linear' in name:
-    return Image.BILINEAR
-  if 'nearest' in name:
-    return Image.NEAREST
-  return 0
+from ..Backend import DATA_FORMAT
 
 
-def array_to_img(x, mode='YCbCr', min_val=0, max_val=255):
+def array_to_img(x: np.ndarray, mode='RGB', min_val=0, max_val=255):
   """Convert an ndarray to PIL Image."""
+
   x = np.squeeze(x).astype('float32')
   x = (x - min_val) / (max_val - min_val)
   x = x.clip(0, 1) * 255
   if np.ndim(x) == 2:
-    if mode in ('L', 'gray'):
-      x = np.expand_dims(x, 0)
-    else:
-      x = np.expand_dims(np.expand_dims(x, -1), 0)
+    return Image.fromarray(x.astype('uint8'), mode='L').convert(mode)
   elif np.ndim(x) == 3:
-    x = np.expand_dims(x, 0)
+    if DATA_FORMAT == 'channels_first':
+      x = x.transpose([1, 2, 0])
+    return Image.fromarray(x.astype('uint8'), mode=mode)
+  elif np.ndim(x) == 4:
+    if DATA_FORMAT == 'channels_first':
+      x = x.transpose([0, 2, 3, 1])
+    ret = [Image.fromarray(np.round(i).astype('uint8'), mode=mode) for i in x]
+    return ret.pop() if len(ret) is 1 else ret
   elif np.ndim(x) >= 5:
     raise ValueError(f"Dimension of x must <= 4. Got {np.ndim(x)}.")
-  ret = []
-  for i in x:
-    i = np.round(i)
-    ret.append(Image.fromarray(i.astype('uint8'), mode=mode))
-  if len(ret) == 1:
-    return ret.pop()
-  return ret
 
 
 def img_to_array(img, data_format=None):
   """Converts a PIL Image instance to a Numpy array.
 
-    Copy from Keras
+    !!Copy from Keras!!
+
+    Assure the array's ndim is 3
   """
   if not isinstance(img, Image.Image):
     return img
   if data_format is None:
-    data_format = 'channels_last'
+    data_format = DATA_FORMAT
   if data_format not in {'channels_first', 'channels_last'}:
     raise ValueError('Unknown data_format: ', data_format)
   # Numpy array x has format (height, width, channel)
@@ -80,70 +60,23 @@ def img_to_array(img, data_format=None):
   return x
 
 
-def img_to_yuv(frame, mode, grayscale=False):
-  """Change color space of `frame` from any supported `mode` to YUV
-
-    Args:
-        frame: 3-D tensor in either [H, W, C] or [C, H, W]
-        mode: A string, must be one of [YV12, YV21, NV12, NV21, RGB, BGR]
-        grayscale: discard uv planes
-
-    return:
-        3-D tensor of YUV in [H, W, C]
-  """
-
-  _planar_mode = ('YV12', 'YV21', 'NV12', 'NV21')
-  _packed_mode = ('RGB', 'BGR')
-  _allowed_mode = _planar_mode + _packed_mode
-  if not isinstance(frame, list):
-    raise TypeError("frame must be a list of numpy array")
-  if not mode in _allowed_mode:
-    raise ValueError("invalid mode: " + mode)
-  if mode in _planar_mode:
-    if mode in ('YV12', 'YV21'):
-      y, u, v = frame
-    elif mode in ('NV12', 'NV21'):
-      y, uv = frame
-      u = uv.flatten()[0::2].reshape([1, uv.shape[1] // 2, uv.shape[2]])
-      v = uv.flatten()[1::2].reshape([1, uv.shape[1] // 2, uv.shape[2]])
-    else:
-      y = u = v = None
-    y = np.transpose(y)
-    u = np.transpose(u)
-    v = np.transpose(v)
-    if '21' in mode:
-      u, v = v, u
-    if not grayscale:
-      up_u = np.zeros(shape=[u.shape[0] * 2, u.shape[1] * 2, u.shape[2]])
-      up_v = np.zeros(shape=[v.shape[0] * 2, v.shape[1] * 2, v.shape[2]])
-      up_u[0::2, 0::2, :] = up_u[0::2, 1::2, :] = u
-      up_u[1::2, ...] = up_u[0::2, ...]
-      up_v[0::2, 0::2, :] = up_v[0::2, 1::2, :] = v
-      up_v[1::2, ...] = up_v[0::2, ...]
-      yuv = np.concatenate([y, up_u, up_v], axis=-1)
-      yuv = np.transpose(yuv, [1, 0, 2])  # PIL needs [W, H, C]
-      img = Image.fromarray(yuv.astype('uint8'), mode='YCbCr')
-    else:
-      y = np.squeeze(y)
-      img = Image.fromarray(np.transpose(y).astype('uint8'), mode='L')
-  elif mode in _packed_mode:
-    assert len(frame) is 1
-    rgb = np.asarray(frame[0])
-    if mode == 'BGR':
-      rgb = rgb[..., ::-1]
-    rgb = np.transpose(rgb, [1, 0, 2])
-    if not grayscale:
-      img = Image.fromarray(rgb, mode='RGB').convert('YCbCr')
-    else:
-      img = Image.fromarray(rgb, mode='RGB').convert('L')
-  else:
-    raise RuntimeError("unreachable!")
-  # return img_to_array(image1) if turn_array else image1
-  return img
-
-
 def imresize(image, scale, size=None, mode=None, resample=None):
   """Image resize using simple cubic provided in PIL"""
+
+  def _resample(name: str):
+    if 'cubic' in name:
+      return Image.BICUBIC
+    if 'linear' in name:
+      return Image.BILINEAR
+    if 'nearest' in name:
+      return Image.NEAREST
+    return 0
+
+  dtype = Image.Image
+  if isinstance(image, np.ndarray):
+    dtype = np.ndarray
+    mode = 'RGB' or mode
+    image = array_to_img(image, mode)
   if size is None:
     size = (np.array(image.size) * scale).astype(int)
   if image.mode in ('RGB', 'BGR'):
@@ -153,41 +86,10 @@ def imresize(image, scale, size=None, mode=None, resample=None):
     resample = _resample(resample)
   if not resample:
     resample = Image.BICUBIC
-  return image.resize(size, resample=resample).convert(mode)
-
-
-def shrink_to_multiple_scale(image, scale):
-  """Crop the `image` to make its width and height multiple of scale factor"""
-  size = np.asarray(image.size, dtype='int32')
-  scale = np.asarray(scale, dtype='int32')
-  size -= size % scale
-  return image.crop([0, 0, *size])
-
-
-def crop(image, box):
-  """crop `image` according to `box` boundary
-
-  NOTE: this acts the same as PIL.Image.crop
-
-  Args:
-      image: an ndarray, of shape [H, W, C] or [B, H, W, C]
-      box: a list of int, representing cropping boundary
-        (left, upper, right, lower)
-  """
-
-  if isinstance(image, Image.Image):
-    image = np.asarray(image)
-    if np.ndim(image) == 2:
-      image = np.expand_dims(image, -1)
-  assert isinstance(image, np.ndarray)
-  x0, y0, x1, y1 = map(int, map(round, box))
-
-  if x1 < x0:
-    x1 = x0
-  if y1 < y0:
-    y1 = y0
-
-  return image[..., y0:y1, x0:x1, :]
+  image = image.resize(size, resample=resample).convert(mode)
+  if dtype is np.ndarray:
+    return img_to_array(image, DATA_FORMAT)
+  return image
 
 
 def imread(url, mode='RGB'):
@@ -195,41 +97,6 @@ def imread(url, mode='RGB'):
 
   img = Image.open(url)
   return img_to_array(img.convert(mode))
-
-
-def imwrite(url, data, mode='RGB', name=None):
-  """Write `data` as image to `url`"""
-
-  url = Path(url)
-  if not url.exists():
-    url.mkdir(parents=True, exist_ok=True)
-  if np.ndim(data) == 3:
-    data = np.expand_dims(data, 0)
-  imgs = np.split(data, data.shape[0])
-  if name is None:
-    name = ['image_{:03d}'.format(i) for i in range(data.shape[0])]
-  for img, n in zip(imgs, name):
-    if url.is_dir():
-      url_f = url / n
-    else:
-      url_f = url
-    img = array_to_img(img[0], mode).convert('RGB')
-    url_f = url_f.with_suffix('.png')
-    if url_f.exists():
-      url_f = url_f.parent / (url_f.stem + str(np.random.randint(100000)))
-      url_f = url_f.with_suffix('.png')
-    img.save(url_f)
-
-
-def random_crop_batch_image(image, batch, shape, seed=None):
-  h, w = image.shape[:2]
-  b = []
-  np.random.seed(seed)
-  for _ in range(batch):
-    y = np.random.randint(0, h - shape[1])
-    x = np.random.randint(0, w - shape[0])
-    b.append(image[y:y + shape[1], x:x + shape[0], :])
-  return np.stack(b)
 
 
 _Y601 = (0.299, 0.587, 0.114)

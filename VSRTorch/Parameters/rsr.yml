@@ -1,6 +1,0 @@
-rsr:
-  scale: 1
-
-batch: 16
-patch_size: 128
-lr: 1.0e-5

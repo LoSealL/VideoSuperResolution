@@ -1,13 +1,12 @@
-"""
-Copyright: Wenyi Tang 2017-2018
-Author: Wenyi Tang
-Email: wenyi.tang@intel.com
-Created Date: Sep 13th 2018
+#  Copyright (c) 2017-2020 Wenyi Tang.
+#  Author: Wenyi Tang
+#  Email: wenyitang@outlook.com
+#  Update: 2020 - 2 - 7
 
-Image customized decoder for YV12([Y][U/4][V/4]), YV21([Y][V/4][U/4])
-NOTE: [Y][U][V] means Y/U/V channel is a planar channel, [U/4] means
-  U channel is sub-sampled by a factor of [2, 2]
-"""
+# Image customized decoder for YV12([Y][U/4][V/4]), YV21([Y][V/4][U/4])
+# NOTE: [Y][U][V] means Y/U/V channel is a planar channel, [U/4] means
+#   U channel is sub-sampled by a factor of [2, 2]
+
 import numpy as np
 from PIL import ImageFile
 

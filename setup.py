@@ -1,26 +1,26 @@
-"""
-Copyright: Wenyi Tang 2017-2019
-Author: Wenyi Tang
-Email: wenyi.tang@intel.com
-Last update date: Mar. 25th 2019
-"""
-
-#  Copyright (c): Wenyi Tang 2017-2019.
+# ##############################################################################
+#  Copyright (c) 2020. LoSealL All Rights Reserved.
 #  Author: Wenyi Tang
-#  Email: wenyi.tang@intel.com
-#  Update Date: 2019/4/3 下午5:03
+#  Email: wenyitang@outlook.com
+#  Date: 2020 - 1 - 31
+# ##############################################################################
 
 from setuptools import find_packages
 from setuptools import setup
 
-VERSION = '0.8.2'
+# Get version from CHANGELOG
+try:
+  with open('CHANGELOG.md') as fd:
+    VERSION = fd.readline()[:-1]
+except IOError:
+  VERSION = '0.0.0'
 
 REQUIRED_PACKAGES = [
   'numpy',
   'scipy',
   'scikit-image',
   'matplotlib',
-  'Pillow',
+  'pillow',
   'pypng',
   'pytest',
   'PyYAML',
@@ -32,17 +32,6 @@ REQUIRED_PACKAGES = [
   'oauth2client',
 ]
 
-try:
-  import torch
-
-  # tensorboardX is absorbed into 1.1.0 now
-  REQUIRED_PACKAGES.extend([
-    'torch >= 1.1.0',
-    'torchvision',
-  ])
-except ImportError:
-  pass
-
 setup(
   name='VSR',
   version=VERSION,
@@ -53,5 +42,5 @@ setup(
   license='MIT',
   author='Wenyi Tang',
   author_email='wenyitang@outlook.com',
-  keywords="super-resolution sr vsr tensorflow pytorch",
+  keywords="super-resolution sr vsr cnn srcnn vespcn",
 )

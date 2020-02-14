@@ -4,22 +4,16 @@
  # This file is part of the implementation as described in the CVPR 2017 paper:
  # Tobias Plötz and Stefan Roth, Benchmarking Denoising Algorithms with Real Photographs.
  # Please see the file LICENSE.txt for the license governing this code.
-
-Copyright: Wenyi Tang 2017-2019
-Author: Wenyi Tang
-Email: wenyi.tang@intel.com
-Created Date: Dec 21st 2018
-
-Pre-processing DND dataset:
-- Crop each image into 20 small patches (1000 in total)
-- Convert .mat into png files
-- Submit denoised .png files into bundled .mat files.
 """
-
 #  Copyright (c): Wenyi Tang 2017-2019.
 #  Author: Wenyi Tang
 #  Email: wenyi.tang@intel.com
 #  Update Date: 2019/4/3 下午5:03
+
+# Pre-processing DND dataset:
+# - Crop each image into 20 small patches (1000 in total)
+# - Convert .mat into png files
+# - Submit denoised .png files into bundled .mat files.
 import argparse
 import os
 from pathlib import Path

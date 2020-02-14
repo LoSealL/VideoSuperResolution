@@ -21,7 +21,7 @@ from pathlib import Path
 import tensorflow as tf
 
 kutils = tf.keras.utils
-from VSR.Tools.GoogleDriveDownloader import drive_download
+from VSR.Util.GoogleDriveDownloader import drive_download
 
 # For now VSR requires python>=3.5
 if sys.version_info.major == 3 and sys.version_info.minor < 5:
@@ -97,6 +97,7 @@ WEIGHTS = {
   'Trbpn.zip': '1Ozp5j-DBWJSpXY5GvxiEPKdfCaAbOXqu',
   'Tspmc.zip': 'https://github.com/LoSealL/Model/releases/download/spmc/spmc.zip',
   'Tvespcn.zip': 'https://github.com/LoSealL/Model/releases/download/vespcn/Tvespcn.zip',
+  'Tsrmd.zip': '1ORKH05-aLSbQaWB4qQulIm2INoRufuD_',
 }
 
 

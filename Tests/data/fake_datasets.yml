@@ -1,0 +1,45 @@
+# Fake VSR Dataset Description File
+# Unit Test Only!!
+# Ver: v1.3.0
+---
+Root: ./
+
+Path:
+    FOO: flying_chair/**/*.png
+    BAR: set5_x2/*.png
+    XIUXIAN[video]: video/custom_pair/lr
+
+Dataset:
+    NONE:
+        train: []
+        val: []
+        test: []
+
+    NORMAL:
+        train: [FOO, BAR]
+        val: [BAR]
+        test: ["set5_x2/img_001_SRF_2_LR.png"]
+
+    RAW[video]:
+        train: [video/raw_32x32.yv12]
+        val: [video/raw_32x32.yv12]
+        test: [video/raw_32x32.yv12]
+
+    PAIR:
+        train:
+            hr: [FOO]
+            lr: [FOO]
+
+    VIDEOPAIR[video]:
+        train:
+            hr: "video/custom_pair/hr"
+            lr: XIUXIAN
+        val:
+            hr: [XIUXIAN]
+            lr: "video/custom_pair/hr"
+        test:
+            hr: "video/custom_pair/hr"
+            lr: "video/custom_pair/lr"
+
+    GHOST:
+        train: ["/what-the-fuck"]

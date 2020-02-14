@@ -1,8 +1,0 @@
----
-edrn:
-  scale: 1
-  channel: 3
-  G0: 64
-  EDRNkSize: 3
-  EDRNconfig: B
-  rgb_range: 255

@@ -1,7 +1,0 @@
-mldn:
-  finetune: true
-  scale: 1
-
-patch_size: 128
-batch: 16
-lr: 1.0e-4

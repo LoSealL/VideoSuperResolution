@@ -1,6 +1,0 @@
-ffdnet:
-  scale: 1
-  channel: 3
-  n_layers: 10
-  level: 0
-  training: true

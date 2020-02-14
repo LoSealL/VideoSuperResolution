@@ -1,0 +1,13 @@
+---
+frvsr:
+    scale: 4
+    channel: 3
+    depth: 7
+    weights: [1, 1, 1.0e-3]
+
+batch_shape: [16, 7, 3, 32, 32]
+lr: 1.0e-4
+lr_decay:
+    method: multistep
+    decay_step: [200, 300, 400]
+    decay_rate: 0.5
