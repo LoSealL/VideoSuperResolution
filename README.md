@@ -6,7 +6,6 @@ A collection of state-of-the-art video or single-image super-resolution architec
 **Several referenced PyTorch implementations are also included now.**
 
 **Quick Link:**
-- [**CVPR2019 Highlight**](./Docs/Collections%20CVPR%202019.md)
 - [Installation](#install)
 - [Getting Started](#Getting-Started)
 - [Benchmark](./Docs/Benchmark%20(reproduce).md)
@@ -107,9 +106,9 @@ Moreover, VSR can handle raw NV12/YUV as well as a sequence of images as inputs.
 1. Prepare proper tensorflow and pytorch(optional). For example, GPU and CUDA10.0 (recommend to use `conda`):
 
    ```shell
-   conda install tensorflow-gpu==1.12.0
+   conda install tensorflow-gpu==1.15.0
    # optional
-   # conda install pytorch==1.0.1
+   # conda install pytorch
    ```
 
 2. Install VSR package
@@ -125,21 +124,29 @@ Moreover, VSR can handle raw NV12/YUV as well as a sequence of images as inputs.
    ```shell
    python prepare_data.py --filter vespcn vid4
    ```
-
-2. Evaluate
-   ```shell
-   cd Train
-   python run.py --model vespcn --test vid4
+   
+2. Customize backend
+   cd ~/.vsr/
+   touch config.yml
+   ```yaml
+   backend: tensorflow  # (tensorflow, pytorch)
+   verbose: info        # (debug, info, warning, error)
    ```
 
-3. Train
+3. Evaluate
+   ```shell
+   cd Train
+   python eval.py srcnn -t vid4 --pretrain=/path/srcnn.pth
+   ```
+
+4. Train
    ```shell
    python prepare_data.py --filter mcl-v
    cd Train
-   python run.py --model vespcn --dataset mcl-v --memory_limit 1GB --epochs 100
+   python train.py vespcn --dataset mcl-v --memory_limit 1GB --epochs 100
    ```
 
 OK, that's all you need. For more details, use `--help` to get more information.
 
-To train/test/infer any other model in [VSR.Models](./VSR/Models/__init__.py), please see [README](./Train/README.md).
-To write and train your own model via VSR, please see [Docs](./Docs).
+----
+More documents can be found at [Docs](./Docs).
