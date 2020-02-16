@@ -1,4 +1,6 @@
-1.0.1
+1.0.2
+## 2020-02-16
+- Fix wrong data format in ImageProcess 
 
 ## 1.0.1
 ## 2020-02-16
