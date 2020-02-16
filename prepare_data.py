@@ -18,10 +18,9 @@ import tarfile
 import zipfile
 from pathlib import Path
 
-import tensorflow as tf
+from tensorflow import keras
 
-kutils = tf.keras.utils
-from VSR.Util.GoogleDriveDownloader import drive_download
+kutils = keras.utils
 
 # For now VSR requires python>=3.5
 if sys.version_info.major == 3 and sys.version_info.minor < 6:
@@ -158,6 +157,12 @@ def download(name, url, path):
     return file
   except Exception:
     print('Unable to get file {}'.format(name))
+
+
+def drive_download(name, url, path):
+  print(f"Google Drive Download API has been expired, "
+        f"please download {name} from https://drive.google.com/open?id={url} directly."
+        "\nFor more question, please message me at https://gitub.com/loseall.")
 
 
 def main():
