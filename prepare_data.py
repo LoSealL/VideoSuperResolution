@@ -24,8 +24,8 @@ kutils = tf.keras.utils
 from VSR.Util.GoogleDriveDownloader import drive_download
 
 # For now VSR requires python>=3.5
-if sys.version_info.major == 3 and sys.version_info.minor < 5:
-  print("Python version is required >=3.5!")
+if sys.version_info.major == 3 and sys.version_info.minor < 6:
+  print("Python version is required >=3.6!")
   exit(-1)
 
 _DEFAULT_DATASET_PATH = '/mnt/data/datasets'

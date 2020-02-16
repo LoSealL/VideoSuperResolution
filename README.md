@@ -1,6 +1,11 @@
 # Video Super Resolution
 A collection of state-of-the-art video or single-image super-resolution architectures, reimplemented in tensorflow.
 
+**Project uploaded to PyPI now. Try install from PyPI:**
+```shell script
+pip install VSR
+```
+
 **Pretrained weights is uploading now.**
 
 **Several referenced PyTorch implementations are also included now.**
@@ -8,7 +13,7 @@ A collection of state-of-the-art video or single-image super-resolution architec
 **Quick Link:**
 - [Installation](#install)
 - [Getting Started](#Getting-Started)
-- [Benchmark](./Docs/Benchmark%20(reproduce).md)
+- [Benchmark](https://github.com/LoSealL/VideoSuperResolution/blob/master/Docs/Benchmark%20(reproduce).md)
 
 ## Network list and reference (Updating)
 The hyperlink directs to paper site, follows the official codes if the authors open sources.
@@ -149,4 +154,4 @@ Moreover, VSR can handle raw NV12/YUV as well as a sequence of images as inputs.
 OK, that's all you need. For more details, use `--help` to get more information.
 
 ----
-More documents can be found at [Docs](./Docs).
+More documents can be found at [Docs](https://github.com/LoSealL/VideoSuperResolution/tree/master/Docs).

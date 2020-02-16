@@ -11,6 +11,8 @@ __pycache__/
 # Intermediate output files
 Results/
 Train/*.sh
+build/
+dist/
 
 # NDA
 Exp/

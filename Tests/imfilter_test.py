@@ -8,6 +8,7 @@ import unittest
 import numpy as np
 
 from VSR.Util.Math import (anisotropic_gaussian_kernel, gaussian_kernel)
+from VSR.Backend import BACKEND
 
 _K1 = gaussian_kernel(15, 2)
 _K2 = anisotropic_gaussian_kernel(15, 1, 5, 3)
@@ -29,6 +30,8 @@ class ImFilter(unittest.TestCase):
   ])
 
   def test_torch(self):
+    if BACKEND != 'pytorch':
+      return
     import torch
     from VSR.Backend.Torch.Util.Utility import imfilter
 
@@ -39,12 +42,13 @@ class ImFilter(unittest.TestCase):
     z = imfilter(x, torch.stack([tk1, tk2]))
     y_ = y.detach().numpy()
     z_ = z.detach().numpy()
-
     self.assertTrue(np.all(y_[0] == z_[0]))
     self.assertTrue(np.all(np.abs(y_[0, 0] - self.y_gold) <= 1e-4))
     self.assertTrue(np.all(np.abs(z_[1, 0] - self.z_gold) <= 1e-4))
 
   def test_tf(self):
+    if BACKEND != 'tensorflow':
+      return
     import tensorflow as tf
     from VSR.Backend.TF.Util import imfilter
 
@@ -55,7 +59,6 @@ class ImFilter(unittest.TestCase):
     z = imfilter(x, tk2)
     with tf.Session() as sess:
       y_, z_ = sess.run([y, z])
-
       self.assertTrue(np.all(np.abs(y_[0, ..., 0] - self.y_gold) <= 1e-4))
       self.assertTrue(np.all(np.abs(z_[0, ..., 0] - self.z_gold) <= 1e-4))
 

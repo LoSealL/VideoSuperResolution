@@ -60,7 +60,7 @@ if BACKEND == 'pytorch':
     _ver = torch.__version__.split('.')
     if _ver[0] != '1' or _ver[1] <= '1':
       LOG.warning(
-        f"[!] PyTorch version too low: {torch.__version__}, recommended 1.2.0")
+          f"[!] PyTorch version too low: {torch.__version__}, recommended 1.2.0")
   except ImportError:
     LOG.fatal("[!] PyTorch package not found in your system.")
     raise ImportError("Not an available backend found! Check your environment.")

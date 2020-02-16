@@ -2,6 +2,7 @@
 #  Author: Wenyi Tang
 #  Email: wenyitang@outlook.com
 #  Update: 2020 - 2 - 7
+#  Collect and reproduce Image/Video Super-Resolution Algorithms.
 
 from __future__ import absolute_import
 from __future__ import print_function

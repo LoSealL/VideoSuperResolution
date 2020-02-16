@@ -142,6 +142,8 @@ def rgb_to_yuv(img, max_val=1.0, standard='bt601'):
   _standard = standard.lower()
   if _standard not in ('bt601', 'bt709', 'matlab'):
     raise ValueError('Not known standard:', standard)
+  if DATA_FORMAT == 'channels_first':
+    img = img.transpose([1, 2, 0])
   if img.shape[-1] != 3:
     return img
   """ matrix used in matlab
@@ -165,4 +167,7 @@ def rgb_to_yuv(img, max_val=1.0, standard='bt601'):
     _yuv = np.matmul(_trans, _img.transpose())
     _yuv = _yuv.transpose() + _bias
     _yuv = _yuv.reshape(img.shape)
-  return np.clip(_yuv, 0, 1) * max_val
+  _yuv = np.clip(_yuv, 0, 1) * max_val
+  if DATA_FORMAT == 'channels_first':
+    _yuv = _yuv.transpose([2, 0, 1])
+  return _yuv.astype(img.dtype)

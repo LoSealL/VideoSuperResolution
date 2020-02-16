@@ -9,10 +9,10 @@ install:
   - pip install -U -q -e .
 script:
   - pytest -v Tests/dataset_test.py Tests/virtualfile_test.py --disable-warnings
+  - pytest -v Tests/utility_test.py --disable-warnings
   - pytest -v Tests/image_test.py --disable-warnings
   - pytest -v Tests/initializer_test.py --disable-warnings
   - pytest -v Tests/loader_test.py --disable-warnings
   - pytest -v Tests/model_test.py --disable-warnings
   - pytest -v Tests/motion_test.py --disable-warnings
-  - pytest -v Tests/noise_test.py --disable-warnings
   - pytest -v Tests/vgg_test.py --disable-warnings

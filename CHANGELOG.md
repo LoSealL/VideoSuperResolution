@@ -1,8 +1,9 @@
 1.0.1
 
 ## 1.0.1
-## 2020-02-13
+## 2020-02-16
 - Add SRMD (CVPR 2018) by Kai Zhang et. al.
+- Upload to [PyPI](https://pypi.org/project/VSR/).
 
 ## 1.0.0
 ### 2020-01-31

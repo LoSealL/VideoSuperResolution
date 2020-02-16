@@ -168,7 +168,7 @@ def upsample(img, scale, border='REFLECT'):
   filters = [tf.transpose(f, [2, 3, 0, 1]) for f in filters]
   weights = tf.concat(filters, axis=-1)
   img_s = tf.nn.conv2d(img_ex, weights, [1, 1, 1, 1], 'VALID')
-  img_s = tf.depth_to_space(img_s, s)
+  img_s = tf.nn.depth_to_space(img_s, s)
   more = s // 2 * s
   crop = slice(more - s // 2, - (s // 2))
   img_s = _pop_shape(img_s[:, crop, crop], shape)
@@ -357,7 +357,7 @@ def correlation(f1, f2, patch, max_displacement, stride1=1, stride2=1):
       a 4-D correlation tensor with shape [B, H, W, d*d]
   """
   channel = f1.shape[-1]
-  norm = np.prod(to_list(patch, 2) + [channel])
+  norm = tf.reduce_prod(to_list(patch, 2) + [channel])
   v1 = _make_vector(f1, patch, stride1)
   v1 = tf.expand_dims(v1, -2)
   v2 = _make_displacement(f2, patch, max_displacement, stride1, stride2)
@@ -663,35 +663,3 @@ class TorchInitializer(tf.keras.initializers.Initializer):
       fan_in = shape[-2] * receptive_field_size
       fan_out = shape[-1] * receptive_field_size
     return fan_in, fan_out
-
-
-class FixedInitializer(tf.keras.initializers.Initializer):
-  """For DEBUG only.
-  A Fixed value initializer.
-  """
-
-  def __init__(self, seed=1, dtype=tf.float32):
-    self.seed = seed
-    self.dtype = dtype
-    self.fan_in = 32
-
-  def __call__(self, shape, dtype=None, partition_info=None):
-    if dtype is None:
-      dtype = self.dtype
-    scale_shape = shape
-    if partition_info is not None:
-      scale_shape = partition_info.full_shape
-    if self.fan_in is None:
-      self.fan_in, _ = self._compute_fans(scale_shape)
-    gain2 = 2.0
-    bound = tf.sqrt(3.0 * gain2 / int(self.fan_in))
-    tf.set_random_seed(self.seed)
-
-    tf.set_random_seed(None)
-    return np.random.uniform(-bound, bound, size=shape)
-
-  def get_config(self):
-    return {
-      "seed": self.seed,
-      "dtype": self.dtype
-    }
