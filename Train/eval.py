@@ -29,6 +29,7 @@ g2.add_argument("--cuda", action="store_true", help="using cuda gpu")
 g2.add_argument("--threads", type=int, default=8, help="specify loading threads number")
 g3 = parser.add_argument_group("advanced options")
 g3.add_argument("--output_index", default='-1', help="specify access index of output array (slicable)")
+g3.add_argument("--export", help="export ONNX (torch backend) or protobuf (tf backend) (needs support from model)")
 g3.add_argument("--auto_rename", action="store_true")
 g3.add_argument("-c", "--comment", default=None, help="extend a comment string after saving folder")
 
@@ -111,6 +112,8 @@ def main():
         t.benchmark(ld, config)
       else:
         t.infer(ld, config)
+      if opt.export:
+        t.export(opt.export)
 
 
 if __name__ == '__main__':
