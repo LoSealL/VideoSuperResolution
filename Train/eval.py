@@ -86,34 +86,32 @@ def main():
 
   datasets = load_datasets(data_config_file)
   try:
-    test_datas = [datasets[t.upper()] for t in opt.test]
+    test_datas = [datasets[t.upper()] for t in opt.test] if opt.test else []
   except KeyError:
     test_datas = [Config(test=Config(lr=Dataset(*opt.test)), name='infer')]
     if opt.video:
       test_datas[0].test.lr.use_like_video_()
-
-  for data in test_datas:
-    run_benchmark = False if data.test.hr is None else True
-    if run_benchmark:
-      ld = Loader(data.test.hr, data.test.lr, opt.scale, threads=opt.threads)
-    else:
-      ld = Loader(data.test.hr, data.test.lr, threads=opt.threads)
-    if opt.channel == 1:
-      # convert data color space to grayscale
-      ld.set_color_space('hr', 'L')
-      ld.set_color_space('lr', 'L')
-    # enter model executor environment
-    with model.get_executor(root) as t:
+  # enter model executor environment
+  with model.get_executor(root) as t:
+    for data in test_datas:
+      run_benchmark = False if data.test.hr is None else True
+      if run_benchmark:
+        ld = Loader(data.test.hr, data.test.lr, opt.scale,
+                    threads=opt.threads)
+      else:
+        ld = Loader(data.test.hr, data.test.lr, threads=opt.threads)
+      if opt.channel == 1:
+        # convert data color space to grayscale
+        ld.set_color_space('hr', 'L')
+        ld.set_color_space('lr', 'L')
       config = t.query_config(opt)
-      config.inference_results_hooks = [save_inference_images(root / data.name,
-                                                              opt.output_index,
-                                                              opt.auto_rename)]
+      config.inference_results_hooks = [save_inference_images(root / data.name, opt.output_index, opt.auto_rename)]
       if run_benchmark:
         t.benchmark(ld, config)
       else:
         t.infer(ld, config)
-      if opt.export:
-        t.export(opt.export)
+    if opt.export:
+      t.export(opt.export)
 
 
 if __name__ == '__main__':
