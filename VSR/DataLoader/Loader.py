@@ -315,6 +315,8 @@ class Loader(object):
     assert len(shape) is 5
     if shape[-2] != -1 and self.crop is None:
       self.cropper(RandomCrop(self.aux['scale']))
+    if isinstance(memory_limit, str):
+      memory_limit = Utility.str_to_bytes(memory_limit)
     self.prefetch(shuffle, memory_limit)
     futures.as_completed(self.fs)
     for fs in self.fs:
