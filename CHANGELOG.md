@@ -3,7 +3,8 @@
 ## 1.0.4
 ## 2020-04
 - Fix an error that dataloader may mess up the file order
-- Add a dataset checker to help verify the DDF 
+- Add a dataset checker to help verify the DDF
+- Fix a bug of memory_limit [issue](https://github.com/LoSealL/VideoSuperResolution/issues/102)
 
 ## 1.0.3
 ## 2020-02

@@ -393,15 +393,18 @@ class Loader(object):
     for i in self.aux['fetchList'][st + n * index:st + n * (index + 1)]:
       img = self.hr['data'][i]
       self.cache['hr'].append(img.read_frame(img.frames))
+      img.reopen()
       self.cache['names'].append(img.name)
       if self.hr['data'] is self.lr['data']:
         self.cache['lr'].append(self.cache['hr'][-1])
       else:
         img = self.lr['data'][i]
         self.cache['lr'].append(img.read_frame(img.frames))
+        img.reopen()
       if self.extra and isinstance(self.extra['data'], Container):
         img = self.extra['data'][i]
         self.cache['extra'].append(img.read_frame(img.frames))
+        img.reopen()
     loaded <<= self.threads
     loaded |= (1 << index)
     self.loaded = loaded << self.threads
