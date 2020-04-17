@@ -3,3 +3,11 @@ msrn:
   n_blocks: 8
   scale: 4
   channel: 3
+
+batch: 4
+patch_size: 64
+lr: 1.0e-2
+lr_decay:
+    method: multistep
+    decay_step: [10000, 15000]
+    decay_rate: 0.1

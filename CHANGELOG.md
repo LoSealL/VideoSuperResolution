@@ -1,4 +1,9 @@
-1.0.3
+1.0.4
+
+## 1.0.4
+## 2020-04
+- Fix an error that dataloader may mess up the file order
+- Add a dataset checker to help verify the DDF 
 
 ## 1.0.3
 ## 2020-02

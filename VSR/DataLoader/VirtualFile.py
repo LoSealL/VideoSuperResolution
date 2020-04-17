@@ -289,7 +289,7 @@ class RawFile(File):
       ret = []
       for _ in range(frames):
         data = b''.join(
-          (self.read(3)[::-1] for _ in range(self.pitch // 3)))
+            (self.read(3)[::-1] for _ in range(self.pitch // 3)))
         ret.append(Image.frombytes('RGB', self._size, data))
       return ret
     elif self.mode in ('BGRA',):
@@ -313,7 +313,7 @@ class RawFile(File):
       super(RawFile, self).seek(offset * self.pitch, where)
     if where == SEEK_CUR:
       super(RawFile, self).seek(
-        offset * self.pitch - self.tell() % self.pitch, where)
+          offset * self.pitch - self.tell() % self.pitch, where)
     if where == SEEK_END:
       super(RawFile, self).seek(offset * self.pitch, where)
 
@@ -423,7 +423,7 @@ class ImageFile(File):
       assert len(padding) is 2
     if self.read_file:
       raise RuntimeError(
-        "pad must be called when reading cursor is at the beginning.")
+          "pad must be called when reading cursor is at the beginning.")
     for _ in range(padding[0]):
       self.file.insert(0, self.file[0])
     for _ in range(padding[1]):

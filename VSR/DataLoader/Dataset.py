@@ -172,6 +172,7 @@ class Container(object):
         fs.append(pool.submit(_parse_image_node, j))
     futures.as_completed(fs)
     pool.shutdown()
+    self.nodes = sorted(self.nodes, key=lambda x: x.path)
 
   def __getitem__(self, item):
     return self.nodes[item]
