@@ -365,46 +365,54 @@ class Loader(object):
     length = len(self.hr['data'])
     # load all clips
     interval = int(np.ceil(length / self.threads))
-    frames = []
+    frames_hr = []
+    frames_lr = []
+    frames_extra = []
     names = []
     for img in self.hr['data'][index * interval:(index + 1) * interval]:
-      frames.append(img.read_frame(img.frames))
+      frames_hr.append(img.read_frame(img.frames))
       names.append(img.name)
-    self.data['hr'] += frames
-    self.data['names'] += names
     if self.hr['data'] is self.lr['data']:
-      self.data['lr'] += frames
+      frames_lr = frames_hr
     else:
-      frames = []
       for img in self.lr['data'][index * interval:(index + 1) * interval]:
-        frames.append(img.read_frame(img.frames))
-      self.data['lr'] += frames
+        frames_lr.append(img.read_frame(img.frames))
     if self.extra and isinstance(self.extra['data'], Container):
-      frames = []
       for img in self.extra['data'][index * interval:(index + 1) * interval]:
-        frames.append(img.read_frame(img.frames))
-      self.data['extra'] += frames
+        frames_extra.append(img.read_frame(img.frames))
+    self.data['hr'] += frames_hr
+    self.data['lr'] += frames_lr
+    self.data['names'] += names
+    self.data['extra'] += frames_extra
     self.loaded |= (1 << index)
 
   def _prefecth_chunk(self, chunk_size, index):
     loaded = self.loaded >> (self.threads * 2)
     n = chunk_size
     st = n * self.threads * loaded  # start chunk
+    frames_hr = []
+    frames_lr = []
+    frames_extra = []
+    names = []
     for i in self.aux['fetchList'][st + n * index:st + n * (index + 1)]:
       img = self.hr['data'][i]
-      self.cache['hr'].append(img.read_frame(img.frames))
+      frames_hr.append(img.read_frame(img.frames))
       img.reopen()
-      self.cache['names'].append(img.name)
+      names.append(img.name)
       if self.hr['data'] is self.lr['data']:
-        self.cache['lr'].append(self.cache['hr'][-1])
+        frames_lr.append(frames_hr[-1])
       else:
         img = self.lr['data'][i]
-        self.cache['lr'].append(img.read_frame(img.frames))
+        frames_lr.append(img.read_frame(img.frames))
         img.reopen()
       if self.extra and isinstance(self.extra['data'], Container):
         img = self.extra['data'][i]
-        self.cache['extra'].append(img.read_frame(img.frames))
+        frames_extra.append(img.read_frame(img.frames))
         img.reopen()
+    self.cache['hr'] += frames_hr
+    self.cache['lr'] += frames_lr
+    self.cache['extra'] += frames_extra
+    self.cache['names'] += names
     loaded <<= self.threads
     loaded |= (1 << index)
     self.loaded = loaded << self.threads
