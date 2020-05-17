@@ -77,7 +77,7 @@ class EpochIterator:
       idx_ = [(i, np.array([j + x for x in range(self.depth)])) for j in
               range(-(self.depth // 2), frame_nums[i] - (self.depth // 2))]
       d2_ = self.depth // 2
-      self.index += idx_ if temporal_padding else idx_[d2_ : -d2_]
+      self.index += idx_ if temporal_padding or d2_ == 0 else idx_[d2_ : -d2_]
     self.steps = steps if steps >= 0 else len(self.index)
     if shuffle:
       np.random.shuffle(self.index)
