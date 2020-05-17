@@ -23,7 +23,7 @@ LOG = logging.getLogger('VSR.Loader')
 
 def _augment(image, op):
   """Image augmentation"""
-  assert image.ndim == 4
+  assert image.ndim == 4, f'Dim of image must be 4, but is {image.ndim}'
   if op[0]:
     if DATA_FORMAT == 'channels_last':
       image = np.rot90(image, 1, axes=(1, 2))
@@ -67,21 +67,20 @@ class EpochIterator:
   def __init__(self, loader, shape, steps, shuffle=None):
     self.loader = loader
     self.shape = shape
-    if steps <= 0:
-      t = len(self.loader.data['hr'])
-      b = self.shape[0]
-      self.steps = t // b + int(np.ceil((t % b) / b))
-    else:
-      self.steps = steps
+    self.depth = shape[1]
     self.count = 0
+    t = len(self.loader.data['hr'])
+    frame_nums = [len(i) for i in self.loader.data['hr']]
+    temporal_padding = not shuffle
+    self.index = []
+    for i in range(t):
+      idx_ = [(i, np.array([j + x for x in range(self.depth)])) for j in
+              range(-(self.depth // 2), frame_nums[i] - (self.depth // 2))]
+      d2_ = self.depth // 2
+      self.index += idx_ if temporal_padding else idx_[d2_ : -d2_]
+    self.steps = steps if steps >= 0 else len(self.index)
     if shuffle:
-      mmax = len(self.loader.data['hr'])
-      if mmax > 0:
-        self.index = np.random.randint(mmax, size=self.steps * shape[0])
-      else:
-        self.steps = 0
-    else:
-      self.index = np.arange(self.steps * shape[0])
+      np.random.shuffle(self.index)
 
   def __len__(self):
     return self.steps
@@ -98,17 +97,20 @@ class EpochIterator:
     crop = self.loader.crop
     cb_hr = (self.loader.hr['transform1'], self.loader.hr['transform2'])
     cb_lr = (self.loader.lr['transform1'], self.loader.lr['transform2'])
-    for i in self.index[slc]:
+    for i, d in self.index[slc]:
       if i >= len(self.loader.data['hr']):
         continue
       hr = self.loader.data['hr'][i]
       lr = self.loader.data['lr'][i]
+      # crop a video clip, clamp the depth index
+      d[d < 0] = 0
+      d[d >= len(hr)] = len(hr) - 1
       name = self.loader.data['names'][i]
-      hr2 = hr
+      hr2 = np.asarray(hr, dtype=object)[d]
       for fn in cb_hr[0]:
         hr2 = [fn(img) for img in hr2]
       hr2 = [img.convert(self.loader.hr['color']) for img in hr2]
-      lr2 = lr
+      lr2 = np.asarray(lr, dtype=object)[d]
       for fn in cb_lr[0]:
         lr2 = [fn(img) for img in lr2]
       lr2 = [img.convert(self.loader.lr['color']) for img in lr2]
@@ -181,7 +183,8 @@ class Loader(object):
       lr_data = lr_data.compile()
       assert isinstance(lr_data, Container)
     if lr_data is not None and hr_data is not None:
-      assert len(hr_data) == len(lr_data)
+      assert len(hr_data) == len(lr_data), \
+        f"Length of HR and LR data mis-match: {len(lr_data)} != {len(lr_data)}"
     else:
       hr_data = hr_data or lr_data
       lr_data = lr_data or hr_data
@@ -312,7 +315,7 @@ class Loader(object):
     shape = list(batch_shape)
     if len(shape) == 4:
       shape.insert(1, 1)
-    assert len(shape) is 5
+    assert len(shape) is 5, f"Shape is not 5D, which is {len(shape)}"
     if shape[-2] != -1 and self.crop is None:
       self.cropper(RandomCrop(self.aux['scale']))
     if isinstance(memory_limit, str):
@@ -322,7 +325,7 @@ class Loader(object):
     for fs in self.fs:
       if fs.exception():
         raise fs.exception()
-      assert fs.done()
+      assert fs.done(), "Thread pool not finished!"
     self.fs.clear()
     if not (self.loaded & int(2 ** self.threads - 1)):
       self.data, self.cache = self.cache, self.data

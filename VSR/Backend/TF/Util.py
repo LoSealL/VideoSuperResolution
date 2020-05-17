@@ -279,7 +279,8 @@ def summary_tensor_image(x, name, reshape=None):
   shape = tf.shape(x)
   channel = x.get_shape().as_list()[-1]
   # tensor has to be 4-D
-  assert len(x.get_shape()) == 4
+  assert len(x.get_shape()) == 4, \
+    f'Dimension of x must be 4, but is {len(x.get_shape())}'
 
   def _placement(t):
     if t <= 16:

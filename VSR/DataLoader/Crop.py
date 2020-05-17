@@ -12,9 +12,11 @@ class Cropper(object):
     self.scale = scale
 
   def __call__(self, img_pair: tuple, shape: list):
-    assert len(img_pair) >= 2
+    assert len(img_pair) >= 2, \
+      f"Pair must contain more than 2 elements, which is {img_pair}"
     for img in img_pair:
-      assert img.ndim == len(shape)
+      assert img.ndim == len(shape), \
+        f"Shape mis-match: {img.ndim} != {len(shape)}"
 
     return self.call(img_pair, shape)
 

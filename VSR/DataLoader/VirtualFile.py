@@ -420,7 +420,7 @@ class ImageFile(File):
     if not isinstance(padding, (list, tuple)):
       padding = [padding, padding]
     else:
-      assert len(padding) is 2
+      assert len(padding) is 2, f"Invalid padding, {padding}"
     if self.read_file:
       raise RuntimeError(
           "pad must be called when reading cursor is at the beginning.")
@@ -436,7 +436,7 @@ class ImageFile(File):
   @property
   def flow(self):
     fd = Path(self._flow)
-    assert fd.exists()
+    assert fd.exists(), f"{str(fd)} doesn't exist."
     if fd.suffix == '.flo':
       flow = open_flo(str(fd))
     elif fd.suffix == '.png':
