@@ -30,7 +30,7 @@ g2.add_argument("--threads", type=int, default=8, help="specify loading threads 
 g3 = parser.add_argument_group("advanced options")
 g3.add_argument("--output_index", default='-1', help="specify access index of output array (slicable)")
 g3.add_argument("--export", help="export ONNX (torch backend) or protobuf (tf backend) (needs support from model)")
-g3.add_argument("--auto_rename", action="store_true")
+g3.add_argument("--overwrite", action="store_true", help="overwrite the existing predicted output files")
 g3.add_argument("-c", "--comment", default=None, help="extend a comment string after saving folder")
 
 
@@ -55,7 +55,7 @@ def overwrite_from_env(flags):
 
 def main():
   flags, args = parser.parse_known_args()
-  opt = Config()
+  opt = Config(depth=-1)
   for pair in flags._get_kwargs():
     opt.setdefault(*pair)
   overwrite_from_env(opt)
@@ -105,7 +105,9 @@ def main():
         ld.set_color_space('hr', 'L')
         ld.set_color_space('lr', 'L')
       config = t.query_config(opt)
-      config.inference_results_hooks = [save_inference_images(root / data.name, opt.output_index, opt.auto_rename)]
+      config.inference_results_hooks = [save_inference_images(root / data.name, opt.output_index, not opt.overwrite)]
+      config.batch_shape = [1, opt.depth, -1, -1, -1]
+      config.traced_val = True
       if run_benchmark:
         t.benchmark(ld, config)
       else:

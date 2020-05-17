@@ -103,7 +103,7 @@ class GaussianWhiteNoise(_Transformer2):
 
 class FixedVideoLengthBatch(_Transformer2):
   def call(self, img):
-    assert img.ndim == 5
+    assert img.ndim == 5, f"img is not 5D, which is {img.ndim}"
     depth = int(self.value)
     shape = img.shape
     if shape[1] <= depth:

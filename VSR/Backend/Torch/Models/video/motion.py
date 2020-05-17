@@ -41,7 +41,8 @@ class STN(nn.Module):
       _u = u / w * 2
       _v = v / h * 2
     flow = torch.stack([_u, _v], dim=-1)
-    assert flow.shape == mesh.shape
+    assert flow.shape == mesh.shape, \
+      f"Shape mis-match: {flow.shape} != {mesh.shape}"
     mesh = mesh + flow
     return F.grid_sample(inputs, mesh,
                          mode=self.mode, padding_mode=self.padding_mode)
@@ -81,7 +82,8 @@ class STTN(nn.Module):
       _v = v / h * 2
     st_flow = torch.stack([_u, _v, _d], dim=-1)
     st_flow = st_flow.unsqueeze(1).repeat_interleave(t, dim=1)
-    assert st_flow.shape == mesh.shape
+    assert st_flow.shape == mesh.shape, \
+      f"Shape mis-match: {st_flow.shape} != {mesh.shape}"
     mesh = mesh + st_flow
     inputs = transpose(inputs, self.t)
     warp = F.grid_sample(inputs, mesh, mode=self.mode,

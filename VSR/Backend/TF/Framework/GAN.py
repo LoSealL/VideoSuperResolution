@@ -60,7 +60,8 @@ def fid_score(real_image, gen_image, num_batches=None):
         order to efficiently run them through the classifier network.
   """
   batches = real_image.shape[0]
-  assert gen_image.shape[0] == batches
+  assert gen_image.shape[0] == batches, \
+    f'Batch mis-match: {batches} != {gen_image.shape[0]}'
   assert isinstance(real_image, np.ndarray)
   assert isinstance(gen_image, np.ndarray)
   if not num_batches:

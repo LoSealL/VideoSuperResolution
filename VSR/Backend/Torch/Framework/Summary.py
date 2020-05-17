@@ -34,7 +34,8 @@ class Summarizer:
     if image.ndimension() == 4:
       images = image.split(1, dim=0)[:max]
     else:
-      assert image.ndimension() == 3
+      assert image.ndimension() == 3, \
+        f'Dim of image is not 3, which is {image.ndimension()}'
       images = [image]
     if collection is not None:
       name = f'{collection}/{name}'
@@ -42,7 +43,8 @@ class Summarizer:
       self.writer.add_image(f'{name}_{i}', img.squeeze(0), step)
 
   def tensor(self, name, tensor, max=3, step=None, reshape=None):
-    assert tensor.ndimension() == 4, "Support 4-D tensor only!"
+    assert tensor.ndimension() == 4, \
+      f"Support 4-D tensor only! {tensor.ndimension()}"
     shape = tensor.shape
 
     def _placement(t):

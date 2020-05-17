@@ -21,7 +21,7 @@ def pad_if_divide(x: torch.Tensor, value, mode='constant'):
   """
 
   shape = x.shape
-  assert 3 <= x.dim() <= 4
+  assert 3 <= x.dim() <= 4, f"Dim of x is not 3 or 4, which is {x.dim()}"
   h = shape[-2]
   w = shape[-1]
   dh = h + (value - h % value) % value - h
@@ -165,11 +165,11 @@ def imfilter(image: torch.Tensor, kernel: torch.Tensor):
   with torch.no_grad():
     if image.dim() == 3:
       image = image.unsqueeze(0)
-    assert image.dim() == 4
+    assert image.dim() == 4, f"Dim of image must be 4, but is {image.dim()}"
     if kernel.dim() == 2:
       kernel = kernel.unsqueeze(0)
       kernel = torch.cat([kernel] * image.shape[0])
-    assert kernel.dim() == 3
+    assert kernel.dim() == 3, f"Dim of kernel must be 3, but is {kernel.dim()}"
 
     ret = []
     for i, k in zip(image.split(1), kernel.split(1)):

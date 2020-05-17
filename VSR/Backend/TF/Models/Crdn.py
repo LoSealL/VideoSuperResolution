@@ -66,7 +66,7 @@ class CRDN(SuperResolution):
         x = self.upsample(x, x_list.pop())
         x = cascade_rdn(self, x, depth=3, use_ca=True, filters=f)
 
-      assert len(x_list) == 1
+      assert len(x_list) == 1, f'length of x_list is not 1: {len(x_list)}'
       assert f == filters
       x += x_list.pop()
       sr = self.conv2d(x, filters, 3)

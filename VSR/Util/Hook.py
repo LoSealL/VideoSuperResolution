@@ -29,12 +29,12 @@ def _str_to_slice(index: str):
 
 
 def _save_model_predicted_images(output, names, save_dir, index, auto_rename):
-  assert len(names) == 1
+  assert len(names) == 1, f"Name list exceeds 1, which is {names}"
   name = names[0]
   for img in output[_str_to_slice(index)]:
     shape = img.shape
     path = Path(save_dir)
-    if shape[0] > 1:
+    if shape[0] > 1 or auto_rename:
       path /= name
     path.mkdir(exist_ok=True, parents=True)
     for i, n in enumerate(img):
