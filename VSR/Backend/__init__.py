@@ -20,10 +20,9 @@ LOG = logging.getLogger('VSR')
 HOME = os.environ.get('VSR_HOME')
 if not HOME:
   HOME = Path('~').expanduser() / '.vsr'
-HOME.mkdir(exist_ok=True, parents=True)
 CONFIG = {
-  'backend': 'pytorch',
-  'verbose': 'info',
+  'backend': os.environ.get('VSR_BACKEND', 'pytorch'),
+  'verbose': os.environ.get('VSR_VERBOSE', 'info'),
 }
 if Path(HOME / 'config.yml').exists():
   with open(HOME / 'config.yml', encoding='utf8') as fd:
