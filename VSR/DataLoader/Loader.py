@@ -74,9 +74,10 @@ class EpochIterator:
     temporal_padding = not shuffle
     self.index = []
     for i in range(t):
-      idx_ = [(i, np.array([j + x for x in range(self.depth)])) for j in
-              range(-(self.depth // 2), frame_nums[i] - (self.depth // 2))]
-      d2_ = self.depth // 2
+      depth = self.depth if self.depth >= 0 else len(self.loader.data['hr'][i])
+      idx_ = [(i, np.array([j + x for x in range(depth)])) for j in
+              range(-(depth // 2), frame_nums[i] - (depth // 2))]
+      d2_ = depth // 2
       self.index += idx_ if temporal_padding or d2_ == 0 else idx_[d2_ : -d2_]
     self.steps = steps if steps >= 0 else len(self.index) // shape[0]
     while len(self.index) < self.steps * shape[0] and self.index:

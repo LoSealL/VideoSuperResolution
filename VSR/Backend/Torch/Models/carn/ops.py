@@ -105,7 +105,7 @@ class UpsampleBlock(nn.Module):
 
     self.multi_scale = multi_scale
 
-  def forward(self, x, scale):
+  def forward(self, x, scale=None):
     if self.multi_scale:
       if scale == 2:
         return self.up2(x)

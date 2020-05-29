@@ -54,3 +54,8 @@ class DBPN(SuperResolution):
     if labels is not None:
       metrics['psnr'] = Metrics.psnr(sr.numpy(), labels[0].cpu().numpy())
     return [sr.numpy()], metrics
+
+  def export(self, export_dir):
+    device = list(self.body.parameters())[0].device
+    inputs = torch.randn(1, self.channel, 144, 128, device=device)
+    torch.onnx.export(self.body, (inputs,), export_dir / 'dbpn.onnx')

@@ -9,20 +9,23 @@ from PIL import Image
 from ..Backend import DATA_FORMAT
 
 
-def array_to_img(x: np.ndarray, mode='RGB', min_val=0, max_val=255):
+def array_to_img(x: np.ndarray, mode='RGB', data_format=None, min_val=0,
+                 max_val=255):
   """Convert an ndarray to PIL Image."""
 
   x = np.squeeze(x).astype('float32')
   x = (x - min_val) / (max_val - min_val)
   x = x.clip(0, 1) * 255
+  if data_format not in ('channels_first', 'channels_last'):
+    data_format = DATA_FORMAT
   if np.ndim(x) == 2:
     return Image.fromarray(x.astype('uint8'), mode='L').convert(mode)
   elif np.ndim(x) == 3:
-    if DATA_FORMAT == 'channels_first':
+    if data_format == 'channels_first':
       x = x.transpose([1, 2, 0])
     return Image.fromarray(x.astype('uint8'), mode=mode)
   elif np.ndim(x) == 4:
-    if DATA_FORMAT == 'channels_first':
+    if data_format == 'channels_first':
       x = x.transpose([0, 2, 3, 1])
     ret = [Image.fromarray(np.round(i).astype('uint8'), mode=mode) for i in x]
     return ret.pop() if len(ret) is 1 else ret

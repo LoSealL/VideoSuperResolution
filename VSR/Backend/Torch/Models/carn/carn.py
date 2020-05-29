@@ -60,7 +60,7 @@ class Net(nn.Module):
                                       group=group)
     self.exit = nn.Conv2d(64, 3, 3, 1, 1)
 
-  def forward(self, x, scale):
+  def forward(self, x, scale=None):
     x = self.sub_mean(x)
     x = self.entry(x)
     c0 = o0 = x

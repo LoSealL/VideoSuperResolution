@@ -97,6 +97,7 @@ WEIGHTS = {
   'Tspmc.zip': 'https://github.com/LoSealL/Model/releases/download/spmc/spmc.zip',
   'Tvespcn.zip': 'https://github.com/LoSealL/Model/releases/download/vespcn/Tvespcn.zip',
   'Tsrmd.zip': '1ORKH05-aLSbQaWB4qQulIm2INoRufuD_',
+  'Tdbpn.zip': '1PbhtuMz1zF3-d16dthurJ0xIQ9uyMvkz'
 }
 
 
