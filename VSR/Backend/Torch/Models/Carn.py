@@ -49,6 +49,6 @@ class CARN(SuperResolution):
     # Sounds stupid to set a 48x48 inputs.
 
     device = list(self.carn.parameters())[0].device
-    inputs = torch.randn(1, self.channel, 48, 48, device=device)
+    inputs = torch.randn(1, self.channel, 144, 128, device=device)
     scale = torch.tensor(self.scale, device=device)
     torch.onnx.export(self.carn, (inputs, scale), export_dir / 'carn.onnx')

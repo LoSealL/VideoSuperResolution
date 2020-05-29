@@ -27,7 +27,7 @@ __all__ = ["parse_mat", "group_mat", "divide", "combine"]
 
 def main():
   parser = argparse.ArgumentParser(
-    description=r"""NTIRE Data helpers for NTIRE 2019
+      description=r"""NTIRE Data helpers for NTIRE 2019
     Containing tasks for:
     - [Real Image Super-Resolution](https://competitions.codalab.org/competitions/21439)
     - [Real Image Denoising (sRGB)](https://competitions.codalab.org/competitions/21266)
@@ -149,7 +149,7 @@ def divide(flags):
   def _divide(img: Image, stride: int, size: int) -> list:
     w = img.width
     h = img.height
-    img = img_to_array(img)
+    img = img_to_array(img, data_format='channels_last')
     patches = []
     img = np.pad(img, [[0, size - h % stride or stride],
                        [0, size - w % stride or stride], [0, 0]],
@@ -167,7 +167,8 @@ def divide(flags):
   for f in tqdm.tqdm(files, ascii=True):
     pf = _divide(Image.open(f), flags.stride, flags.patch)
     for i, p in enumerate(pf):
-      array_to_img(p, 'RGB').save(f"{save_dir}/{f.stem}_{i:04d}.png")
+      array_to_img(p, 'RGB', data_format='channels_last').save(
+          f"{save_dir}/{f.stem}_{i:04d}.png")
 
 
 def combine(flags):
@@ -191,13 +192,14 @@ def combine(flags):
         p = sub[k]
         k += 1
         try:
-          blank[i:i + p.height, j:j + p.width] += img_to_array(p)
+          blank[i:i + p.height, j:j + p.width] += img_to_array(
+              p, 'channels_last')
         except ValueError:
-          blank[i:i + p.height, j:j + p.width] += img_to_array(p)[:h - i,
-                                                  :w - j]
+          blank[i:i + p.height, j:j + p.width] += img_to_array(
+              p, 'channels_last')[:h - i, :w - j]
         count[i:i + p.height, j:j + p.width] += 1
     blank /= count
-    return array_to_img(blank, 'RGB')
+    return array_to_img(blank, 'RGB', 'channels_last')
 
   save_dir = Path(flags.save_dir)
   save_dir.mkdir(exist_ok=True, parents=True)
@@ -205,7 +207,7 @@ def combine(flags):
   print(" [!] Combining...\n")
   results = Path(flags.input_dir)
   for f in tqdm.tqdm(files, ascii=True):
-    sub = list(results.glob("{}_????.png".format(f.stem)))
+    sub = list(results.glob("{}_*.png".format(f.stem)))
     sub.sort(key=lambda x: int(x.stem[-4:]))
     sub = [Image.open(s) for s in sub]
     img = _combine(Image.open(f), sub, flags.stride)

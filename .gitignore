@@ -3,6 +3,7 @@ seafile-ignore.txt
 .idea/
 .vscode/
 .pytest_cache/
+.vsr/
 __pycache__/
 
 # Install info.

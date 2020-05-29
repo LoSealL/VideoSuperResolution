@@ -88,3 +88,8 @@ class ESRGAN(SuperResolution):
         writer.image('lr', inputs[0], step=step)
         writer.image('hr', labels[0], step=step)
     return [sr.numpy()], metrics
+
+  def export(self, export_dir):
+    device = list(self.rrdb.parameters())[0].device
+    inputs = torch.randn(1, self.channel, 144, 128, device=device)
+    torch.onnx.export(self.rrdb, (inputs,), export_dir / 'rrdb.onnx')
