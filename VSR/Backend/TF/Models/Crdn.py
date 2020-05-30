@@ -7,13 +7,7 @@ Created Date: Mar. 20th 2019
 Cascaded Residual Dense Network (NTIRE 2019)
 """
 
-#  Copyright (c): Wenyi Tang 2017-2019.
-#  Author: Wenyi Tang
-#  Email: wenyi.tang@intel.com
-#  Update Date: 2019/4/3 下午8:28
-
-import tensorflow as tf
-
+from .. import tf
 from ..Arch.Residual import cascade_rdn
 from ..Framework.SuperResolution import SuperResolution
 from ..Util import clip_image
@@ -85,9 +79,9 @@ class CRDN(SuperResolution):
 
       self.train_metric['l1'] = l1
       self.metrics['psnr'] = tf.reduce_mean(
-        tf.image.psnr(self.label[-1], self.outputs[-1], max_val=255))
+          tf.image.psnr(self.label[-1], self.outputs[-1], max_val=255))
       self.metrics['ssim'] = tf.reduce_mean(
-        tf.image.ssim(self.label[-1], self.outputs[-1], max_val=255))
+          tf.image.ssim(self.label[-1], self.outputs[-1], max_val=255))
 
   def build_summary(self):
     super(CRDN, self).build_summary()

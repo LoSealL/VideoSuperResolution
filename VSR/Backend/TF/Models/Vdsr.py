@@ -9,8 +9,7 @@ Accurate Image Super-Resolution Using Very Deep Convolutional Networks
 See https://arxiv.org/abs/1511.04587
 """
 
-import tensorflow as tf
-
+from .. import tf
 from ..Framework.SuperResolution import SuperResolution
 from ..Util import bicubic_rescale
 

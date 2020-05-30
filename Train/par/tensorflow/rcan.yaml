@@ -1,7 +1,11 @@
 rcan:
-  channel_downscaling: 16
-  n_rcab: 4
-  n_rg: 3
-  filters: 64
-  scale: 4
-  channel: 3
+    channel_downscaling: 16
+    n_rcab: 4
+    n_rg: 3
+    filters: 64
+    scale: 4
+    channel: 3
+
+batch: 16
+patch_size: 64
+lr: 1.0e-4

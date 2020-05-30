@@ -187,7 +187,7 @@ class Loader(object):
       assert isinstance(lr_data, Container)
     if lr_data is not None and hr_data is not None:
       assert len(hr_data) == len(lr_data), \
-        f"Length of HR and LR data mis-match: {len(lr_data)} != {len(lr_data)}"
+        f"Length of HR and LR data mis-match: {len(hr_data)} != {len(lr_data)}"
     else:
       hr_data = hr_data or lr_data
       lr_data = lr_data or hr_data

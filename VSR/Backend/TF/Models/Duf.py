@@ -9,9 +9,9 @@ See http://openaccess.thecvf.com/content_cvpr_2018/papers/Jo_Deep_Video_Super-Re
 """
 
 import numpy as np
-import tensorflow as tf
 
 from VSR.Util import to_list
+from .. import tf
 from ..Framework.SuperResolution import SuperResolution
 from ..Util import pixel_shift
 

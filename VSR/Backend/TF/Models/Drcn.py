@@ -10,8 +10,8 @@ See https://arxiv.org/abs/1511.04491
 """
 
 import numpy as np
-import tensorflow as tf
 
+from .. import tf
 from ..Framework.SuperResolution import SuperResolution
 from ..Util import bicubic_rescale
 

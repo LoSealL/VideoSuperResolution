@@ -1,14 +1,14 @@
 # srcnn 9-5-5
 ---
 srcnn:
-  layers: 3
-  kernel:
-    - 9
-    - 5
-    - 5
-  custom_upsample: false
-  scale: 4
-  channel: 1
+    layers: 3
+    kernel:
+        - 9
+        - 5
+        - 5
+    custom_upsample: false
+    scale: 4
+    channel: 1
 
 batch: 4
 patch_size: 64

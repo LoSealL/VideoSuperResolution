@@ -1,5 +1,5 @@
 """
-Copyright: Wenyi Tang 2017-2018
+Copyright: Wenyi Tang 2017-2020
 Author: Wenyi Tang
 Email: wenyi.tang@intel.com
 Created Date: May 8th 2018
@@ -10,10 +10,9 @@ utility functions
 
 import logging
 
-import tensorflow as tf
-
 from VSR.Util import to_list
 from VSR.Util.Math import weights_downsample, weights_upsample
+from . import tf
 
 LOG = logging.getLogger('VSR.TF.Util')
 
@@ -91,8 +90,8 @@ def bicubic_rescale(img, scale):
   with tf.name_scope('Bicubic'):
     shape = tf.shape(img)
     scale = to_list(scale, 2)
-    shape_enlarge = tf.to_float(shape) * [1, *scale, 1]
-    shape_enlarge = tf.to_int32(shape_enlarge)
+    shape_enlarge = tf.cast(shape, dtype=tf.float32) * [1, *scale, 1]
+    shape_enlarge = tf.cast(shape_enlarge, dtype=tf.int32)
     return tf.image.resize_bicubic(img, shape_enlarge[1:3], False)
 
 

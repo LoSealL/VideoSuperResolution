@@ -1,27 +1,27 @@
 ---
 drsr:
-  name: 'drsr'
-  n_cb: 4
-  n_crb: 4
-  weights: [1, 0.5, 1.0e-6, 1.0e-3]
-  finetune: 4000
-  noise_config:
-    max: 75.0
-    scale: 1.0
-    offset: 0.0
-    offset2: 0.06
-    penalty: 0.7
-    layers: 8
-    type: "gaussian"
-    crf: "../Data/crf.npz"
-  channel: 3
-  scale: 4
-  tfrecords: false
+    name: 'drsr'
+    n_cb: 4
+    n_crb: 4
+    weights: [1, 0.5, 1.0e-6, 1.0e-3]
+    finetune: 4000
+    noise_config:
+        max: 75.0
+        scale: 1.0
+        offset: 0.0
+        offset2: 0.06
+        penalty: 0.7
+        layers: 8
+        type: "gaussian"
+        crf: "../Data/crf.npz"
+    channel: 3
+    scale: 4
+    tfrecords: false
 
 patch_size: 64
 batch: 16
+lr: 1.0e-4
 lr_decay:
-  method: multistep
-  decay_step: []
-  decay_rate: 1.0
-
+    method: multistep
+    decay_step: []
+    decay_rate: 1.0

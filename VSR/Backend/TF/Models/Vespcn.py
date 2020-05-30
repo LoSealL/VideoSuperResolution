@@ -8,11 +8,10 @@ Real-Time Video Super-Resolution with Spatio-Temporal Networks and Motion Compen
 See https://arxiv.org/abs/1611.05250
 """
 
-import tensorflow as tf
-
+from .. import tf
 from ..Framework.Motion import viz_flow, warp
 from ..Framework.SuperResolution import SuperResolution
-from ..Util import pixel_shift, pad_if_divide
+from ..Util import pad_if_divide, pixel_shift
 
 
 class VESPCN(SuperResolution):

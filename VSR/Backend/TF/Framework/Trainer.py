@@ -1,5 +1,5 @@
 """
-Copyright: Wenyi Tang 2017-2018
+Copyright: Wenyi Tang 2017-2020
 Author: Wenyi Tang
 Email: wenyi.tang@intel.com
 Created Date: Oct 15th 2018
@@ -13,10 +13,10 @@ import time
 from pathlib import Path
 
 import numpy as np
-import tensorflow as tf
 import tqdm
 
 from VSR.Util import Config, to_list
+from .. import tf
 
 LOG = logging.getLogger('VSR.Framework')
 

@@ -3,13 +3,13 @@
 #  Email: wenyi.tang@intel.com
 #  Update Date: 2019 - 2 - 28
 
-from functools import partial
 import logging
+from functools import partial
 
 import numpy as np
-import tensorflow as tf
 
 from VSR.Util import Config, to_list
+from .. import tf
 from ..Arch.Residual import cascade_rdn
 from ..Framework import Noise
 from ..Framework.SuperResolution import SuperResolution

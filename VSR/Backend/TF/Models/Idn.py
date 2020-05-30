@@ -9,8 +9,7 @@ Architecture of Information Distillation Network (CVPR 2018)
 See https://arxiv.org/abs/1803.09454
 """
 
-import tensorflow as tf
-
+from .. import tf
 from ..Framework.SuperResolution import SuperResolution
 
 

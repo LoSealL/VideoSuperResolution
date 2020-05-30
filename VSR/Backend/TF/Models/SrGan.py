@@ -8,8 +8,8 @@ Updated Date: May 25th 2018
 SRGAN implementation (CVPR 2017)
 See https://arxiv.org/abs/1609.04802
 """
-import tensorflow as tf
 
+from .. import tf
 from ..Arch import Discriminator
 from ..Framework.GAN import loss_bce_gan
 from ..Framework.SuperResolution import SuperResolution

@@ -7,8 +7,8 @@ Created Date: Dec 4th 2018
 Architectures of common discriminator
 """
 import numpy as np
-import tensorflow as tf
 
+from .. import tf
 from ..Framework.LayersHelper import Layers
 
 

@@ -1,5 +1,5 @@
 """
-Copyright: Wenyi Tang 2017-2018
+Copyright: Wenyi Tang 2017-2020
 Author: Wenyi Tang
 Email: wenyi.tang@intel.com
 Created Date: May 9th 2018
@@ -10,13 +10,13 @@ Framework for network model (tensorflow)
 import logging
 from pathlib import Path
 
-import tensorflow as tf
-
 from VSR.Util import to_list
 from .LayersHelper import Layers
 from .Trainer import VSR
+from .. import tf
 
 LOG = logging.getLogger('VSR.Framework.TF')
+
 
 class SuperResolution(Layers):
   """A utility class helps for building SR architectures easily
@@ -130,7 +130,7 @@ class SuperResolution(Layers):
     self.inputs.append(
         tf.placeholder(tf.uint8, shape=[None, None, None, None],
                        name='input/lr'))
-    inputs_f = tf.to_float(self.inputs[0])
+    inputs_f = tf.cast(self.inputs[0], dtype=tf.float32)
     # separate additional channels (e.g. alpha channel)
     self.inputs_preproc.append(inputs_f[..., self.channel:])
     self.inputs_preproc.append(inputs_f[..., :self.channel])

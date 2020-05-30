@@ -1,5 +1,5 @@
 """
-Copyright: Wenyi Tang 2017-2019
+Copyright: Wenyi Tang 2017-2020
 Author: Wenyi Tang
 Email: wenyi.tang@intel.com
 Created Date: Dec 25th 2018
@@ -9,7 +9,7 @@ Ref:
 [1] https://arxiv.org/abs/1807.04686
 """
 
-import tensorflow as tf
+from .. import tf
 
 
 def tf_camera_response_function(inputs, crf_table, max_val=1):

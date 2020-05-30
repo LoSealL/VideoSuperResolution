@@ -9,9 +9,9 @@ Deep Laplacian Pyramid Networks
 Ref http://vllab.ucmerced.edu/wlai24/LapSRN
 """
 import numpy as np
-import tensorflow as tf
 
 from VSR.Util import to_list
+from .. import tf
 from ..Framework.SuperResolution import SuperResolution
 from ..Util import bicubic_rescale
 

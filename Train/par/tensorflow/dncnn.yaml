@@ -1,5 +1,9 @@
 dncnn:
-  layers: 16
-  weight_decay: 1.0e-6
-  scale: 1
-  channel: 3
+    layers: 16
+    weight_decay: 1.0e-6
+    scale: 1
+    channel: 3
+
+batch: 16
+patch_size: 64
+lr: 1.0e-4
