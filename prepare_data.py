@@ -28,7 +28,7 @@ if sys.version_info.major == 3 and sys.version_info.minor < 6:
   exit(-1)
 
 _DEFAULT_DATASET_PATH = '/mnt/data/datasets'
-_DEFAULT_DOWNLOAD_DIR = '/tmp/downloads'
+_DEFAULT_DOWNLOAD_DIR = '.vsr/downloads'
 _DEFAULT_WEIGHTS_DIR = './Results'
 # Contact me if any of these links un-accessed
 DATASETS = {
@@ -53,7 +53,6 @@ DATASETS = {
 }
 WEIGHTS = {
   'srcnn.tar.gz': 'https://github.com/LoSealL/Model/releases/download/srcnn/srcnn.tar.gz',
-  'espcn.tar.gz': 'https://github.com/LoSealL/Model/releases/download/espcn/espcn.tar.gz',
   'edsr.zip': 'https://github.com/LoSealL/Model/releases/download/edsr/edsr.zip',
   'dncnn.zip': 'https://github.com/LoSealL/Model/releases/download/DnCNN/dncnn.zip',
   'carn.zip': 'https://github.com/LoSealL/Model/releases/download/carn/carn.zip',

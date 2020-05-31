@@ -20,8 +20,8 @@ def get_model(name: str):
       return import_module('.Models', 'VSR.Backend.Torch').get_model(name)
     elif BACKEND == 'tensorflow':
       return import_module('.Models', 'VSR.Backend.TF').get_model(name)
-    elif BACKEND == 'tensorflow2':
-      pass
+    elif BACKEND == 'keras':
+      return import_module('.Models', 'VSR.Backend.Keras').get_model(name)
   except (KeyError, ImportError):
     raise ImportError(f"Using {BACKEND}, can't find model {name}.")
 
@@ -31,5 +31,5 @@ def list_supported_models():
     return import_module('.Models', 'VSR.Backend.Torch').list_supported_models()
   elif BACKEND == 'tensorflow':
     return import_module('.Models', 'VSR.Backend.TF').list_supported_models()
-  elif BACKEND == 'tensorflow2':
-    pass
+  elif BACKEND == 'keras':
+    return import_module('.Models', 'VSR.Backend.Keras').list_supported_models()

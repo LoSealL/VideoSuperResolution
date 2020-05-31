@@ -8,7 +8,7 @@ commonly used layers helper
 """
 
 from VSR.Util import to_list
-from .. import tf, tfc
+from .. import tf
 from ..Util import (
   SpectralNorm, TorchInitializer, pixel_shift, pop_dict_wo_keyerror, prelu
 )
@@ -25,6 +25,7 @@ class Layers(object):
                                          name=name)
 
   def instance_norm(self, x, trainable=True, name=None, reuse=None):
+    from .. import tfc
     with tf.variable_scope(name, 'InstanceNorm', reuse=reuse):
       return tfc.layers.instance_norm(
           x,
@@ -32,6 +33,7 @@ class Layers(object):
           variables_collections=[tf.GraphKeys.GLOBAL_VARIABLES])
 
   def layer_norm(self, x, trainable=True, name=None, reuse=None):
+    from .. import tfc
     with tf.variable_scope(name, 'LayerNorm', reuse=reuse):
       return tfc.layers.layer_norm(
           x,
@@ -39,6 +41,7 @@ class Layers(object):
           variables_collections=[tf.GraphKeys.GLOBAL_VARIABLES])
 
   def group_norm(self, x, group, axis, trainable=True, name=None, reuse=None):
+    from .. import tfc
     with tf.variable_scope(name, 'GroupNorm', reuse=reuse):
       return tfc.layers.group_norm(
           x, group, axis,

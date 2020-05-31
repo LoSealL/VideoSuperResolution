@@ -1,4 +1,9 @@
-1.0.5
+1.0.6
+
+## 1.0.6
+## 2020-06
+- Update TF backend
+- Add support to tensorflow 2.0 (both legacy and eager mode)
 
 ## 1.0.5
 ## 2020-05
