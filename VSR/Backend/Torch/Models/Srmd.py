@@ -45,12 +45,12 @@ class SRMD(SuperResolution):
 
   def gen_random_kernel(self):
     theta = np.random.uniform(0, np.pi)
-    l1 = np.random.uniform(0.1, 10)
+    l1 = np.random.uniform(0.1, self.l1)
     l2 = np.random.uniform(0.1, l1)
     return self.gen_kernel('anisotropic', self.kernel_size, l1, l2, theta)
 
   def gen_random_noise(self, shape):
-    stddev = np.random.uniform(0, 75 / 255, size=[shape[0]])
+    stddev = np.random.uniform(0, self.noise, size=[shape[0]])
     noise = np.random.normal(size=shape) * stddev
     return noise, stddev
 

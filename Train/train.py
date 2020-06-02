@@ -12,12 +12,13 @@ from VSR.DataLoader import load_datasets
 from VSR.Model import get_model, list_supported_models
 from VSR.Util import Config, lr_decay, suppress_opt_by_args, compat_param
 
+CWD = Path(__file__).resolve().parent.parent
 parser = argparse.ArgumentParser(description=f'VSR ({BACKEND}) Training Tool v1.0')
 g0 = parser.add_argument_group("basic options")
 g0.add_argument("model", choices=list_supported_models(), help="specify the model name")
 g0.add_argument("-p", "--parameter", help="specify the model parameter file (*.yaml)")
-g0.add_argument("--save_dir", default='../Results', help="working directory")
-g0.add_argument("--data_config", default="../Data/datasets.yaml", help="specify dataset config file")
+g0.add_argument("--save_dir", default=f'{CWD}/Results', help="working directory")
+g0.add_argument("--data_config", default=f"{CWD}/Data/datasets.yaml", help="specify dataset config file")
 g1 = parser.add_argument_group("training options")
 g1.add_argument("--dataset", default='none', help="specify a dataset alias for training")
 g1.add_argument("--epochs", type=int, default=1, help="specify total epochs to train")
@@ -48,7 +49,7 @@ def main():
     if opt.parameter:
       model_config_file = Path(opt.parameter)
     else:
-      model_config_file = Path(f'par/{BACKEND}/{opt.model}.{_ext}')
+      model_config_file = Path(f'{CWD}/Train/par/{BACKEND}/{opt.model}.{_ext}')
     if model_config_file.exists():
       opt.update(compat_param(Config(str(model_config_file))))
   # get model parameters from pre-defined YAML file

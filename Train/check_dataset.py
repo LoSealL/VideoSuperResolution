@@ -4,6 +4,7 @@
 #  Update: 2020 - 4 - 17
 
 import argparse
+from pathlib import Path
 
 from VSR.DataLoader import load_datasets
 
@@ -48,11 +49,12 @@ def main(entry: str, ddf_file):
 
 
 if __name__ == '__main__':
+  CWD = Path(__file__).resolve().parent.parent
   parser = argparse.ArgumentParser(
       description="Check the dataset and print out its content")
   parser.add_argument("dataset", type=str,
                       help="The name of the dataset, case insensitive.")
-  parser.add_argument("--description-file", default="../Data/datasets.yaml",
+  parser.add_argument("--description-file", default=f"{CWD}/Data/datasets.yaml",
                       help="DDF file")
   flags = parser.parse_args()
   main(flags.dataset, flags.description_file)
