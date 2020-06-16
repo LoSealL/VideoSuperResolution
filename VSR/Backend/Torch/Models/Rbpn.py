@@ -3,32 +3,124 @@
 #  Email: wenyi.tang@intel.com
 #  Update Date: 2019/5/26 下午3:24
 
+import logging
+
 import torch
 import torch.nn.functional as F
 from torch import nn
 
-from .Loss import total_variance
+from .Dbpn import Dbpn, DownBlock, UpBlock
 from .Model import SuperResolution
-from .frvsr.ops import FNet
-from .rbpn.ops import Rbpn
-from .video.motion import STN
+from .Ops.Blocks import EasyConv2d, RB
+from .Ops.Loss import total_variance
+from .Ops.Motion import Flownet, STN
 from ..Framework.Summary import get_writer
 from ..Util.Metrics import psnr
 from ..Util.Utility import pad_if_divide, upsample
+
+_logger = logging.getLogger("VSR.RBPN")
+_logger.info("LICENSE: RBPN is implemented by M. Haris, et. al. @alterzero")
+_logger.warning(
+    "I use unsupervised flownet to estimate optical flow, rather than pyflow module.")
+
+
+class DbpnS(nn.Module):
+  def __init__(self, scale, base_filter, feat, num_stages):
+    super(DbpnS, self).__init__()
+    kernel, stride = Dbpn.get_kernel_stride(scale)
+    # Initial Feature Extraction
+    self.feat1 = EasyConv2d(base_filter, feat, 1, activation='prelu')
+    # Back-projection stages
+    for i in range(num_stages):
+      self.__setattr__(f'up{i}', UpBlock(feat, kernel, stride))
+      if i < num_stages - 1:
+        # not the last layer
+        self.__setattr__(f'down{i}', DownBlock(feat, kernel, stride))
+    self.num_stages = num_stages
+    # Reconstruction
+    self.output_conv = EasyConv2d(feat * num_stages, feat, 1)
+
+  def forward(self, x):
+    x = self.feat1(x)
+    h1 = [self.__getattr__('up0')(x)]
+    d1 = []
+    for i in range(self.num_stages):
+      d1.append(self.__getattr__(f'down{i}')(h1[-1]))
+      h1.append(self.__getattr__(f'up{i + 1}')(d1[-1]))
+    x = self.output_conv(torch.cat(h1, 1))
+    return x
+
+
+class Rbpn(nn.Module):
+  def __init__(self, channel, scale, base_filter, feat, n_resblock,
+               nFrames):
+    super(Rbpn, self).__init__()
+    self.nFrames = nFrames
+    kernel, stride = Dbpn.get_kernel_stride(scale)
+    # Initial Feature Extraction
+    self.feat0 = EasyConv2d(channel, base_filter, 3, activation='prelu')
+    self.feat1 = EasyConv2d(8, base_filter, 3, activation='prelu')
+    ###DBPNS
+    self.DBPN = DbpnS(scale, base_filter, feat, 3)
+    # Res-Block1
+    modules_body1 = [RB(base_filter, kernel_size=3, activation='prelu') for _ in
+                     range(n_resblock)]
+    modules_body1.append(
+        EasyConv2d(base_filter, feat, kernel, stride, activation='prelu',
+                   transposed=True))
+    self.res_feat1 = nn.Sequential(*modules_body1)
+    # Res-Block2
+    modules_body2 = [RB(feat, kernel_size=3, activation='prelu') for _ in
+                     range(n_resblock)]
+    modules_body2.append(EasyConv2d(feat, feat, 3, activation='prelu'))
+    self.res_feat2 = nn.Sequential(*modules_body2)
+    # Res-Block3
+    modules_body3 = [RB(feat, kernel_size=3, activation='prelu') for _ in
+                     range(n_resblock)]
+    modules_body3.append(EasyConv2d(feat, base_filter, kernel, stride,
+                                    activation='prelu'))
+    self.res_feat3 = nn.Sequential(*modules_body3)
+    # Reconstruction
+    self.output = EasyConv2d((nFrames - 1) * feat, channel, 3)
+
+  def forward(self, x, neigbor, flow):
+    ### initial feature extraction
+    feat_input = self.feat0(x)
+    feat_frame = []
+    for j in range(len(neigbor)):
+      feat_frame.append(self.feat1(torch.cat((x, neigbor[j], flow[j]), 1)))
+
+    ####Projection
+    Ht = []
+    for j in range(len(neigbor)):
+      h0 = self.DBPN(feat_input)
+      h1 = self.res_feat1(feat_frame[j])
+
+      e = h0 - h1
+      e = self.res_feat2(e)
+      h = h0 + e
+      Ht.append(h)
+      feat_input = self.res_feat3(h)
+
+    ####Reconstruction
+    out = torch.cat(Ht, 1)
+    output = self.output(out)
+
+    return output
 
 
 class Composer(nn.Module):
   def __init__(self, **kwargs):
     super(Composer, self).__init__()
     self.module = Rbpn(**kwargs)
-    self.fnet = FNet(kwargs['num_channels'])
+    self.fnet = Flownet(kwargs['num_channels'])
     self.warper = STN(padding_mode='border')
 
   def forward(self, target, neighbors):
     flows = []
     warps = []
     for i in neighbors:
-      flow = self.fnet(target, i)
+      flow = self.fnet(target, i, gain=32)
       warp = self.warper(i, flow[:, 0], flow[:, 1])
       flows.append(flow)
       warps.append(warp)

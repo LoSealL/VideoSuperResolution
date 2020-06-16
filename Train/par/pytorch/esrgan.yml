@@ -1,14 +1,9 @@
 esrgan:
     scale: 4
-    in_nc: 3
-    out_nc: 3
+    channel: 3
     nf: 64
     nb: 23
     gc: 32
-    act_type: 'leakyrelu'
-    mode: 'CNA'
-    res_scale: 1
-    upsample_mode: 'upconv'
     weights: [0.01, 1, 5.0e-3]
     patch_size: 128
 

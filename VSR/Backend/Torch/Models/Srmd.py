@@ -3,35 +3,68 @@
 #  Email: wenyitang@outlook.com
 #  Update: 2020 - 2 - 11
 
+import logging
+
 import numpy as np
 import torch
-import torch.nn.functional as F
+import torch.nn as nn
 
-from VSR.Util.Math import gaussian_kernel, anisotropic_gaussian_kernel
-from .Model import SuperResolution
-from .srmd import ops, pca
-from ..Framework.Summary import get_writer
-from ..Util.Metrics import psnr
+from VSR.Util.Math import anisotropic_gaussian_kernel, gaussian_kernel
+from VSR.Util.PcaPrecompute import get_degradation
+from .Ops.Blocks import EasyConv2d
+from .Optim.SISR import PerceptualOptimizer
 from ..Util.Utility import imfilter
 
+logging.getLogger("VSR.SRFEAT").info(
+    "LICENSE: SRMD is proposed by Kai Zhang, et. al. "
+    "Implemented via PyTorch by @LoSealL.")
 
-class SRMD(SuperResolution):
+
+class Net(nn.Module):
+  """
+  SRMD CNN network. 12 conv layers
+  """
+
+  def __init__(self, scale=4, channels=3, layers=12, filters=128,
+               pca_length=15):
+    super(Net, self).__init__()
+    self.pca_length = pca_length
+    net = [EasyConv2d(channels + pca_length + 1, filters, 3, activation='relu')]
+    net += [EasyConv2d(filters, filters, 3, activation='relu') for _ in
+            range(layers - 2)]
+    net += [EasyConv2d(filters, channels * scale ** 2, 3),
+            nn.PixelShuffle(scale)]
+    self.body = nn.Sequential(*net)
+
+  def forward(self, x, kernel=None, noise=None):
+    if kernel is None and noise is None:
+      kernel = torch.zeros(x.shape[0], 15, 1, device=x.device, dtype=x.dtype)
+      noise = torch.zeros(x.shape[0], 1, 1, device=x.device, dtype=x.dtype)
+    # degradation parameter
+    degpar = torch.cat([kernel, noise.reshape([-1, 1, 1])], dim=1)
+    degpar = degpar.reshape([-1, 1 + self.pca_length, 1, 1])
+    degpar = torch.ones_like(x)[:, 0:1] * degpar
+    _x = torch.cat([x, degpar], dim=1)
+    return self.body(_x)
+
+
+class SRMD(PerceptualOptimizer):
   def __init__(self, scale, channel, degradation=None, **kwargs):
-    super(SRMD, self).__init__(scale, channel)
-    self.srmd = ops.Net(scale=scale, channels=channel, **kwargs)
-    self.opt = torch.optim.Adam(self.trainable_variables(), 1e-4)
     degradation = degradation or {}
     noise = degradation.get('noise', 0)
     if noise > 1:
       noise /= 255
     assert 0 <= noise <= 1
-    self.pca_dim = kwargs.get('pca_dim', pca._PCA.shape[0])
+    self.pca_dim = kwargs.get('pca_dim', 15)
     self.kernel_size = degradation.get('kernel_size', 15)
     self.ktype = degradation.get('kernel_type', 'isotropic')
     self.l1 = degradation.get('l1', 0.1)
     self.l2 = degradation.get('l2', 0.1)
     self.theta = degradation.get('theta', 0.1)
     self.noise = noise
+    self.blur_padding = torch.nn.ReflectionPad2d(7)
+    self.srmd = Net(scale=scale, channels=channel, **kwargs)
+    super(SRMD, self).__init__(scale, channel)
 
   def gen_kernel(self, ktype, ksize, l1, l2=None, theta=0):
     if ktype == 'isotropic':
@@ -51,60 +84,38 @@ class SRMD(SuperResolution):
 
   def gen_random_noise(self, shape):
     stddev = np.random.uniform(0, self.noise, size=[shape[0]])
-    noise = np.random.normal(size=shape) * stddev
+    noise = np.random.normal(size=shape) * stddev.reshape([-1, 1, 1, 1])
     return noise, stddev
 
-  def train(self, inputs, labels, learning_rate=None):
-    for opt in self.opts.values():
-      if learning_rate:
-        for param_group in opt.param_groups:
-          param_group["lr"] = learning_rate
-    lr = inputs[0]
+  def fn(self, lr):
     batch = lr.shape[0]
-    noise, stddev = self.gen_random_noise(lr.shape)
-    kernel = [self.gen_random_kernel() for _ in range(batch)]
-    degpar = torch.tensor([pca.get_degradation(k) for k in kernel],
-                          dtype=lr.dtype, device=lr.device)
-    kernel = torch.tensor(kernel, dtype=lr.dtype, device=lr.device)
-    noise = torch.tensor(noise, dtype=lr.dtype, device=lr.device)
-    stddev = torch.tensor(stddev, dtype=lr.dtype, device=lr.device)
-    lr = imfilter(lr, kernel) + noise
-    sr = self.srmd(lr, degpar, stddev)
-    loss = F.l1_loss(sr, labels[0])
-    self.opt.zero_grad()
-    loss.backward()
-    self.opt.step()
-    return {
-      'loss': loss.detach().cpu().numpy()
-    }
-
-  def eval(self, inputs, labels=None, **kwargs):
-    metrics = {}
-    lr = inputs[0]
-    batch = lr.shape[0]
-    degpar = torch.tensor(
-        [
-          pca.get_degradation(self.gen_kernel(self.ktype,
-                                              self.kernel_size,
-                                              self.l1,
-                                              self.l2,
-                                              self.theta))
-        ] * batch,
-        dtype=lr.dtype,
-        device=lr.device)
-    stddev = torch.tensor(
-        [self.noise] * batch,
-        dtype=lr.dtype,
-        device=lr.device)
-    sr = self.srmd(lr, degpar, stddev).detach().cpu()
-    if labels is not None:
-      metrics['psnr'] = psnr(sr, labels[0])
-      writer = get_writer(self.name)
-      if writer is not None:
-        step = kwargs.get('epoch', 0)
-        writer.image('gt', labels[0], step=step)
-        writer.image('clean', sr.clamp(0, 1), step=step)
-    return [sr.numpy()], metrics
+    if self.srmd.training:
+      noise, stddev = self.gen_random_noise(lr.shape)
+      kernel = [self.gen_random_kernel() for _ in range(batch)]
+      degpar = torch.tensor([get_degradation(k) for k in kernel],
+                            dtype=lr.dtype, device=lr.device)
+      kernel = torch.tensor(kernel, dtype=lr.dtype, device=lr.device)
+      noise = torch.tensor(noise, dtype=lr.dtype, device=lr.device)
+      stddev = torch.tensor(stddev, dtype=lr.dtype, device=lr.device)
+      lr = imfilter(lr, kernel, self.blur_padding) + noise
+      sr = self.srmd(lr, degpar, stddev)
+    else:
+      degpar = torch.tensor(
+          [
+            get_degradation(self.gen_kernel(self.ktype,
+                                            self.kernel_size,
+                                            self.l1,
+                                            self.l2,
+                                            self.theta))
+          ] * batch,
+          dtype=lr.dtype,
+          device=lr.device)
+      stddev = torch.tensor(
+          [self.noise] * batch,
+          dtype=lr.dtype,
+          device=lr.device)
+      sr = self.srmd(lr, degpar, stddev)
+    return sr
 
   def export(self, export_dir):
     """An example of how to export ONNX format"""

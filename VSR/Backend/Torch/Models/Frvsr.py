@@ -3,32 +3,53 @@
 #   Email: wenyi.tang@intel.com
 #   Update Date: 4/1/19, 7:13 PM
 
+import logging
+
 import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
 
-from .Arch import SpaceToDepth
-from .Loss import total_variance
 from .Model import SuperResolution
-from .frvsr.ops import FNet, SRNet
-from .video.motion import STN
+from .Ops.Blocks import RB
+from .Ops.Loss import total_variance
+from .Ops.Motion import Flownet, STN
+from .Ops.Scale import SpaceToDepth, Upsample
 from ..Framework.Summary import get_writer
 from ..Util import Metrics
 from ..Util.Utility import pad_if_divide, upsample
+
+_logger = logging.getLogger("VSR.FRVSR")
+_logger.info("LICENSE: FRVSR is proposed by Sajjadi, et. al. "
+             "implemented by LoSeall. "
+             "@loseall https://github.com/loseall/VideoSuperResolution")
+
+
+class SRNet(nn.Module):
+  def __init__(self, channel, scale, n_rb=10):
+    super(SRNet, self).__init__()
+    rbs = [RB(64, activation='relu') for _ in range(n_rb)]
+    entry = [nn.Conv2d(channel * (scale ** 2 + 1), 64, 3, 1, 1), nn.ReLU(True)]
+    up = Upsample(64, scale, method='ps')
+    out = nn.Conv2d(64, channel, 3, 1, 1)
+    self.body = nn.Sequential(*entry, *rbs, up, out)
+
+  def forward(self, *inputs):
+    x = torch.cat(inputs, dim=1)
+    return self.body(x)
 
 
 class FRNet(nn.Module):
   def __init__(self, channel, scale, n_rb):
     super(FRNet, self).__init__()
-    self.fnet = FNet(channel, gain=32)
+    self.fnet = Flownet(channel)
     self.warp = STN(padding_mode='border')
     self.snet = SRNet(channel, scale, n_rb)
     self.space_to_depth = SpaceToDepth(scale)
     self.scale = scale
 
   def forward(self, lr, last_lr, last_sr):
-    flow = self.fnet(lr, last_lr)
+    flow = self.fnet(lr, last_lr, gain=32)
     flow2 = self.scale * upsample(flow, self.scale)
     hw = self.warp(last_sr, flow2[:, 0], flow2[:, 1])
     lw = self.warp(last_lr, flow[:, 0], flow[:, 1])

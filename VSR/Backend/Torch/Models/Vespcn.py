@@ -3,20 +3,100 @@
 #  Email: wenyi.tang@intel.com
 #  Update Date: 2019/4/3 下午5:10
 
+import logging
+
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 
 from .Model import SuperResolution
-from .vespcn import ops
+from .Ops.Blocks import EasyConv2d
+from .Ops.Motion import CoarseFineFlownet, STN
 from ..Framework.Summary import get_writer
 from ..Util import Metrics
 from ..Util.Utility import pad_if_divide
+
+_logger = logging.getLogger("VSR.VESPCN")
+_logger.info("LICENSE: VESPCN is proposed at CVPR2017 by Twitter. "
+             "Implemented by myself @LoSealL.")
+
+
+class ReluRB(nn.Module):
+  def __init__(self, inchannels, outchannels):
+    super(ReluRB, self).__init__()
+    self.conv1 = nn.Conv2d(inchannels, 64, 3, 1, 1)
+    self.conv2 = nn.Conv2d(64, outchannels, 3, 1, 1)
+
+  def forward(self, inputs):
+    x = F.relu(inputs)
+    x = self.conv1(x)
+    x = F.relu(x)
+    x = self.conv2(x)
+    return x + inputs
+
+
+class MotionCompensation(nn.Module):
+  def __init__(self, channel, gain=32):
+    super(MotionCompensation, self).__init__()
+    self.gain = gain
+    self.flownet = CoarseFineFlownet(channel)
+    self.warp_f = STN(padding_mode='border')
+
+  def forward(self, target, ref):
+    flow = self.flownet(target, ref, self.gain)
+    warping = self.warp_f(ref, flow[:, 0], flow[:, 1])
+    return warping, flow
+
+
+class SRNet(nn.Module):
+  def __init__(self, scale, channel, depth):
+    super(SRNet, self).__init__()
+    self.entry = EasyConv2d(channel * depth, 64, 3)
+    self.exit = EasyConv2d(64, channel, 3)
+    self.body = nn.Sequential(
+        ReluRB(64, 64),
+        ReluRB(64, 64),
+        ReluRB(64, 64),
+        nn.ReLU(True))
+    self.conv = EasyConv2d(64, 64 * scale ** 2, 3)
+    self.up = nn.PixelShuffle(scale)
+
+  def forward(self, inputs):
+    x = self.entry(inputs)
+    y = self.body(x) + x
+    y = self.conv(y)
+    y = self.up(y)
+    y = self.exit(y)
+    return y
+
+
+class Vespcn(nn.Module):
+  def __init__(self, scale, channel, depth):
+    super(Vespcn, self).__init__()
+    self.sr = SRNet(scale, channel, depth)
+    self.mc = MotionCompensation(channel)
+    self.depth = depth
+
+  def forward(self, *inputs):
+    center = self.depth // 2
+    target = inputs[center]
+    refs = inputs[:center] + inputs[center + 1:]
+    warps = []
+    flows = []
+    for r in refs:
+      warp, flow = self.mc(target, r)
+      warps.append(warp)
+      flows.append(flow)
+    warps.append(target)
+    x = torch.cat(warps, 1)
+    sr = self.sr(x)
+    return sr, warps[:-1], flows
 
 
 class VESPCN(SuperResolution):
   def __init__(self, scale, channel, depth=3, **kwargs):
     super(VESPCN, self).__init__(scale, channel, **kwargs)
-    self.vespcn = ops.VESPCN(scale, channel, depth)
+    self.vespcn = Vespcn(scale, channel, depth)
     self.opt = torch.optim.Adam(self.trainable_variables(), 1e-4)
     self.depth = depth
 

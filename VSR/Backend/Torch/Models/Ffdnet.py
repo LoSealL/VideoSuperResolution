@@ -7,8 +7,9 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from .Arch import EasyConv2d, SpaceToDepth, Upsample
 from .Model import SuperResolution
+from .Ops.Blocks import EasyConv2d
+from .Ops.Scale import SpaceToDepth, Upsample
 from ..Framework.Summary import get_writer
 from ..Util import Metrics
 

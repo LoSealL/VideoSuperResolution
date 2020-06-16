@@ -7,11 +7,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .Arch import Upsample, EasyConv2d
+from VSR.Backend.Torch.Models.Ops.Loss import total_variance
 from .Model import SuperResolution
+from .Ops.Blocks import EasyConv2d
+from .Ops.Scale import Upsample
 from ..Framework.Summary import get_writer
-from ..Util import Metrics, Utility
-from .Loss import total_variance
+from ..Util import Metrics
 
 
 class NoiseExtractor(nn.Module):

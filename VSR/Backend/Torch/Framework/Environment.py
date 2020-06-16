@@ -45,6 +45,7 @@ class Env:
       self._saved = Path(work_dir) / 'save'
       self._logd = Path(work_dir) / 'log'
     self._restored = False
+    self.last_epoch = 0
 
   def _startup(self):
     if isinstance(self._saved, Path):
@@ -125,7 +126,7 @@ class Env:
 
   def _restore(self, epoch=None, map_location=None):
     # restore graph
-    if self._restored:
+    if self._restored or self.model.loaded:
       return self.last_epoch
     self.last_epoch = self._restore_model(epoch, map_location=map_location)
     self._restored = True

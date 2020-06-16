@@ -13,7 +13,7 @@ try:
   import torch
   import torchvision
   from torch.nn import PixelShuffle
-  from VSR.Backend.Torch.Models.Arch import SpaceToDim
+  from VSR.Backend.Torch.Models.Ops.Scale import SpaceToDim
 except ImportError:
   exit(0)
 

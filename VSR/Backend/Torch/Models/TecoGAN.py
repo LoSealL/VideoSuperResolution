@@ -3,30 +3,92 @@
 #  Email: wenyi.tang@intel.com
 #  Update Date: 2019/5/7 下午5:21
 
+import logging
+
 import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
 
-from .Arch import SpaceToDepth
-from .Loss import VggFeatureLoss, gan_bce_loss, ragan_bce_loss
 from .Model import SuperResolution
-from .frvsr.ops import FNet
-from .teco.ops import TecoDiscriminator, TecoGenerator
-from .video.motion import STN
+from .Ops.Blocks import EasyConv2d, RB
+from .Ops.Loss import VggFeatureLoss, ragan_bce_loss
+from .Ops.Motion import Flownet, STN
+from .Ops.Scale import SpaceToDepth, Upsample
 from ..Framework.Summary import get_writer
 from ..Util import Metrics
 from ..Util.Utility import pad_if_divide, upsample
+
+_logger = logging.getLogger("VSR.TecoGAN")
+_logger.info("LICENSE: TecoGAN is implemented by Mengyu Chu, et. al. "
+             "@rachelchu https://github.com/rachelchu/TecoGAN")
+_logger.warning("Training of TecoGAN hasn't been verified!!")
+
+
+class TecoGenerator(nn.Module):
+  """Generator in TecoGAN.
+
+  Note: the flow estimation net `Fnet` shares with FRVSR.
+
+  Args:
+    filters: basic filter numbers [default: 64]
+    num_rb: number of residual blocks [default: 16]
+  """
+
+  def __init__(self, channel, scale, filters, num_rb):
+    super(TecoGenerator, self).__init__()
+    rbs = []
+    for i in range(num_rb):
+      rbs.append(RB(filters, filters, 3, 'relu'))
+    self.body = nn.Sequential(
+        EasyConv2d(channel * (1 + scale ** 2), filters, 3, activation='relu'),
+        *rbs,
+        Upsample(filters, scale, 'nearest', activation='relu'),
+        EasyConv2d(filters, channel, 3))
+
+  def forward(self, x, prev, residual=None):
+    """`residual` is the bicubically upsampled HR images"""
+    sr = self.body(torch.cat((x, prev), dim=1))
+    if residual is not None:
+      sr += residual
+    return sr
+
+
+class TecoDiscriminator(nn.Module):
+  def __init__(self, channel, filters, patch_size):
+    super(TecoDiscriminator, self).__init__()
+    f = filters
+    self.conv0 = EasyConv2d(channel * 6, f, 3, activation='leaky')
+    self.conv1 = EasyConv2d(f, f, 4, 2, activation='leaky', use_bn=True)
+    self.conv2 = EasyConv2d(f, f, 4, 2, activation='leaky', use_bn=True)
+    self.conv3 = EasyConv2d(f, f * 2, 4, 2, activation='leaky', use_bn=True)
+    self.conv4 = EasyConv2d(f * 2, f * 4, 4, 2, activation='leaky', use_bn=True)
+    # self.pool = nn.AdaptiveAvgPool2d(1)
+    self.linear = nn.Linear(f * 4 * (patch_size // 16) ** 2, 1)
+
+  def forward(self, x):
+    """The inputs `x` is the concat of 8 tensors.
+      Note that we remove the duplicated gt/yt in paper (9 - 1 = 8).
+    """
+    l0 = self.conv0(x)
+    l1 = self.conv1(l0)
+    l2 = self.conv2(l1)
+    l3 = self.conv3(l2)
+    l4 = self.conv4(l3)
+    # y = self.pool(l4)
+    y = self.linear(l4.flatten(1))
+    return y, (l1, l2, l3, l4)
 
 
 class Composer(nn.Module):
   def __init__(self, scale, channel, gain=24, filters=64, n_rb=16):
     super(Composer, self).__init__()
-    self.fnet = FNet(channel, gain=gain)
+    self.fnet = Flownet(channel)
     self.gnet = TecoGenerator(channel, scale, filters, n_rb)
     self.warpper = STN(padding_mode='border')
     self.spd = SpaceToDepth(scale)
     self.scale = scale
+    self.gain = gain
 
   def forward(self, lr, lr_pre, sr_pre, detach_fnet=None):
     """
@@ -36,7 +98,7 @@ class Composer(nn.Module):
        sr_pre: t_0 sr frame
        detach_fnet: detach BP to fnet
     """
-    flow = self.fnet(lr, lr_pre)
+    flow = self.fnet(lr, lr_pre, gain=self.gain)
     flow_up = self.scale * upsample(flow, self.scale)
     u, v = [x.squeeze(1) for x in flow_up.split(1, dim=1)]
     sr_warp = self.warpper(sr_pre, u, v)

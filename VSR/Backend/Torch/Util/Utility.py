@@ -161,11 +161,13 @@ def bicubic_resize(img, scale, border='reflect'):
     raise ValueError("Wrong scale factor!")
 
 
-def imfilter(image: torch.Tensor, kernel: torch.Tensor):
+def imfilter(image: torch.Tensor, kernel: torch.Tensor, padding=None):
   with torch.no_grad():
     if image.dim() == 3:
       image = image.unsqueeze(0)
     assert image.dim() == 4, f"Dim of image must be 4, but is {image.dim()}"
+    if kernel.dtype != image.dtype:
+      kernel = kernel.to(dtype=image.dtype)
     if kernel.dim() == 2:
       kernel = kernel.unsqueeze(0)
       kernel = torch.cat([kernel] * image.shape[0])
@@ -182,28 +184,36 @@ def imfilter(image: torch.Tensor, kernel: torch.Tensor):
         t[j] = _k
         _m.append(torch.cat(t, dim=1))
       _k = torch.cat(_m, dim=0)
-      ret.append(F.conv2d(i, _k, padding=[x // 2 for x in kernel.shape[1:]]))
+      if padding is None:
+        ret.append(F.conv2d(i, _k, padding=[x // 2 for x in kernel.shape[1:]]))
+      elif callable(padding):
+        ret.append(F.conv2d(padding(i), _k))
+      else:
+        raise ValueError("Wrong padding value!")
     return torch.cat(ret)
 
 
-def poisson_noise(inputs, stddev=None, sigma_max=0.16):
+def poisson_noise(inputs: torch.Tensor, stddev=None, sigma_max=0.16):
   """Add poisson noise to inputs."""
 
   if stddev is None:
-    stddev = np.random.rand(inputs.shape[-1]) * sigma_max
-  stddev = np.reshape(stddev, [1] * (inputs.ndim - 1) + [-1])
+    stddev = torch.rand(inputs.shape[-1]) * sigma_max
+  stddev = torch.tensor(stddev, device=inputs.device)
+  stddev = stddev.reshape([1] * (inputs.ndim - 1) + [-1])
   sigma_map = (1 - inputs) * stddev
-  return np.random.randn(*inputs.shape) * sigma_map
+  return torch.randn_like(inputs) * sigma_map
 
 
-def gaussian_noise(inputs, stddev=None, sigma_max=0.06, channel_wise=True):
+def gaussian_noise(inputs: torch.Tensor, stddev=None, sigma_max=0.06,
+                   channel_wise=True):
   """Add channel wise gaussian noise."""
 
   channel = inputs.shape[-1] if channel_wise else 1
   if stddev is None:
-    stddev = np.random.rand(channel) * sigma_max
-  stddev = np.reshape(stddev, [1] * (inputs.ndim - 1) + [-1])
-  noise_map = np.random.randn(*inputs.shape) * stddev
+    stddev = torch.rand(channel) * sigma_max
+  stddev = torch.tensor(stddev, device=inputs.device)
+  stddev = stddev.reshape([1] * (inputs.ndim - 1) + [-1])
+  noise_map = torch.randn_like(inputs) * stddev
   return noise_map
 
 

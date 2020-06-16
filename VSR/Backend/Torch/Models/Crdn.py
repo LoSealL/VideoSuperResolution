@@ -9,7 +9,7 @@ import torch.nn.functional as F
 
 from VSR.Util.Utility import to_list
 from . import Model
-from .Arch import CascadeRdn
+from .Ops.Blocks import CascadeRdn
 from ..Framework.Summary import get_writer
 from ..Util import Metrics
 
@@ -34,21 +34,21 @@ class Crdn(nn.Module):
     self.blocks = to_list(blocks, 2)
 
     self.entry = nn.Sequential(
-      nn.Conv2d(3, 32, 7, 1, 3),
-      nn.Conv2d(32, 32, 5, 1, 2))
+        nn.Conv2d(3, 32, 7, 1, 3),
+        nn.Conv2d(32, 32, 5, 1, 2))
     self.exit = nn.Sequential(
-      nn.Conv2d(32, 32, 3, 1, 1),
-      nn.Conv2d(32, 3, 3, 1, 1))
+        nn.Conv2d(32, 32, 3, 1, 1),
+        nn.Conv2d(32, 3, 3, 1, 1))
     self.down1 = nn.Conv2d(32, 64, 3, 2, 1)
     self.down2 = nn.Conv2d(64, 128, 3, 2, 1)
     self.up1 = Upsample([128, 64])
     self.up2 = Upsample([64, 32])
-    self.cb1 = CascadeRdn(32, 3, True)
-    self.cb2 = CascadeRdn(64, 3, True)
-    self.cb3 = CascadeRdn(128, 3, True)
-    self.cb4 = CascadeRdn(128, 3, True)
-    self.cb5 = CascadeRdn(64, 3, True)
-    self.cb6 = CascadeRdn(32, 3, True)
+    self.cb1 = CascadeRdn(32, 32, 3, True)
+    self.cb2 = CascadeRdn(64, 64, 3, True)
+    self.cb3 = CascadeRdn(128, 128, 3, True)
+    self.cb4 = CascadeRdn(128, 128, 3, True)
+    self.cb5 = CascadeRdn(64, 64, 3, True)
+    self.cb6 = CascadeRdn(32, 32, 3, True)
 
   def forward(self, inputs):
     entry = self.entry(inputs)

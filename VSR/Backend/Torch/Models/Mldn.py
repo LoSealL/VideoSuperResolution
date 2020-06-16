@@ -7,8 +7,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .Arch import CascadeRdn, Upsample
 from .Model import SuperResolution
+from .Ops.Blocks import CascadeRdn
+from .Ops.Scale import Upsample
 from ..Framework.Summary import get_writer
 from ..Util import Metrics, Utility
 

@@ -68,17 +68,6 @@ WEIGHTS = {
   'drsr_v2.zip': '1UrVNE6QMcQTW9Ks4P__JrRClb4IGTMYp',
   'drsr_sc2.zip': '1xIRVG7jbTM9fcLQkwyGyJIjwF2rTbNEJ',
   'drsr_sc4.zip': '1W-222rR2D2o-E99B4cXuUPBz2aCLuY_Z',
-  # GAN weights
-  'gangp.zip': '1UHiSLjaU5Yeiltl9cQsR3-EKta3yt0dI',
-  'lsgan.zip': '15dsubMpvTeCoSCIfPCcKjhnk7UMyuljt',
-  'ragan.zip': '1HWR2m3cFH-Fze1zkioj20ugDXRmjGQEH',
-  'ragangp.zip': '1lf3Rj3Lk1qISbQiIQiSJt03DVV5pp5Ml',
-  'ralsgan.zip': '180qrnH8_MdFvLlSl5MSP8sQCPLbbevsr',
-  'rgan.zip': '1ZwCB1Fa9UIybOq1SfgOeBKJ8g63KMYEK',
-  'rgangp.zip': '1QSBVscdfJvf_dMRRiBA_lCq39gX9mDZJ',
-  'rlsgan.zip': '1siDKxGvlb0p2E2_EmAJoT8knFMuQRivj',
-  'sgan.zip': '1spClB26QJNQEio_DktobQq9ALT-PHfg3',
-  'wgangp.zip': '1jyngiCyU1Js4DH5yUhug4gTPy2bQoETO',
   # PyTorch weights (Prefix "T")
   'Tsrcnn.zip': 'https://github.com/LoSealL/Model/releases/download/srcnn/Tsrcnn.zip',
   'Tespcn.zip': 'https://github.com/LoSealL/Model/releases/download/espcn/Tespcn.zip',
@@ -88,13 +77,11 @@ WEIGHTS = {
   'Tsofvsr.zip': 'https://github.com/LoSealL/Model/releases/download/sofvsr/SOFVSR_x4.zip',
   'Tcarn.zip': 'https://github.com/LoSealL/Model/releases/download/carn/tcarn.zip',
   'Tesrgan.zip': 'https://github.com/LoSealL/Model/releases/download/esrgan/esrgan.zip',
-  'Ttecogan.zip': 'https://github.com/LoSealL/Model/releases/download/tecogan/tecogan.zip',
   'Tfrvsr.zip': 'https://github.com/LoSealL/Model/releases/download/frvsr/FRVSR.zip',
   'Tmldn.zip': 'https://github.com/LoSealL/Model/releases/download/mldn/drn.zip',
   'Tcrdn.zip': 'https://github.com/LoSealL/Model/releases/download/crdn/rsr.zip',
   'Trbpn.zip': '1Ozp5j-DBWJSpXY5GvxiEPKdfCaAbOXqu',
   'Tspmc.zip': 'https://github.com/LoSealL/Model/releases/download/spmc/spmc.zip',
-  'Tvespcn.zip': 'https://github.com/LoSealL/Model/releases/download/vespcn/Tvespcn.zip',
   'Tsrmd.zip': '1ORKH05-aLSbQaWB4qQulIm2INoRufuD_',
   'Tdbpn.zip': '1PbhtuMz1zF3-d16dthurJ0xIQ9uyMvkz'
 }

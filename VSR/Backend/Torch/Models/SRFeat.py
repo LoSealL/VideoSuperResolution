@@ -8,16 +8,48 @@
 #  Email: wenyi.tang@intel.com
 #  Update Date: 2019 - 3 - 15
 
+import logging
+
 import numpy as np
 import torch
 import torch.nn.functional as F
 
-from . import Discriminator as disc
-from .Loss import VggFeatureLoss, gan_bce_loss
 from .Model import SuperResolution
-from .srfeat import ops
+from .Ops.Blocks import EasyConv2d, RB
+from .Ops.Scale import Upsample
+from .Ops.Discriminator import DCGAN
+from .Ops.Loss import VggFeatureLoss, gan_bce_loss
 from ..Framework.Summary import get_writer
 from ..Util import Metrics
+
+_logger = logging.getLogger("VSR.SRFEAT")
+_logger.info("LICENSE: SRFeat is proposed by S. Park, et. al. "
+             "Implemented via PyTorch by @LoSealL.")
+
+
+class Generator(torch.nn.Module):
+  """ Generator for SRFeat:
+  Single Image Super-Resolution with Feature Discrimination (ECCV 2018)
+  """
+
+  def __init__(self, channel, scale, filters, num_rb):
+    super(Generator, self).__init__()
+    self.head = EasyConv2d(channel, filters, 9)
+    for i in range(num_rb):
+      setattr(self, f'rb_{i:02d}', RB(filters, 3, 'lrelu', use_bn=True))
+      setattr(self, f'merge_{i:02d}', EasyConv2d(filters, filters, 1))
+    self.tail = torch.nn.Sequential(
+        Upsample(filters, scale), EasyConv2d(filters, channel, 3))
+    self.num_rb = num_rb
+
+  def forward(self, inputs):
+    x = self.head(inputs)
+    feat = []
+    for i in range(self.num_rb):
+      x = getattr(self, f'rb_{i:02d}')(x)
+      feat.append(getattr(self, f'merge_{i:02d}')(x))
+    x = self.tail(x + torch.stack(feat, dim=0).sum(0).squeeze(0))
+    return x
 
 
 class SRFEAT(SuperResolution):
@@ -28,15 +60,15 @@ class SRFEAT(SuperResolution):
     f = kwargs.get('filters', 64)
     self.use_gan = weights[1] > 0
     self.use_feat_gan = weights[2] > 0
-    self.srfeat = ops.Generator(channel, scale, f, n_rb)
+    self.srfeat = Generator(channel, scale, f, n_rb)
     self.gopt = torch.optim.Adam(self.trainable_variables('srfeat'), 1e-4)
     if self.use_gan:
       # vanilla image
-      self.dnet1 = disc.DCGAN(channel, np.log2(patch_size // 4) * 2, 'bn')
+      self.dnet1 = DCGAN(channel, np.log2(patch_size // 4) * 2, 'bn')
       self.dopt1 = torch.optim.Adam(self.trainable_variables('dnet1'), 1e-4)
     if self.use_feat_gan:
       # vgg feature
-      self.dnet2 = disc.DCGAN(256, np.log2(patch_size // 16) * 2, 'bn')
+      self.dnet2 = DCGAN(256, np.log2(patch_size // 16) * 2, 'bn')
       self.dopt2 = torch.optim.Adam(self.trainable_variables('dnet2'), 1e-4)
     self.vgg = [VggFeatureLoss(['block3_conv1'], True)]
     self.w = weights
