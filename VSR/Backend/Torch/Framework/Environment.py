@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-LOG = logging.getLogger('VSR.Framework')
+LOG = logging.getLogger('VSR.Framework.Torch')
 
 
 def _make_ckpt_name(name, step):
@@ -52,9 +52,12 @@ class Env:
       self._saved.mkdir(parents=True, exist_ok=True)
     if isinstance(self._logd, Path):
       self._logd.mkdir(parents=True, exist_ok=True)
-      if LOG.isEnabledFor(logging.DEBUG):
-        hdl = logging.FileHandler(self._logd / 'training.txt')
-        LOG.addHandler(hdl)
+      _logger = logging.getLogger('VSR')
+      if _logger.isEnabledFor(logging.DEBUG):
+        fd = logging.FileHandler(self._logd / 'vsr_debug.log', encoding='utf-8')
+        fd.setFormatter(
+            logging.Formatter("[%(asctime)s][%(levelname)s] %(message)s"))
+        _logger.addHandler(fd)
 
   def _close(self):
     """TODO anything to close?"""

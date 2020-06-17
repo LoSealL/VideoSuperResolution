@@ -49,22 +49,23 @@ class Net(nn.Module):
 
 
 class SRMD(PerceptualOptimizer):
-  def __init__(self, scale, channel, degradation=None, **kwargs):
+  def __init__(self, scale, channel, degradation=None, layers=12, filters=128,
+               pca_length=15, **kwargs):
     degradation = degradation or {}
     noise = degradation.get('noise', 0)
     if noise > 1:
       noise /= 255
     assert 0 <= noise <= 1
     self.pca_dim = kwargs.get('pca_dim', 15)
-    self.kernel_size = degradation.get('kernel_size', 15)
+    self.kernel_size = degradation.get('kernel_size', pca_length)
     self.ktype = degradation.get('kernel_type', 'isotropic')
     self.l1 = degradation.get('l1', 0.1)
     self.l2 = degradation.get('l2', 0.1)
     self.theta = degradation.get('theta', 0.1)
     self.noise = noise
     self.blur_padding = torch.nn.ReflectionPad2d(7)
-    self.srmd = Net(scale=scale, channels=channel, **kwargs)
-    super(SRMD, self).__init__(scale, channel)
+    self.srmd = Net(scale, channel, layers, filters, pca_length)
+    super(SRMD, self).__init__(scale, channel, **kwargs)
 
   def gen_kernel(self, ktype, ksize, l1, l2=None, theta=0):
     if ktype == 'isotropic':

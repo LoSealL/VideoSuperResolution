@@ -4,6 +4,7 @@
 ## 2020-06
 - Update TF backend
 - Add support to tensorflow 2.0 (both legacy and eager mode)
+- Refactor torch backend models
 
 ## 1.0.5
 ## 2020-05

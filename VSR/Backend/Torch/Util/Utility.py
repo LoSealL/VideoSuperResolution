@@ -6,6 +6,7 @@
 import torch
 import torch.nn.functional as F
 
+from VSR.Backend import DATA_FORMAT
 from VSR.Util.Math import weights_downsample, weights_upsample
 
 
@@ -193,26 +194,32 @@ def imfilter(image: torch.Tensor, kernel: torch.Tensor, padding=None):
     return torch.cat(ret)
 
 
-def poisson_noise(inputs: torch.Tensor, stddev=None, sigma_max=0.16):
+def poisson_noise(inputs: torch.Tensor, stddev=None, sigma_max=0.16,
+                  channel_wise=1):
   """Add poisson noise to inputs."""
 
   if stddev is None:
-    stddev = torch.rand(inputs.shape[-1]) * sigma_max
+    stddev = torch.rand(channel_wise) * sigma_max
   stddev = torch.tensor(stddev, device=inputs.device)
-  stddev = stddev.reshape([1] * (inputs.ndim - 1) + [-1])
+  if DATA_FORMAT == 'channels_first':
+    stddev = stddev.reshape([1, -1] + [1] * (inputs.ndim - 2))
+  else:
+    stddev = stddev.reshape([1] * (inputs.ndim - 1) + [-1])
   sigma_map = (1 - inputs) * stddev
   return torch.randn_like(inputs) * sigma_map
 
 
 def gaussian_noise(inputs: torch.Tensor, stddev=None, sigma_max=0.06,
-                   channel_wise=True):
+                   channel_wise=1):
   """Add channel wise gaussian noise."""
 
-  channel = inputs.shape[-1] if channel_wise else 1
   if stddev is None:
-    stddev = torch.rand(channel) * sigma_max
+    stddev = torch.rand(channel_wise) * sigma_max
   stddev = torch.tensor(stddev, device=inputs.device)
-  stddev = stddev.reshape([1] * (inputs.ndim - 1) + [-1])
+  if DATA_FORMAT == 'channels_first':
+    stddev = stddev.reshape([1, -1] + [1] * (inputs.ndim - 2))
+  else:
+    stddev = stddev.reshape([1] * (inputs.ndim - 1) + [-1])
   noise_map = torch.randn_like(inputs) * stddev
   return noise_map
 

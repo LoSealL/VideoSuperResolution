@@ -11,7 +11,8 @@ if not os.getcwd().endswith('Tests'):
   os.chdir('Tests')
 
 _WORKDIR = r"/tmp/vsr/utest/"
-_TCMD = r"python train.py {} --data_config=../Tests/data/fake_datasets.yml --dataset=normal --epochs=1 --steps=1 --save_dir={}"
+_TCMD = ("python train.py {} --data_config=../Tests/data/fake_datasets.yml"
+         "--dataset=normal --epochs=1 --steps=1 --save_dir={} --val_steps=1")
 _ECMD = r"python eval.py {} --save_dir={} --ensemble -t=../Tests/data/set5_x2"
 
 
@@ -43,6 +44,7 @@ def test_other_models():
         'sofvsr', 'vespcn', 'frvsr', 'qprn', 'ufvsr', 'yovsr', 'tecogan',
         'spmc', 'rbpn'
     ):
+      # skip video model
       continue
     train(k)
     eval(k)

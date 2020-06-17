@@ -140,7 +140,7 @@ class PerceptualOptimizer(L1Optimizer):
   """
 
   def __init__(self, scale, channel, image_weight=1, feature_weight=0,
-               gan_weight=0, patch_size=128, **kwargs):
+               gan_weight=0, **kwargs):
     super(PerceptualOptimizer, self).__init__(scale, channel, **kwargs)
     self.use_vgg = feature_weight > 0
     self.use_gan = gan_weight > 0
@@ -172,7 +172,7 @@ class PerceptualOptimizer(L1Optimizer):
     image_loss = self.pixel_cri(sr, labels[0])
     loss = image_loss * self.w[0]
     log = {
-      'image': image_loss.detach().cpu().numpy()
+      'image_loss': image_loss.detach().cpu().numpy()
     }
     if self.use_vgg:
       self.feature[0].eval()

@@ -4,45 +4,16 @@
 #  Update: 2020 - 5 - 30
 
 import logging
-import time
 
 import numpy as np
 import tensorflow as tf
 import tqdm
 
 from VSR.Util.Config import Config
+from VSR.Util.Ensemble import Ensembler
 from .Environment import Env
 
-LOG = logging.getLogger('VSR.Framework')
-
-
-def _ensemble_expand(feature):
-  r0 = feature
-  r1 = np.rot90(feature, 1, axes=[-3, -2])
-  r2 = np.rot90(feature, 2, axes=[-3, -2])
-  r3 = np.rot90(feature, 3, axes=[-3, -2])
-  r4 = np.flip(feature, axis=-2)
-  r5 = np.rot90(r4, 1, axes=[-3, -2])
-  r6 = np.rot90(r4, 2, axes=[-3, -2])
-  r7 = np.rot90(r4, 3, axes=[-3, -2])
-  return r0, r1, r2, r3, r4, r5, r6, r7
-
-
-def _ensemble_reduce_mean(outputs):
-  results = []
-  for i in outputs:
-    outputs_ensemble = [
-      i[0],
-      np.rot90(i[1], 3, axes=[-3, -2]),
-      np.rot90(i[2], 2, axes=[-3, -2]),
-      np.rot90(i[3], 1, axes=[-3, -2]),
-      np.flip(i[4], axis=-2),
-      np.flip(np.rot90(i[5], 3, axes=[-3, -2]), axis=-2),
-      np.flip(np.rot90(i[6], 2, axes=[-3, -2]), axis=-2),
-      np.flip(np.rot90(i[7], 1, axes=[-3, -2]), axis=-2),
-    ]
-    results.append(np.concatenate(outputs_ensemble).mean(axis=0, keepdims=True))
-  return results
+LOG = logging.getLogger('VSR.Framework.Keras')
 
 
 def to_tensor(x):
@@ -80,7 +51,7 @@ class SRTrainer(Env):
       LOG.info(f'Found pre-trained epoch {v.epoch}>=target {v.epochs},'
                ' quit fitting.')
       return False
-    LOG.info('Fitting: {}'.format(self.model.name.upper()))
+    LOG.info(f'Fitting: {self.model.name.upper()}')
     if self._logd:
       v.writer = tf.summary.create_file_writer(str(self._logd),
                                                name=self.model.name)
@@ -106,12 +77,10 @@ class SRTrainer(Env):
                                                          shuffle=True,
                                                          memory_limit=mem)
       v.train_loader.prefetch(shuffle=True, memory_usage=mem)
-      date = time.strftime('%Y-%m-%d %T', time.localtime())
       v.avg_meas = {}
       if v.lr_schedule and callable(v.lr_schedule):
         v.lr = v.lr_schedule(steps=v.epoch)
-      print('| {} | Epoch: {}/{} | LR: {:.2g} |'.format(
-          date, v.epoch, v.epochs, v.lr))
+      LOG.info(f"| Epoch: {v.epoch}/{v.epochs} | LR: {v.lr:.2g} |")
       with tqdm.tqdm(train_iter, unit='batch', ascii=True) as r:
         self.model.to_train()
         for items in r:
@@ -120,7 +89,7 @@ class SRTrainer(Env):
       for _k, _v in v.avg_meas.items():
         _v = np.mean(_v)
         tf.summary.scalar(_k, _v, step=v.epoch, description='train')
-        print('| Epoch average {} = {:.6f} |'.format(_k, _v))
+        LOG.info(f"| Epoch average {_k} = {_v:.6f} |")
       if v.epoch % v.validate_every_n_epoch == 0 and v.val_loader:
         # Hard-coded memory limitation for validating
         self.benchmark(v.val_loader, v, memory_limit='1GB')
@@ -156,11 +125,13 @@ class SRTrainer(Env):
     self.model.to_eval()
     for items in tqdm.tqdm(it, 'Test', ascii=True):
       self.fn_benchmark_each_step(items)
+    log_message = str()
     for _k, _v in v.mean_metrics.items():
       _v = np.mean(_v)
       tf.summary.scalar(_k, _v, step=v.epoch, description='eval')
-      print('{}: {:.6f}'.format(_k, _v), end=', ')
-    print('')
+      log_message += f"{_k}: {_v:.6f}, "
+    log_message = log_message[:-2] + "."
+    LOG.info(log_message)
 
   def fn_benchmark_each_step(self, pack):
     v = self.v
@@ -189,11 +160,9 @@ class SRTrainer(Env):
     self._restore(config.epoch)
     it = loader.make_one_shot_iterator([1, -1, -1, -1], -1)
     if hasattr(it, '__len__'):
-      if len(it):
-        LOG.info('Inferring {} at epoch {}'.format(
-            self.model.name, self.last_epoch))
-      else:
+      if len(it) == 0:
         return
+      LOG.info(f"Inferring {self.model.name} at epoch {self.last_epoch}")
     # use original images in inferring
     self.model.to_eval()
     for items in tqdm.tqdm(it, 'Infer', ascii=True):
@@ -203,7 +172,7 @@ class SRTrainer(Env):
     v = self.v
     if v.ensemble:
       # add self-ensemble boosting metric score
-      feature_ensemble = _ensemble_expand(pack['lr'])
+      feature_ensemble = Ensembler.expand(pack['lr'])
       outputs_ensemble = []
       for f in feature_ensemble:
         f = to_tensor(f)
@@ -213,7 +182,7 @@ class SRTrainer(Env):
       outputs = []
       for i in range(len(outputs_ensemble[0])):
         outputs.append([j[i] for j in outputs_ensemble])
-      outputs = _ensemble_reduce_mean(outputs)
+      outputs = Ensembler.merge(outputs)
     else:
       feature = to_tensor(pack['lr'])
       outputs, _ = self.model.eval([feature])
