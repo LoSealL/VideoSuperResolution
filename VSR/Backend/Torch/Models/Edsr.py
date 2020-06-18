@@ -6,14 +6,11 @@
 import logging
 import random
 
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
-from .Model import SuperResolution
 from .Ops.Blocks import EasyConv2d, MeanShift, RB
 from .Ops.Scale import MultiscaleUpsample, Upsample
-from ..Util import Metrics
+from .Optim.SISR import L1Optimizer
 
 _logger = logging.getLogger("VSR.EDSR")
 _logger.info("LICENSE: EDSR is implemented by Bee Lim. "
@@ -91,57 +88,28 @@ class Mdsr(nn.Module):
     return x
 
 
-class EDSR(SuperResolution):
-  def __init__(self, scale, channel, rgb_range=255, **kwargs):
-    super(EDSR, self).__init__(scale, channel)
+class EDSR(L1Optimizer):
+  def __init__(self, scale, channel, n_resblocks=16, n_feats=64, rgb_range=255,
+               **kwargs):
     self.rgb_range = rgb_range
-    self.edsr = Edsr(scale, channel, rgb_range=rgb_range, **kwargs)
-    self.opt = torch.optim.Adam(self.trainable_variables(), 1e-4)
+    self.edsr = Edsr(scale, channel, n_resblocks, n_feats, rgb_range)
+    super(EDSR, self).__init__(scale, channel, **kwargs)
 
-  def train(self, inputs, labels, learning_rate=None):
-    sr = self.edsr(inputs[0] * self.rgb_range) / self.rgb_range
-    loss = F.l1_loss(sr, labels[0])
-    if learning_rate:
-      for param_group in self.opt.param_groups:
-        param_group["lr"] = learning_rate
-    self.opt.zero_grad()
-    loss.backward()
-    self.opt.step()
-    return {'l1': loss.detach().cpu().numpy()}
-
-  def eval(self, inputs, labels=None, **kwargs):
-    metrics = {}
-    sr = self.edsr(inputs[0] * self.rgb_range) / self.rgb_range
-    sr = sr.cpu().detach()
-    if labels is not None:
-      metrics['psnr'] = Metrics.psnr(sr.numpy(), labels[0].cpu().numpy())
-    return [sr.numpy()], metrics
+  def fn(self, x):
+    return self.edsr(x * self.rgb_range) / self.rgb_range
 
 
-class MSDR(SuperResolution):
-  def __init__(self, scale, channel, rgb_range=255, **kwargs):
-    super(MSDR, self).__init__(scale, channel)
+class MSDR(L1Optimizer):
+  def __init__(self, scale, channel, n_resblocks=16, n_feats=64, rgb_range=255,
+               **kwargs):
     self.rgb_range = rgb_range
     self.scales = (2, 3, 4)
-    self.mdsr = Mdsr(self.scales, channel, rgb_range=rgb_range, **kwargs)
-    self.opt = torch.optim.Adam(self.trainable_variables(), 1e-4)
+    self.mdsr = Mdsr(self.scales, channel, n_resblocks, n_feats, rgb_range)
+    super(MSDR, self).__init__(scale, channel, **kwargs)
 
-  def train(self, inputs, labels, learning_rate=None):
-    scale = self.scales[random.randint(0, 3)]
-    sr = self.mdsr(inputs[0] * self.rgb_range, scale) / self.rgb_range
-    loss = F.l1_loss(sr, labels[0])
-    if learning_rate:
-      for param_group in self.opt.param_groups:
-        param_group["lr"] = learning_rate
-    self.opt.zero_grad()
-    loss.backward()
-    self.opt.step()
-    return {'l1': loss.detach().cpu().numpy()}
-
-  def eval(self, inputs, labels=None, **kwargs):
-    metrics = {}
-    sr = self.mdsr(inputs[0] * self.rgb_range, self.scale) / self.rgb_range
-    sr = sr.cpu().detach()
-    if labels is not None:
-      metrics['psnr'] = Metrics.psnr(sr.numpy(), labels[0].cpu().numpy())
-    return [sr.numpy()], metrics
+  def fn(self, x):
+    if self.mdsr.training:
+      scale = self.scales[random.randint(0, 3)]
+    else:
+      scale = self.scale
+    return self.mdsr(x * self.rgb_range, scale) / self.rgb_range

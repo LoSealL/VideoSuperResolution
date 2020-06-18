@@ -7,11 +7,9 @@ import logging
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
-from .Model import SuperResolution
 from .Ops.Blocks import EasyConv2d
-from ..Util import Metrics
+from .Optim.SISR import L1Optimizer
 
 _logger = logging.getLogger("VSR.DBPN")
 _logger.info("LICENSE: DBPN is implemented by Haris. "
@@ -143,31 +141,11 @@ class Dbpn(nn.Module):
       return 12, 8
 
 
-class DBPN(SuperResolution):
-  def __init__(self, channel, scale, **kwargs):
-    super(DBPN, self).__init__(scale, channel)
-    self.body = Dbpn(channel, scale, **kwargs)
-    self.opt = torch.optim.Adam(self.trainable_variables(), 1e-4)
+class DBPN(L1Optimizer):
+  def __init__(self, channel, scale, base_filter=64, feat=256, num_stages=7,
+               **kwargs):
+    self.body = Dbpn(channel, scale, base_filter, feat, num_stages)
+    super(DBPN, self).__init__(scale, channel, **kwargs)
 
-  def train(self, inputs, labels, learning_rate=None):
-    sr = self.body(inputs[0])
-    loss = F.l1_loss(sr, labels[0])
-    if learning_rate:
-      for param_group in self.opt.param_groups:
-        param_group["lr"] = learning_rate
-    self.opt.zero_grad()
-    loss.backward()
-    self.opt.step()
-    return {'l1': loss.detach().cpu().numpy()}
-
-  def eval(self, inputs, labels=None, **kwargs):
-    metrics = {}
-    sr = self.body(inputs[0]).cpu().detach()
-    if labels is not None:
-      metrics['psnr'] = Metrics.psnr(sr.numpy(), labels[0].cpu().numpy())
-    return [sr.numpy()], metrics
-
-  def export(self, export_dir):
-    device = list(self.body.parameters())[0].device
-    inputs = torch.randn(1, self.channel, 144, 128, device=device)
-    torch.onnx.export(self.body, (inputs,), export_dir / 'dbpn.onnx')
+  def fn(self, x):
+    return self.body(x)

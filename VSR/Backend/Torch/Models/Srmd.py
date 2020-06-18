@@ -12,6 +12,7 @@ import torch.nn as nn
 from VSR.Util.Math import anisotropic_gaussian_kernel, gaussian_kernel
 from VSR.Util.PcaPrecompute import get_degradation
 from .Ops.Blocks import EasyConv2d
+from .Ops.Discriminator import DCGAN
 from .Optim.SISR import PerceptualOptimizer
 from ..Util.Utility import imfilter
 
@@ -65,7 +66,11 @@ class SRMD(PerceptualOptimizer):
     self.noise = noise
     self.blur_padding = torch.nn.ReflectionPad2d(7)
     self.srmd = Net(scale, channel, layers, filters, pca_length)
-    super(SRMD, self).__init__(scale, channel, **kwargs)
+    disc_opt = {
+      'channel': channel, 'num_layers': 10, 'scale': scale, 'norm': 'BN'
+    }
+    super(SRMD, self).__init__(scale, channel, discriminator=DCGAN,
+                               discriminator_kwargs=disc_opt, **kwargs)
 
   def gen_kernel(self, ktype, ksize, l1, l2=None, theta=0):
     if ktype == 'isotropic':

@@ -64,11 +64,11 @@ class SRFEAT(SuperResolution):
     self.gopt = torch.optim.Adam(self.trainable_variables('srfeat'), 1e-4)
     if self.use_gan:
       # vanilla image
-      self.dnet1 = DCGAN(channel, np.log2(patch_size // 4) * 2, 'bn')
+      self.dnet1 = DCGAN(channel, np.log2(patch_size // 4) * 2, scale, 'bn')
       self.dopt1 = torch.optim.Adam(self.trainable_variables('dnet1'), 1e-4)
     if self.use_feat_gan:
       # vgg feature
-      self.dnet2 = DCGAN(256, np.log2(patch_size // 16) * 2, 'bn')
+      self.dnet2 = DCGAN(256, np.log2(patch_size // 16) * 2, scale, 'bn')
       self.dopt2 = torch.optim.Adam(self.trainable_variables('dnet2'), 1e-4)
     self.vgg = [VggFeatureLoss(['block3_conv1'], True)]
     self.w = weights

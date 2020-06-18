@@ -97,6 +97,15 @@ class BasicModel(object):
       if torch.cuda.is_available():
         self.modules[i] = self.modules[i].cuda()
 
+  def distributed(self):
+    if torch.distributed.is_available():
+      torch.distributed.init_process_group(backend='nccl', init_method="env://")
+    for i in self.modules:
+      if torch.distributed.is_available() and torch.distributed.is_nccl_available():
+        self.modules[i] = torch.nn.parallel.DistributedDataParallel(self.modules[i])
+      else:
+        self.modules[i] = torch.nn.DataParallel(self.modules[i])
+
   def export(self, export_dir):
     """export ONNX model.
 
@@ -159,7 +168,7 @@ class SuperResolution(BasicModel):
   """A default model for (video) super-resolution"""
 
   def __init__(self, scale, channel, **kwargs):
-    super(SuperResolution, self).__init__(**kwargs)
+    super(SuperResolution, self).__init__()
     self.scale = scale
     self.channel = channel
     # Default SR trainer

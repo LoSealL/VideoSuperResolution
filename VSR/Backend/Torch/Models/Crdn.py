@@ -8,10 +8,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from VSR.Util.Utility import to_list
-from . import Model
 from .Ops.Blocks import CascadeRdn
-from ..Framework.Summary import get_writer
-from ..Util import Metrics
+from .Optim.SISR import L1Optimizer
 
 
 class Upsample(nn.Module):
@@ -67,29 +65,10 @@ class Crdn(nn.Module):
     return out
 
 
-class CRDN(Model.SuperResolution):
-  def __init__(self, **kwargs):
-    super(CRDN, self).__init__(scale=1, channel=3)
+class CRDN(L1Optimizer):
+  def __init__(self, channel=3, scale=1, **kwargs):
     self.rsr = Crdn()
-    self.opt = torch.optim.Adam(self.trainable_variables(), 1e-4)
+    super(CRDN, self).__init__(scale=scale, channel=channel, **kwargs)
 
-  def train(self, inputs, labels, learning_rate=None):
-    sr = self.rsr(inputs[0])
-    loss = F.l1_loss(sr, labels[0])
-    if learning_rate:
-      for param_group in self.opt.param_groups:
-        param_group["lr"] = learning_rate
-    self.opt.zero_grad()
-    loss.backward()
-    self.opt.step()
-    return {'l1': loss.detach().cpu().numpy()}
-
-  def eval(self, inputs, labels=None, **kwargs):
-    metrics = {}
-    sr = self.rsr(inputs[0]).cpu().detach()
-    if labels is not None:
-      metrics['psnr'] = Metrics.psnr(sr.numpy(), labels[0].cpu().numpy())
-      writer = get_writer(self.name)
-      if writer is not None:
-        writer.image('clean', sr)
-    return [sr.numpy()], metrics
+  def fn(self, x):
+    return self.rsr(x)

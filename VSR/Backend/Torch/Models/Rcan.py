@@ -10,6 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .Model import SuperResolution
+from .Optim.SISR import L1Optimizer
 from .Ops.Blocks import EasyConv2d, MeanShift, Rcab
 from .Ops.Scale import Upsample
 from ..Util import Metrics
@@ -64,30 +65,13 @@ class Rcan(nn.Module):
     return x
 
 
-class RCAN(SuperResolution):
+class RCAN(L1Optimizer):
   def __init__(self, channel, scale, n_resgroups, n_resblocks, n_feats,
-               reduction, **kwargs):
-    super(RCAN, self).__init__(scale, channel)
-    self.rgb_range = kwargs.get('rgb_range', 255)
+               reduction, rgb_range=255, **kwargs):
+    self.rgb_range = rgb_range
     self.rcan = Rcan(channel, scale, n_resgroups, n_resblocks, n_feats,
-                     reduction, self.rgb_range)
-    self.opt = torch.optim.Adam(self.trainable_variables(), 1e-4)
+                     reduction, rgb_range)
+    super(RCAN, self).__init__(scale, channel, **kwargs)
 
-  def train(self, inputs, labels, learning_rate=None):
-    sr = self.rcan(inputs[0] * self.rgb_range) / self.rgb_range
-    loss = F.l1_loss(sr, labels[0])
-    if learning_rate:
-      for param_group in self.opt.param_groups:
-        param_group["lr"] = learning_rate
-    self.opt.zero_grad()
-    loss.backward()
-    self.opt.step()
-    return {'l1': loss.detach().cpu().numpy()}
-
-  def eval(self, inputs, labels=None, **kwargs):
-    metrics = {}
-    sr = self.rcan(inputs[0] * self.rgb_range) / self.rgb_range
-    sr = sr.cpu().detach()
-    if labels is not None:
-      metrics['psnr'] = Metrics.psnr(sr.numpy(), labels[0].cpu().numpy())
-    return [sr.numpy()], metrics
+  def fn(self, x):
+    return self.rcan(x * self.rgb_range) / self.rgb_range

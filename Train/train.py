@@ -33,6 +33,7 @@ g3.add_argument("--traced_val", action="store_true")
 g3.add_argument("--pretrain", help="specify the pre-trained model checkpoint or will search into `save_dir` if not specified")
 g3.add_argument("--export", help="export ONNX (torch backend) or protobuf (tf backend) (needs support from model)")
 g3.add_argument("-c", "--comment", default=None, help="extend a comment string after saving folder")
+g3.add_argument("--distributed", action="store_true")
 
 
 def main():
@@ -62,6 +63,8 @@ def main():
     model.cuda()
   if opt.pretrain:
     model.load(opt.pretrain)
+  if opt.distributed:
+    model.distributed()
   root = f'{opt.save_dir}/{opt.model}'
   if opt.comment:
     root += '_' + opt.comment

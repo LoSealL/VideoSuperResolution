@@ -111,7 +111,7 @@ class QPRN(SuperResolution):
     self.qprn = Composer(channel, L=2, gain=gain)
     self.adam = torch.optim.Adam(self.trainable_variables('qprn'), 1e-4)
     if self.debug.gan:
-      self.dnet = DCGAN(channel * 4, 9, 'bn', 'A')
+      self.dnet = DCGAN(channel * 4, 9, scale, 'bn', 'A')
       self.adam_d = torch.optim.Adam(self.trainable_variables('dnet'), 1e-4)
     self._trainer = _Trainer
 

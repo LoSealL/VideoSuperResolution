@@ -3,17 +3,16 @@
 #  Email: wenyitang@outlook.com
 #  Update: 2020 - 6 - 16
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from ..Model import SuperResolution
-from ..Ops.Discriminator import DCGAN
-from ..Ops.Loss import VggFeatureLoss, GeneratorLoss, DiscriminatorLoss
+from ..Ops.Discriminator import PatchGAN
+from ..Ops.Loss import DiscriminatorLoss, GeneratorLoss, VggFeatureLoss
 from ...Framework.Summary import get_writer
 from ...Util import Metrics
-from ...Util.Utility import pad_if_divide, upsample
+from ...Util.Utility import pad_if_divide
 
 
 def get_opt(opt_config, params, lr):
@@ -150,7 +149,15 @@ class PerceptualOptimizer(L1Optimizer):
       self.feature = [VggFeatureLoss(feature_lists, True)]
     if self.use_gan:
       # define D-net
-      self.dnet = DCGAN(3, 8, norm='BN', favor='C')
+      dnet = kwargs.get('discriminator', PatchGAN)
+      dnet_kw = kwargs.get('discriminator_kwargs', {
+        'channel': channel,
+        'num_layers': 3,
+        'norm': 'BN',
+        'activation': 'leaky',
+        'negative_slope': 0.2,
+      })
+      self.dnet = dnet(**dnet_kw)
       self.optd = torch.optim.Adam(self.trainable_variables('dnet'), 1e-4)
     # image, vgg, gan
     self.w = [image_weight, feature_weight, gan_weight]

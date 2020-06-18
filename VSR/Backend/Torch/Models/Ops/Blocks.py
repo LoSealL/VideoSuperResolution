@@ -27,7 +27,7 @@ class MeanShift(nn.Conv2d):
 
 
 class Activation(nn.Module):
-  def __init__(self, act, *args, **kwargs):
+  def __init__(self, act, **kwargs):
     super(Activation, self).__init__()
     if act is None:
       self.f = lambda t: t
@@ -37,9 +37,11 @@ class Activation(nn.Module):
       if self.name == 'relu':
         self.f = nn.ReLU(in_place)
       elif self.name == 'prelu':
-        self.f = nn.PReLU()
+        self.f = nn.PReLU(num_parameters=kwargs.get('num_parameters', 1),
+                          init=kwargs.get('init', 0.25))
       elif self.name in ('lrelu', 'leaky', 'leakyrelu'):
-        self.f = nn.LeakyReLU(*args, inplace=in_place)
+        self.f = nn.LeakyReLU(negative_slope=kwargs.get('negative_slope', 1e-2),
+                              inplace=in_place)
       elif self.name == 'tanh':
         self.f = nn.Tanh()
       elif self.name == 'sigmoid':
@@ -52,9 +54,42 @@ class Activation(nn.Module):
 
 
 class EasyConv2d(nn.Module):
+  """ Convolution maker, to construct commonly used conv block with default
+  configurations.
+
+  Support to build Conv2D, ConvTransposed2D, along with selectable normalization
+  and activations.
+  Support normalization:
+  - Batchnorm2D
+  - Spectralnorm2D
+  Support activation:
+  - Relu
+  - PRelu
+  - LeakyRelu
+  - Tanh
+  - Sigmoid
+  - Customized callable functions
+
+  Args:
+      in_channels (int): Number of channels in the input image
+      out_channels (int): Number of channels produced by the convolution
+      kernel_size (int or tuple): Size of the convolving kernel
+      stride (int or tuple, optional): Stride of the convolution. Default: 1
+      padding (str, optional): 'same' means $out_size=in_size // stride$ or
+                                $out_size=in_size * stride$ (ConvTransposed);
+                                'valid' means padding zero.
+      dilation (int or tuple, optional): Spacing between kernel elements. Default: 1
+      groups (int, optional): Number of blocked connections from input channels to output channels. Default: 1
+      use_bias (bool, optional): If ``True``, adds a learnable bias to the output. Default: ``True``
+      use_bn (bool, optional): If ``True``, adds Batchnorm2D module to the output.
+      use_sn (bool, optional): If ``True``, adds Spectralnorm2D module to the output.
+      transposed (bool, optional): If ``True``, use ConvTransposed instead of Conv2D.
+  """
+
   def __init__(self, in_channels, out_channels, kernel_size, stride=1,
                padding='same', dilation=1, groups=1, activation=None,
-               use_bias=True, use_bn=False, use_sn=False, transposed=False):
+               use_bias=True, use_bn=False, use_sn=False, transposed=False,
+               **kwargs):
     super(EasyConv2d, self).__init__()
     padding = padding.lower()
     assert padding in ('same', 'valid')
@@ -74,9 +109,14 @@ class EasyConv2d(nn.Module):
     if use_sn:
       net[0] = nn.utils.spectral_norm(net[0])
     if use_bn:
-      net += [nn.BatchNorm2d(out_channels)]
+      net += [nn.BatchNorm2d(
+          out_channels,
+          eps=kwargs.get('eps', 1e-5),
+          momentum=kwargs.get('momentum', 0.1),
+          affine=kwargs.get('affine', True),
+          track_running_stats=kwargs.get('track_running_stats', True))]
     if activation:
-      net += [Activation(activation, in_place=True)]
+      net += [Activation(activation, in_place=True, **kwargs)]
     self.body = nn.Sequential(*net)
 
   def forward(self, x):
@@ -329,15 +369,15 @@ class Conv2dLSTMCell(nn.Module):
     self.stride = stride
     self.padding = padding
     self.padding_h = tuple(
-      k // 2 for k, s, p, d in zip(kernel_size, stride, padding, dilation))
+        k // 2 for k, s, p, d in zip(kernel_size, stride, padding, dilation))
     self.dilation = dilation
     self.groups = groups
     self.weight_ih = Parameter(
-      torch.Tensor(4 * out_channels, in_channels // groups, *kernel_size))
+        torch.Tensor(4 * out_channels, in_channels // groups, *kernel_size))
     self.weight_hh = Parameter(
-      torch.Tensor(4 * out_channels, out_channels // groups, *kernel_size))
+        torch.Tensor(4 * out_channels, out_channels // groups, *kernel_size))
     self.weight_ch = Parameter(
-      torch.Tensor(3 * out_channels, out_channels // groups, *kernel_size))
+        torch.Tensor(3 * out_channels, out_channels // groups, *kernel_size))
     if bias:
       self.bias_ih = Parameter(torch.Tensor(4 * out_channels))
       self.bias_hh = Parameter(torch.Tensor(4 * out_channels))

@@ -95,6 +95,9 @@ class BasicModel:
     """Move model to cuda device."""
     pass
 
+  def distributed(self):
+    pass
+
   def export(self, export_dir):
     """export keras model.
 

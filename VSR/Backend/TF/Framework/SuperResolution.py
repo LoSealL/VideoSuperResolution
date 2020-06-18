@@ -87,6 +87,9 @@ class SuperResolution(Layers):
   def cuda(self):
     pass
 
+  def distributed(self):
+    pass
+
   def load(self, ckpt):
     self.pre_ckpt = ckpt
 

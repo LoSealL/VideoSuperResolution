@@ -3,6 +3,7 @@ carn:
     channel: 3
     multi_scale: 1  # change to 1 if use official pth file
     group: 1
+    clip: 10
 
 batch_shape: [16, 3, 64, 64]
 lr: 1.0e-4

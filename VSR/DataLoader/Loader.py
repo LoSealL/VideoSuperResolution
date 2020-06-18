@@ -17,7 +17,7 @@ from ..Backend import DATA_FORMAT
 from ..Util import Utility
 from ..Util.ImageProcess import img_to_array
 
-FREE_MEMORY = virtual_memory().available * 0.5
+FREE_MEMORY = virtual_memory().available
 LOG = logging.getLogger('VSR.Loader')
 
 
