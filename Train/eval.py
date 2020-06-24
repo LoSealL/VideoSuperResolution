@@ -70,6 +70,7 @@ def main():
       model_config_file = Path(f'{CWD}/Train/par/{BACKEND}/{opt.model}.{_ext}')
     if model_config_file.exists():
       opt.update(compat_param(Config(str(model_config_file))))
+      break
   # get model parameters from pre-defined YAML file
   model_params = opt.get(opt.model, {})
   suppress_opt_by_args(model_params, *args)

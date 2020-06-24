@@ -4,13 +4,14 @@
 #  Update: 2020 - 2 - 7
 
 import argparse
+import shutil
 from pathlib import Path
 
 from VSR.Backend import BACKEND
 from VSR.DataLoader import CenterCrop, Loader, RandomCrop
 from VSR.DataLoader import load_datasets
 from VSR.Model import get_model, list_supported_models
-from VSR.Util import Config, lr_decay, suppress_opt_by_args, compat_param
+from VSR.Util import Config, compat_param, lr_decay, suppress_opt_by_args
 
 CWD = Path(__file__).resolve().parent.parent
 parser = argparse.ArgumentParser(description=f'VSR ({BACKEND}) Training Tool v1.0')
@@ -54,6 +55,7 @@ def main():
       model_config_file = Path(f'{CWD}/Train/par/{BACKEND}/{opt.model}.{_ext}')
     if model_config_file.exists():
       opt.update(compat_param(Config(str(model_config_file))))
+      break
   # get model parameters from pre-defined YAML file
   model_params = opt.get(opt.model, {})
   suppress_opt_by_args(model_params, *args)
@@ -92,6 +94,8 @@ def main():
       lv.set_color_space('lr', 'L')
   # enter model executor environment
   with model.get_executor(root) as t:
+    if hasattr(t, '_logd') and isinstance(t._logd, Path):
+      shutil.copy(model_config_file, t._logd)
     config = t.query_config(opt)
     if opt.lr_decay:
       config.lr_schedule = lr_decay(lr=opt.lr, **opt.lr_decay)
