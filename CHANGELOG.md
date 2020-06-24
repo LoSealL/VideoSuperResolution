@@ -5,6 +5,7 @@
 - Update TF backend
 - Add support to tensorflow 2.0 (both legacy and eager mode)
 - Refactor torch backend models
+- Add `--caching_dataset` to cache transformed data into memory (ignored when `memory_limit` set).
 
 ## 1.0.5
 ## 2020-05

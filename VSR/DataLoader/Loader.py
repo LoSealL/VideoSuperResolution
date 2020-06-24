@@ -50,6 +50,7 @@ class EpochIterator:
       shape: The shape of the generated batch, 5-D requested [N, T, C, H, W].
       steps: The number of batches to generate in one epoch.
       shuffle: A boolean representing whether to shuffle the dataset.
+      caching: Cache the transform and color converted image.
 
   Note:
       The rules for -1 shape:
@@ -64,11 +65,12 @@ class EpochIterator:
       - If the `steps` is -1, will generate batches in sequential order;
   """
 
-  def __init__(self, loader, shape, steps, shuffle=None):
+  def __init__(self, loader, shape, steps, shuffle=None, caching=False):
     self.loader = loader
     self.shape = shape
     self.depth = shape[1]
     self.count = 0
+    self.cache = caching
     t = len(self.loader.data['hr'])
     frame_nums = [len(i) for i in self.loader.data['hr']]
     temporal_padding = not shuffle
@@ -78,7 +80,7 @@ class EpochIterator:
       idx_ = [(i, np.array([j + x for x in range(depth)])) for j in
               range(-(depth // 2), frame_nums[i] - (depth // 2))]
       d2_ = depth // 2
-      self.index += idx_ if temporal_padding or d2_ == 0 else idx_[d2_ : -d2_]
+      self.index += idx_ if temporal_padding or d2_ == 0 else idx_[d2_: -d2_]
     self.steps = steps if steps >= 0 else len(self.index) // shape[0]
     while len(self.index) < self.steps * shape[0] and self.index:
       self.index += self.index
@@ -110,13 +112,23 @@ class EpochIterator:
       d[d >= len(hr)] = len(hr) - 1
       name = self.loader.data['names'][i]
       hr2 = np.asarray(hr, dtype=object)[d]
-      for fn in cb_hr[0]:
-        hr2 = [fn(img) for img in hr2]
-      hr2 = [img.convert(self.loader.hr['color']) for img in hr2]
+      if not self.loader.cache_map.get(f'hr-{name}-{i}-{d}'):
+        for fn in cb_hr[0]:
+          hr2 = [fn(img) for img in hr2]
+        hr2 = [img.convert(self.loader.hr['color']) for img in hr2]
+        if self.cache:
+          self.loader.data['hr'][i] = hr2
+          self.loader.cache_map[f'hr-{name}-{i}-{d}'] = True
+          LOG.debug(f"Caching hr-{name}-{i}-{d}...")
       lr2 = np.asarray(lr, dtype=object)[d]
-      for fn in cb_lr[0]:
-        lr2 = [fn(img) for img in lr2]
-      lr2 = [img.convert(self.loader.lr['color']) for img in lr2]
+      if not self.loader.cache_map.get(f'lr-{name}-{i}-{d}'):
+        for fn in cb_lr[0]:
+          lr2 = [fn(img) for img in lr2]
+        lr2 = [img.convert(self.loader.lr['color']) for img in lr2]
+        if self.cache:
+          self.loader.data['lr'][i] = lr2
+          self.loader.cache_map[f'lr-{name}-{i}-{d}'] = True
+          LOG.debug(f"Caching lr-{name}-{i}-{d}...")
       hr3 = np.stack([img_to_array(img, DATA_FORMAT) for img in hr2])
       lr3 = np.stack([img_to_array(img, DATA_FORMAT) for img in lr2])
       del hr2, lr2
@@ -227,6 +239,7 @@ class Loader(object):
       'names': [],
       'extra': []
     }
+    self.cache_map = {}
     self.extra = extra_data or {}
     self.crop = None
     self.threads = threads
@@ -292,7 +305,7 @@ class Loader(object):
     getattr(self, target.lower()).update(color=mode)
 
   def make_one_shot_iterator(self, batch_shape, steps, shuffle=None,
-                             memory_limit=None):
+                             memory_limit=None, caching=False):
     """Make an iterator object to generate batch data for models.
 
     Args:
@@ -300,6 +313,7 @@ class Loader(object):
         steps: The number of batches to generate in one epoch.
         shuffle: A boolean representing whether to shuffle the dataset.
         memory_limit: the maximum system memory to use. (Not GPU memory!!)
+        caching: cache the tranformed images (tranform1 and color conversion)
 
     Note:
         The rules for -1 shape:
@@ -339,7 +353,7 @@ class Loader(object):
         if loaded >= self.aux['cap'] / memory_limit:
           loaded = 0
       self.loaded = loaded << (self.threads * 2)
-    return EpochIterator(self, shape, steps, shuffle)
+    return EpochIterator(self, shape, steps, shuffle, caching)
 
   def prefetch(self, shuffle=None, memory_usage=None):
     # check memory usage

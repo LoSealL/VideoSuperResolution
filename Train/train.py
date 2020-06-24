@@ -34,6 +34,7 @@ g3.add_argument("--pretrain", help="specify the pre-trained model checkpoint or 
 g3.add_argument("--export", help="export ONNX (torch backend) or protobuf (tf backend) (needs support from model)")
 g3.add_argument("-c", "--comment", default=None, help="extend a comment string after saving folder")
 g3.add_argument("--distributed", action="store_true")
+g3.add_argument("--caching_dataset", action="store_true")
 
 
 def main():
@@ -94,6 +95,7 @@ def main():
     config = t.query_config(opt)
     if opt.lr_decay:
       config.lr_schedule = lr_decay(lr=opt.lr, **opt.lr_decay)
+    config.caching = opt.caching_dataset and opt.memory_limit is None
     t.fit([lt, lv], config)
     if opt.export:
       t.export(opt.export)

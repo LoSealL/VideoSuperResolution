@@ -233,6 +233,7 @@ class VSR(Trainer):
     self.v.traced_val = config.traced_val
     self.v.ensemble = config.ensemble
     self.v.cuda = config.cuda
+    self.v.caching = config.caching_dataset
     return self.v
 
   def fit_init(self) -> bool:
@@ -260,7 +261,8 @@ class VSR(Trainer):
     train_iter = v.train_loader.make_one_shot_iterator(v.batch_shape,
                                                        v.steps,
                                                        shuffle=True,
-                                                       memory_limit=mem)
+                                                       memory_limit=mem,
+                                                       caching=v.caching)
     v.train_loader.prefetch(v.memory_limit)
     v.avg_meas = {}
     if v.lr_schedule and callable(v.lr_schedule):
@@ -325,7 +327,8 @@ class VSR(Trainer):
     v = self.v
     it = v.loader.make_one_shot_iterator(v.batch_shape, v.val_steps,
                                          shuffle=not v.traced_val,
-                                         memory_limit=v.memory_limit)
+                                         memory_limit=v.memory_limit,
+                                         caching=v.caching)
     for items in tqdm.tqdm(it, 'Test', ascii=True):
       self.fn_benchmark_each_step(items)
 

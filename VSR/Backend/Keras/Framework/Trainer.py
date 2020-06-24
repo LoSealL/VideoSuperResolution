@@ -42,6 +42,7 @@ class SRTrainer(Env):
     self.v.traced_val = config.traced_val
     self.v.ensemble = config.ensemble
     self.v.cuda = config.cuda
+    self.v.caching = config.caching_dataset
     return self.v
 
   def fit_init(self) -> bool:
@@ -75,7 +76,8 @@ class SRTrainer(Env):
       train_iter = v.train_loader.make_one_shot_iterator(v.batch_shape,
                                                          v.steps,
                                                          shuffle=True,
-                                                         memory_limit=mem)
+                                                         memory_limit=mem,
+                                                         caching=v.caching)
       v.train_loader.prefetch(shuffle=True, memory_usage=mem)
       v.avg_meas = {}
       if v.lr_schedule and callable(v.lr_schedule):
@@ -121,7 +123,8 @@ class SRTrainer(Env):
     v.loader = loader
     it = v.loader.make_one_shot_iterator(v.batch_shape, v.val_steps,
                                          shuffle=not v.traced_val,
-                                         memory_limit=v.memory_limit)
+                                         memory_limit=v.memory_limit,
+                                         caching=v.caching)
     self.model.to_eval()
     for items in tqdm.tqdm(it, 'Test', ascii=True):
       self.fn_benchmark_each_step(items)
