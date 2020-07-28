@@ -1,5 +1,6 @@
 cubic:
     scale: 4
     channel: 3
+    depth: 1
 
 batch_shape: [16, 3, 32, 32]

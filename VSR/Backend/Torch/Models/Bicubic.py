@@ -21,6 +21,8 @@ class Cubic(nn.Module):
     self.scale = scale
 
   def forward(self, x):
+    if self.scale == 1:
+      return x
     ret = []
     for img in [i[0] for i in x.split(1, dim=0)]:
       img = self.to_pil(img.cpu())

@@ -1,11 +1,12 @@
 1.0.6
 
 ## 1.0.6
-## 2020-06
+## 2020-07
 - Update TF backend
 - Add support to tensorflow 2.0 (both legacy and eager mode)
 - Refactor torch backend models
 - Add `--caching_dataset` to cache transformed data into memory (ignored when `memory_limit` set).
+- Fix FastMetrics multi-threads issue
 
 ## 1.0.5
 ## 2020-05
