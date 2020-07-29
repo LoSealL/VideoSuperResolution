@@ -20,14 +20,18 @@ class BasicModel(object):
     - opts: contains a K-V pair of `str: optim.Optimizer`. Will be automatically
       appended if a derived object assign any attribute with `optim.Optimizer`.
   """
-  modules = OrderedDict()
-  opts = OrderedDict()
-  name = ''
-  loaded = None
-  _trainer = None
+
+  def _setup(self):
+    self.setup = True
+    self.modules = OrderedDict()
+    self.opts = OrderedDict()
+    self.name = ''
+    self.loaded = None
 
   def __setattr__(self, key, value):
-    if key in ('modules', 'opts',):
+    if not hasattr(self, 'setup') and key != 'setup':
+      self._setup()
+    if key in ('modules', 'opts', 'setup'):
       if hasattr(self, key):
         raise ValueError(f"Can't overwrite built-in '{key}' of BasicModel")
     if isinstance(value, torch.nn.Module):
