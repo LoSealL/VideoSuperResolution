@@ -365,7 +365,7 @@ class VSR(Trainer):
     """
     v = self.query_config(config, **kwargs)
     self._restore()
-    it = loader.make_one_shot_iterator([1, -1, -1, -1], -1)
+    it = loader.make_one_shot_iterator(v.batch_shape, -1)
     if hasattr(it, '__len__'):
       if len(it):
         LOG.info('Inferring {} at epoch {}'.format(
