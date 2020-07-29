@@ -7,7 +7,7 @@ import unittest
 if not os.getcwd().endswith('Tests'):
   os.chdir('Tests')
 from VSR.Backend.TF.Framework import Motion as M
-from VSR.Backend.Torch.Models.video import motion as MT
+from VSR.Backend.Torch.Models.Ops import Motion as MT
 from VSR.DataLoader.FloDecoder import open_flo, KITTI
 
 import tensorflow as tf

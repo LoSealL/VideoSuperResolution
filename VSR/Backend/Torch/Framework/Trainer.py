@@ -4,46 +4,17 @@
 #  Update: 2020 - 2 - 7
 
 import logging
-import time
 
 import numpy as np
 import torch
 import tqdm
 
 from VSR.Util.Config import Config
+from VSR.Util.Ensemble import Ensembler
 from .Environment import Env
 from .Summary import Summarizer
 
-LOG = logging.getLogger('VSR.Framework')
-
-
-def _ensemble_expand(feature):
-  r0 = feature
-  r1 = np.rot90(feature, 1, axes=[-3, -2])
-  r2 = np.rot90(feature, 2, axes=[-3, -2])
-  r3 = np.rot90(feature, 3, axes=[-3, -2])
-  r4 = np.flip(feature, axis=-2)
-  r5 = np.rot90(r4, 1, axes=[-3, -2])
-  r6 = np.rot90(r4, 2, axes=[-3, -2])
-  r7 = np.rot90(r4, 3, axes=[-3, -2])
-  return r0, r1, r2, r3, r4, r5, r6, r7
-
-
-def _ensemble_reduce_mean(outputs):
-  results = []
-  for i in outputs:
-    outputs_ensemble = [
-      i[0],
-      np.rot90(i[1], 3, axes=[-3, -2]),
-      np.rot90(i[2], 2, axes=[-3, -2]),
-      np.rot90(i[3], 1, axes=[-3, -2]),
-      np.flip(i[4], axis=-2),
-      np.flip(np.rot90(i[5], 3, axes=[-3, -2]), axis=-2),
-      np.flip(np.rot90(i[6], 2, axes=[-3, -2]), axis=-2),
-      np.flip(np.rot90(i[7], 1, axes=[-3, -2]), axis=-2),
-    ]
-    results.append(np.concatenate(outputs_ensemble).mean(axis=0, keepdims=True))
-  return results
+LOG = logging.getLogger('VSR.Framework.Torch')
 
 
 def to_tensor(x, cuda=False):
@@ -76,6 +47,7 @@ class SRTrainer(Env):
     self.v.ensemble = config.ensemble
     self.v.cuda = config.cuda
     self.v.map_location = 'cuda:0' if config.cuda and torch.cuda.is_available() else 'cpu'
+    self.v.caching = config.caching
     return self.v
 
   def fit_init(self) -> bool:
@@ -85,7 +57,7 @@ class SRTrainer(Env):
       LOG.info(f'Found pre-trained epoch {v.epoch}>=target {v.epochs},'
                ' quit fitting.')
       return False
-    LOG.info('Fitting: {}'.format(self.model.name.upper()))
+    LOG.info(f'Fitting: {self.model.name.upper()}')
     if self._logd:
       v.writer = Summarizer(str(self._logd), self.model.name)
     return True
@@ -107,14 +79,13 @@ class SRTrainer(Env):
       train_iter = v.train_loader.make_one_shot_iterator(v.batch_shape,
                                                          v.steps,
                                                          shuffle=True,
-                                                         memory_limit=mem)
+                                                         memory_limit=mem,
+                                                         caching=v.caching)
       v.train_loader.prefetch(shuffle=True, memory_usage=mem)
-      date = time.strftime('%Y-%m-%d %T', time.localtime())
       v.avg_meas = {}
       if v.lr_schedule and callable(v.lr_schedule):
         v.lr = v.lr_schedule(steps=v.epoch)
-      print('| {} | Epoch: {}/{} | LR: {:.2g} |'.format(
-        date, v.epoch, v.epochs, v.lr))
+      LOG.info(f"| Epoch: {v.epoch}/{v.epochs} | LR: {v.lr:.2g} |")
       with tqdm.tqdm(train_iter, unit='batch', ascii=True) as r:
         self.model.to_train()
         for items in r:
@@ -124,7 +95,7 @@ class SRTrainer(Env):
         _v = np.mean(_v)
         if isinstance(self.v.writer, Summarizer):
           v.writer.scalar(_k, _v, step=v.epoch, collection='train')
-        print('| Epoch average {} = {:.6f} |'.format(_k, _v))
+        LOG.info(f"| Epoch average {_k} = {_v:.6f} |")
       if v.epoch % v.validate_every_n_epoch == 0 and v.val_loader:
         # Hard-coded memory limitation for validating
         self.benchmark(v.val_loader, v, memory_limit='1GB')
@@ -156,17 +127,20 @@ class SRTrainer(Env):
     v.loader = loader
     it = v.loader.make_one_shot_iterator(v.batch_shape, v.val_steps,
                                          shuffle=not v.traced_val,
-                                         memory_limit=v.memory_limit)
+                                         memory_limit=v.memory_limit,
+                                         caching=v.caching)
     self.model.to_eval()
     for items in tqdm.tqdm(it, 'Test', ascii=True):
       with torch.no_grad():
         self.fn_benchmark_each_step(items)
+    log_message = str()
     for _k, _v in v.mean_metrics.items():
       _v = np.mean(_v)
       if isinstance(self.v.writer, Summarizer):
         v.writer.scalar(_k, _v, step=v.epoch, collection='eval')
-      print('{}: {:.6f}'.format(_k, _v), end=', ')
-    print('')
+      log_message += f"{_k}: {_v:.6f}, "
+    log_message = log_message[:-2] + "."
+    LOG.info(log_message)
 
   def fn_benchmark_each_step(self, pack):
     v = self.v
@@ -181,7 +155,8 @@ class SRTrainer(Env):
     outputs = [from_tensor(x) for x in outputs]
     for fn in v.inference_results_hooks:
       outputs = fn(outputs, names=pack['name'])
-      if outputs is None: break
+      if outputs is None:
+        break
 
   def infer(self, loader, config, **kwargs):
     """Infer SR images.
@@ -195,11 +170,9 @@ class SRTrainer(Env):
     self._restore(config.epoch, v.map_location)
     it = loader.make_one_shot_iterator([1, -1, -1, -1], -1)
     if hasattr(it, '__len__'):
-      if len(it):
-        LOG.info('Inferring {} at epoch {}'.format(
-          self.model.name, self.last_epoch))
-      else:
+      if len(it) == 0:
         return
+      LOG.info(f"Inferring {self.model.name} at epoch {self.last_epoch}")
     # use original images in inferring
     self.model.to_eval()
     for items in tqdm.tqdm(it, 'Infer', ascii=True):
@@ -211,7 +184,7 @@ class SRTrainer(Env):
     with torch.set_grad_enabled(False):
       if v.ensemble:
         # add self-ensemble boosting metric score
-        feature_ensemble = _ensemble_expand(pack['lr'])
+        feature_ensemble = Ensembler.expand(pack['lr'])
         outputs_ensemble = []
         for f in feature_ensemble:
           f = to_tensor(f, v.cuda)
@@ -221,11 +194,12 @@ class SRTrainer(Env):
         outputs = []
         for i in range(len(outputs_ensemble[0])):
           outputs.append([j[i] for j in outputs_ensemble])
-        outputs = _ensemble_reduce_mean(outputs)
+        outputs = Ensembler.merge(outputs)
       else:
         feature = to_tensor(pack['lr'], v.cuda)
         outputs, _ = self.model.eval([feature])
         outputs = [from_tensor(x) for x in outputs]
     for fn in v.inference_results_hooks:
       outputs = fn(outputs, names=pack['name'])
-      if outputs is None: break
+      if outputs is None:
+        break

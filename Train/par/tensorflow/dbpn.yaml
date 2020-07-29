@@ -1,13 +1,13 @@
 dbpn:
-  bp_layers: 7
-  use_dense: true
-  scale: 4
-  channel: 3
+    bp_layers: 7
+    use_dense: true
+    scale: 4
+    channel: 3
 
 patch_size: 96
 batch: 16
-lr: 1.0e-6
+lr: 1.0e-4
 lr_decay:
-  method: multistep
-  decay_step: [60000, 160000]
-  decay_rate: 1
+    method: multistep
+    decay_step: [60000, 160000]
+    decay_rate: 1

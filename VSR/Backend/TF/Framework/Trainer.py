@@ -1,5 +1,5 @@
 """
-Copyright: Wenyi Tang 2017-2018
+Copyright: Wenyi Tang 2017-2020
 Author: Wenyi Tang
 Email: wenyi.tang@intel.com
 Created Date: Oct 15th 2018
@@ -9,14 +9,13 @@ training methodology for SISR, VSR or other image tasks.
 """
 
 import logging
-import time
 from pathlib import Path
 
 import numpy as np
-import tensorflow as tf
 import tqdm
 
 from VSR.Util import Config, to_list
+from .. import tf
 
 LOG = logging.getLogger('VSR.Framework')
 
@@ -91,9 +90,12 @@ class Trainer:
       self._saved.mkdir(parents=True, exist_ok=True)
     if isinstance(self._logd, Path):
       self._logd.mkdir(parents=True, exist_ok=True)
-      if LOG.isEnabledFor(logging.DEBUG):
-        hdl = logging.FileHandler(self._logd / 'training.txt')
-        LOG.addHandler(hdl)
+      _logger = logging.getLogger('VSR')
+      if _logger.isEnabledFor(logging.DEBUG):
+        fd = logging.FileHandler(self._logd / 'vsr_debug.log', encoding='utf-8')
+        fd.setFormatter(
+            logging.Formatter("[%(asctime)s][%(levelname)s] %(message)s"))
+        _logger.addHandler(fd)
     if self.model.compiled:
       self.graph = tf.get_default_graph()
     else:
@@ -231,6 +233,7 @@ class VSR(Trainer):
     self.v.traced_val = config.traced_val
     self.v.ensemble = config.ensemble
     self.v.cuda = config.cuda
+    self.v.caching = config.caching_dataset
     return self.v
 
   def fit_init(self) -> bool:
@@ -258,20 +261,19 @@ class VSR(Trainer):
     train_iter = v.train_loader.make_one_shot_iterator(v.batch_shape,
                                                        v.steps,
                                                        shuffle=True,
-                                                       memory_limit=mem)
+                                                       memory_limit=mem,
+                                                       caching=v.caching)
     v.train_loader.prefetch(v.memory_limit)
-    date = time.strftime('%Y-%m-%d %T', time.localtime())
     v.avg_meas = {}
     if v.lr_schedule and callable(v.lr_schedule):
       v.lr = v.lr_schedule(steps=v.global_step)
-    print('| {} | Epoch: {}/{} | LR: {:.2g} |'.format(
-        date, v.epoch, v.epochs, v.lr))
+    LOG.info(f"| Epoch: {v.epoch}/{v.epochs} | LR: {v.lr:.2g} |")
     with tqdm.tqdm(train_iter, unit='batch', ascii=True) as r:
       for items in r:
         self.fn_train_each_step(items)
         r.set_postfix(v.loss)
     for _k, _v in v.avg_meas.items():
-      print('| Epoch average {} = {:.6f} |'.format(_k, np.mean(_v)))
+      LOG.info(f"| Epoch average {_k} = {np.mean(_v):.6f} |")
     if v.epoch % v.validate_every_n_epoch == 0 and v.val_loader:
       self.benchmark(v.val_loader, v, epoch=v.epoch, memory_limit='1GB')
       v.summary_writer.add_summary(self.model.summary(), v.global_step)
@@ -325,7 +327,8 @@ class VSR(Trainer):
     v = self.v
     it = v.loader.make_one_shot_iterator(v.batch_shape, v.val_steps,
                                          shuffle=not v.traced_val,
-                                         memory_limit=v.memory_limit)
+                                         memory_limit=v.memory_limit,
+                                         caching=v.caching)
     for items in tqdm.tqdm(it, 'Test', ascii=True):
       self.fn_benchmark_each_step(items)
 
@@ -386,6 +389,9 @@ class VSR(Trainer):
     v.mean_metrics = {}
     v.loader = loader
     self.fn_benchmark_body()
+    log_message = str()
     for _k, _v in v.mean_metrics.items():
-      print('{}: {:.6f}'.format(_k, np.mean(_v)), end=', ')
-    print('')
+      _v = np.mean(_v)
+      log_message += f"{_k}: {_v:.6f}, "
+    log_message = log_message[:-2] + "."
+    LOG.info(log_message)

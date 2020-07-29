@@ -1,8 +1,9 @@
 ---
 srdensenet:
-  n_blocks: 8
-  scale: 4
-  channel: 3
+    n_blocks: 8
+    scale: 4
+    channel: 3
 
 patch_size: 100
 batch: 16
+lr: 1.0e-4

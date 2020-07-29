@@ -157,3 +157,16 @@ def camera_response_function(inputs, crf_table, max_val=1):
   for i in inputs_index.flatten():
     ret.append(crf_table[i])
   return np.reshape(ret, inputs.shape)
+
+
+def gen_pca_mat(dim=15, kernel_size=15, samples=10000):
+  kernels = []
+  for i in range(samples):
+    theta = np.random.uniform(0, np.pi)
+    l1 = np.random.uniform(0.1, 10)
+    l2 = np.random.uniform(0.1, l1)
+    kernels.append(anisotropic_gaussian_kernel(kernel_size, theta, l1, l2))
+  kernels = np.stack(kernels).reshape([samples, -1]).transpose()
+  mat_c = np.matmul(kernels, kernels.transpose())
+  _, mat_v = np.linalg.eigh(mat_c, 'U')
+  return mat_v[..., -dim:].transpose()

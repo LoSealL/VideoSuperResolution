@@ -5,14 +5,10 @@
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
-from .Arch import EasyConv2d, RB
-from .Loss import VggFeatureLoss
-from .Model import SuperResolution
-from ..Util import Metrics
+from .Optim.SISR import PerceptualOptimizer
+from .Ops.Blocks import EasyConv2d, RB
 from ..Util.Utility import upsample
-from ..Framework.Summary import get_writer
 
 
 class Espcn(nn.Module):
@@ -34,9 +30,9 @@ class Srcnn(nn.Module):
   def __init__(self, channel, filters=(9, 5, 5)):
     super(Srcnn, self).__init__()
     self.net = nn.Sequential(
-      EasyConv2d(channel, 64, filters[0], activation='relu'),
-      EasyConv2d(64, 32, filters[1], activation='relu'),
-      EasyConv2d(32, channel, filters[2], activation=None))
+        EasyConv2d(channel, 64, filters[0], activation='relu'),
+        EasyConv2d(64, 32, filters[1], activation='relu'),
+        EasyConv2d(32, channel, filters[2], activation=None))
 
   def forward(self, x):
     return self.net(x)
@@ -74,11 +70,11 @@ class Drcn(nn.Module):
 
     super(Drcn, self).__init__()
     self.entry = nn.Sequential(
-      EasyConv2d(channel, filters, 3, activation='relu'),
-      EasyConv2d(filters, filters, 3, activation='relu'))
+        EasyConv2d(channel, filters, 3, activation='relu'),
+        EasyConv2d(filters, filters, 3, activation='relu'))
     self.exit = nn.Sequential(
-      EasyConv2d(filters, filters, 3, activation='relu'),
-      EasyConv2d(filters, channel, 3))
+        EasyConv2d(filters, filters, 3, activation='relu'),
+        EasyConv2d(filters, channel, 3))
     self.conv = EasyConv2d(filters, filters, 3, activation='relu')
     self.output_weights = Parameter(torch.empty(n_recur + 1))
     torch.nn.init.uniform_(self.output_weights, 0, 1)
@@ -105,7 +101,7 @@ class Drrn(nn.Module):
       setattr(self, f'entry{i}',
               EasyConv2d(filters, filters, 3, activation='relu'))
     self.n_rb = n_rb
-    self.rb = RB(filters, 3, activation='relu')
+    self.rb = RB(filters, kernel_size=3, activation='relu')
     self.n_ru = n_ru
     self.exit = EasyConv2d(filters, channel, 3)
 
@@ -119,115 +115,10 @@ class Drrn(nn.Module):
     return self.exit(x)
 
 
-class PerceptualOptimizer(SuperResolution):
-  def __init__(self, scale, channel, image_weight=1, feature_weight=0,
-               **kwargs):
-    super(PerceptualOptimizer, self).__init__(scale, channel, **kwargs)
-    if feature_weight > 0:
-      # tricks: do not save weights of vgg
-      self.feature = [VggFeatureLoss(['block3_conv4'], True)]
-    self.w = [image_weight, feature_weight]
-    self.clip = kwargs.get('clip')
-    self.opt_config = kwargs.get('opt')
-
-  def get_opt(self, params, lr):
-    if self.opt_config is None:
-      return torch.optim.Adam(params, lr=lr)
-    if self.opt_config.get('name') == 'Adadelta':
-      kwargs = self.opt_config
-      kwargs.pop('name')
-      return torch.optim.Adadelta(params, lr=lr, **kwargs)
-    elif self.opt_config.get('name') == 'Adagrad':
-      kwargs = self.opt_config
-      kwargs.pop('name')
-      return torch.optim.Adagrad(params, lr=lr, **kwargs)
-    elif self.opt_config.get('name') == 'Adam':
-      kwargs = self.opt_config
-      kwargs.pop('name')
-      return torch.optim.Adam(params, lr=lr, **kwargs)
-    elif self.opt_config.get('name') == 'SparseAdam':
-      kwargs = self.opt_config
-      kwargs.pop('name')
-      return torch.optim.SparseAdam(params, lr=lr, **kwargs)
-    elif self.opt_config.get('name') == 'Adamax':
-      kwargs = self.opt_config
-      kwargs.pop('name')
-      return torch.optim.Adamax(params, lr=lr, **kwargs)
-    elif self.opt_config.get('name') == 'ASGD':
-      kwargs = self.opt_config
-      kwargs.pop('name')
-      return torch.optim.ASGD(params, lr=lr, **kwargs)
-    elif self.opt_config.get('name') == 'SGD':
-      kwargs = self.opt_config
-      kwargs.pop('name')
-      return torch.optim.SGD(params, lr=lr, **kwargs)
-    elif self.opt_config.get('name') == 'LBFGS':
-      kwargs = self.opt_config
-      kwargs.pop('name')
-      return torch.optim.LBFGS(params, lr=lr, **kwargs)
-    elif self.opt_config.get('name') == 'Rprop':
-      kwargs = self.opt_config
-      kwargs.pop('name')
-      return torch.optim.Rprop(params, lr=lr, **kwargs)
-    elif self.opt_config.get('name') == 'RMSprop':
-      kwargs = self.opt_config
-      kwargs.pop('name')
-      return torch.optim.RMSprop(params, lr=lr, **kwargs)
-
-  def cuda(self):
-    super(PerceptualOptimizer, self).cuda()
-    if self.w[1] > 0:
-      self.feature[0].cuda()
-
-  def train(self, inputs, labels, learning_rate=None):
-    sr = self.fn(inputs[0])
-    image_loss = F.mse_loss(sr, labels[0])
-    loss = image_loss * self.w[0]
-    if self.w[1] > 0:
-      self.feature[0].eval()
-      # sr = self.fn(inputs[0])
-      feat_fake = self.feature[0](sr)[0]
-      feat_real = self.feature[0](labels[0])[0]
-      feature_loss = F.mse_loss(feat_fake, feat_real)
-      loss += feature_loss * self.w[1]
-    opt = list(self.opts.values())[0]
-    if learning_rate:
-      for param_group in opt.param_groups:
-        param_group["lr"] = learning_rate
-    opt.zero_grad()
-    loss.backward()
-    if self.clip:
-      clip = self.clip / learning_rate
-      nn.utils.clip_grad_norm_(self.trainable_variables(), clip)
-    opt.step()
-    return {
-      'loss': loss.detach().cpu().numpy(),
-      'image': image_loss.detach().cpu().numpy(),
-    }
-
-  def eval(self, inputs, labels=None, **kwargs):
-    metrics = {}
-    sr = self.fn(inputs[0]).detach().cpu()
-    bi = upsample(inputs[0], self.scale).detach().cpu()
-    if labels is not None:
-      metrics['psnr'] = Metrics.psnr(sr.numpy(), labels[0].cpu().numpy())
-      writer = get_writer(self.name)
-      if writer is not None:
-        step = kwargs.get('epoch')
-        writer.image('sr', sr.clamp(0, 1), max=1, step=step)
-        writer.image('bicubic', bi.clamp(0, 1), max=1, step=step)
-        writer.image('gt', labels[0], max=1, step=step)
-    return [sr.numpy()], metrics
-
-  def fn(self, tensor):
-    raise NotImplementedError
-
-
 class ESPCN(PerceptualOptimizer):
   def __init__(self, scale, channel, **kwargs):
-    super(ESPCN, self).__init__(scale, channel, **kwargs)
     self.espcn = Espcn(channel, scale)
-    self.opt = self.get_opt(self.trainable_variables(), 1e-4)
+    super(ESPCN, self).__init__(scale, channel, **kwargs)
 
   def fn(self, tensor):
     return self.espcn(tensor * 2 - 1) / 2 + 0.5
@@ -235,10 +126,9 @@ class ESPCN(PerceptualOptimizer):
 
 class SRCNN(PerceptualOptimizer):
   def __init__(self, scale, channel, **kwargs):
-    super(SRCNN, self).__init__(scale, channel, **kwargs)
     filters = kwargs.get('filters', (9, 5, 5))
     self.srcnn = Srcnn(channel, filters)
-    self.opt = self.get_opt(self.trainable_variables(), 1e-4)
+    super(SRCNN, self).__init__(scale, channel, **kwargs)
 
   def fn(self, tensor):
     x = upsample(tensor, self.scale)
@@ -247,10 +137,9 @@ class SRCNN(PerceptualOptimizer):
 
 class VDSR(PerceptualOptimizer):
   def __init__(self, scale, channel, **kwargs):
-    super(VDSR, self).__init__(scale, channel, **kwargs)
     layers = kwargs.get('layers', 20)
     self.vdsr = Vdsr(channel, layers)
-    self.opt = self.get_opt(self.trainable_variables(), 1e-4)
+    super(VDSR, self).__init__(scale, channel, **kwargs)
 
   def fn(self, tensor):
     x = upsample(tensor, self.scale)
@@ -258,14 +147,13 @@ class VDSR(PerceptualOptimizer):
 
 
 class DNCNN(PerceptualOptimizer):
-  def __init__(self, channel, scale, noise, **kwargs):
-    super(DNCNN, self).__init__(1, channel, **kwargs)
+  def __init__(self, channel, noise, **kwargs):
     layers = kwargs.get('layers', 15)
     bn = kwargs.get('bn', True)
     self.dncnn = DnCnn(channel, layers, bn)
-    self.opt = self.get_opt(self.trainable_variables(), 1e-4)
     self.noise = noise / 255
     self.norm = torch.distributions.normal.Normal(0, self.noise)
+    super(DNCNN, self).__init__(1, channel, **kwargs)
 
   def fn(self, tensor):
     if self.noise > 0:
@@ -277,9 +165,8 @@ class DNCNN(PerceptualOptimizer):
 
 class DRCN(PerceptualOptimizer):
   def __init__(self, scale, channel, n_recur, **kwargs):
-    super(DRCN, self).__init__(scale, channel, **kwargs)
     self.drcn = Drcn(scale, channel, n_recur, 128)
-    self.opt = self.get_opt(self.trainable_variables(), 1e-4)
+    super(DRCN, self).__init__(scale, channel, **kwargs)
 
   def fn(self, tensor):
     return self.drcn(tensor)
@@ -287,9 +174,8 @@ class DRCN(PerceptualOptimizer):
 
 class DRRN(PerceptualOptimizer):
   def __init__(self, scale, channel, n_rb, n_ru, **kwargs):
-    super(DRRN, self).__init__(scale, channel, **kwargs)
     self.drrn = Drrn(channel, n_ru, n_rb, 128)
-    self.opt = self.get_opt(self.trainable_variables(), 1e-4)
+    super(DRRN, self).__init__(scale, channel, **kwargs)
 
   def fn(self, tensor):
     x = upsample(tensor, self.scale)

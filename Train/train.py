@@ -4,20 +4,22 @@
 #  Update: 2020 - 2 - 7
 
 import argparse
+import shutil
 from pathlib import Path
 
 from VSR.Backend import BACKEND
 from VSR.DataLoader import CenterCrop, Loader, RandomCrop
 from VSR.DataLoader import load_datasets
 from VSR.Model import get_model, list_supported_models
-from VSR.Util import Config, lr_decay, suppress_opt_by_args, compat_param
+from VSR.Util import Config, compat_param, lr_decay, suppress_opt_by_args
 
+CWD = Path(__file__).resolve().parent.parent
 parser = argparse.ArgumentParser(description=f'VSR ({BACKEND}) Training Tool v1.0')
 g0 = parser.add_argument_group("basic options")
 g0.add_argument("model", choices=list_supported_models(), help="specify the model name")
 g0.add_argument("-p", "--parameter", help="specify the model parameter file (*.yaml)")
-g0.add_argument("--save_dir", default='../Results', help="working directory")
-g0.add_argument("--data_config", default="../Data/datasets.yaml", help="specify dataset config file")
+g0.add_argument("--save_dir", default=f'{CWD}/Results', help="working directory")
+g0.add_argument("--data_config", default=f"{CWD}/Data/datasets.yaml", help="specify dataset config file")
 g1 = parser.add_argument_group("training options")
 g1.add_argument("--dataset", default='none', help="specify a dataset alias for training")
 g1.add_argument("--epochs", type=int, default=1, help="specify total epochs to train")
@@ -32,6 +34,8 @@ g3.add_argument("--traced_val", action="store_true")
 g3.add_argument("--pretrain", help="specify the pre-trained model checkpoint or will search into `save_dir` if not specified")
 g3.add_argument("--export", help="export ONNX (torch backend) or protobuf (tf backend) (needs support from model)")
 g3.add_argument("-c", "--comment", default=None, help="extend a comment string after saving folder")
+g3.add_argument("--distributed", action="store_true")
+g3.add_argument("--caching_dataset", action="store_true")
 
 
 def main():
@@ -48,9 +52,10 @@ def main():
     if opt.parameter:
       model_config_file = Path(opt.parameter)
     else:
-      model_config_file = Path(f'par/{BACKEND}/{opt.model}.{_ext}')
+      model_config_file = Path(f'{CWD}/Train/par/{BACKEND}/{opt.model}.{_ext}')
     if model_config_file.exists():
       opt.update(compat_param(Config(str(model_config_file))))
+      break
   # get model parameters from pre-defined YAML file
   model_params = opt.get(opt.model, {})
   suppress_opt_by_args(model_params, *args)
@@ -61,6 +66,8 @@ def main():
     model.cuda()
   if opt.pretrain:
     model.load(opt.pretrain)
+  if opt.distributed:
+    model.distributed()
   root = f'{opt.save_dir}/{opt.model}'
   if opt.comment:
     root += '_' + opt.comment
@@ -87,9 +94,12 @@ def main():
       lv.set_color_space('lr', 'L')
   # enter model executor environment
   with model.get_executor(root) as t:
+    if hasattr(t, '_logd') and isinstance(t._logd, Path):
+      shutil.copy(model_config_file, t._logd)
     config = t.query_config(opt)
     if opt.lr_decay:
       config.lr_schedule = lr_decay(lr=opt.lr, **opt.lr_decay)
+    config.caching = opt.caching_dataset and opt.memory_limit is None
     t.fit([lt, lv], config)
     if opt.export:
       t.export(opt.export)

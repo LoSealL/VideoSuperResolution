@@ -1,12 +1,12 @@
 ---
 ffdnet:
-  sigma: 75
-  space_down: 2
-  channel: 3
-  layers: 15
-  training: true
-  weight_decay: 0
-  scale: 1
+    sigma: 75
+    space_down: 2
+    channel: 3
+    layers: 15
+    training: true
+    weight_decay: 0
+    scale: 1
 
 batch: 32
 patch_size: 128

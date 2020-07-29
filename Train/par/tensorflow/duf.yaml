@@ -1,6 +1,10 @@
 duf:
-  scale: 4
-  channel: 3
-  layers: 16
-  filter_size: [5, 5]
-  depth: 7
+    scale: 4
+    channel: 3
+    layers: 16
+    filter_size: [5, 5]
+    depth: 7
+
+batch: 16
+patch_size: 64
+lr: 1.0e-4

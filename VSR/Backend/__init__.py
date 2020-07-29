@@ -36,17 +36,23 @@ LOG.addHandler(hdl)
 BACKEND = CONFIG['backend'].lower()
 if BACKEND == 'auto':
   BACKEND = 'tensorflow'
-if BACKEND not in ('tensorflow', 'tensorflow2', 'pytorch'):
+if BACKEND not in ('tensorflow', 'keras', 'pytorch'):
   BACKEND = 'pytorch'
 
-if BACKEND in ('tensorflow', 'tensorflow2'):
+if BACKEND in ('tensorflow', 'keras'):
   try:
     tf = import_module('tensorflow')
     CONFIG['data_format'] = 'channels_last'
-    if BACKEND == 'tensorflow2' and tf.__version__.split('.')[0] != '2':
+    tf_ver_major, tf_ver_minor, _ = [int(s) for s in tf.__version__.split('.')]
+    if BACKEND == 'keras' and tf_ver_major < 2:
       LOG.warning(f"[!] Current tensorflow version is {tf.__version__}")
-      LOG.info("[*] Fallback to use tensorflow")
+      LOG.info("[*] Fallback to use legacy tensorflow v1.x")
       BACKEND = 'tensorflow'
+    if tf_ver_major == 1 and tf_ver_minor < 15:
+      LOG.warning("[!!] VSR does not support TF < 1.15.0 any longer.")
+      LOG.warning("[!] Considering use an old version of VSR, "
+                  "or update your tensorflow version.")
+      raise ImportError
   except ImportError:
     LOG.warning("[!] Tensorflow package not found in your system.")
     LOG.info("[*] Fallback to use PyTorch...")

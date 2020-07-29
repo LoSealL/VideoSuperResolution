@@ -7,7 +7,8 @@ Created Date: Aug 21st 2018
 Utility for motion compensation
 """
 import numpy as np
-import tensorflow as tf
+
+from .. import tf
 
 
 def _grid_norm(width, height, bounds=(-1.0, 1.0)):

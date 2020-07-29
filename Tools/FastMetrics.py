@@ -4,13 +4,13 @@
 #   Update Date: 6/6/19, 10:35 AM
 
 import argparse
-import multiprocessing as mp
+from multiprocessing.pool import ThreadPool
 from pathlib import Path
 
 import numpy as np
 import tqdm
 from PIL import Image
-from skimage.measure import compare_ssim
+from skimage.metrics import structural_similarity
 
 from VSR.Util.ImageProcess import rgb_to_yuv
 
@@ -24,22 +24,36 @@ parser.add_argument("--multithread", action='store_true')
 FLAGS = parser.parse_args()
 
 
+def split_path_filter(x: Path):
+  try:
+    x = x.resolve()
+    # path, glob pattern, recursive
+    return x, '*', False
+  except OSError:
+    print(str(x.as_posix()))
+    pattern = x.name
+    rec = False
+    x = x.parent
+    if '*' in x.name:
+      x = x.parent
+      rec = True
+    print(x, pattern, rec)
+    return x, pattern, rec
+
+
 def gen():
   d1 = Path(FLAGS.input_dir)
   d2 = Path(FLAGS.reference_dir)
+  d1, d1_filter, d1_rec = split_path_filter(d1)
+  d2, d2_filter, d2_rec = split_path_filter(d2)
 
   assert d1.exists() and d2.exists(), "Path not found!"
-  assert len(list(d1.iterdir())) == len(list(d2.iterdir())), f"{d1} v {d2}"
+  d1 = sorted(d1.rglob(d1_filter)) if d1_rec else sorted(d1.glob(d1_filter))
+  d2 = sorted(d2.rglob(d2_filter)) if d2_rec else sorted(d2.glob(d2_filter))
+  assert len(d1) == len(d2), f"{len(d1)} v {len(d2)}"
 
-  for x, y in zip(sorted(d1.iterdir()), sorted(d2.iterdir())):
-    if x.is_dir() and y.is_dir():
-      assert len(list(x.iterdir())) == len(list(y.iterdir())), f"{x} v {y}"
-      for i, j in zip(sorted(x.iterdir()), sorted(y.iterdir())):
-        if i.is_file() and j.is_file():
-          yield i, j
-        else:
-          print(f" [!] Found {i} v.s. {j} not file.")
-    elif x.is_file() and y.is_file():
+  for x, y in zip(d1, d2):
+    if x.is_file() and y.is_file():
       yield x, y
     else:
       print(f" [!] Found {x} v.s. {y} mismatch.")
@@ -54,9 +68,14 @@ def main():
   def action(x, y):
     xname = f'{x.parent.name}/{x.stem}'
     yname = f'{y.parent.name}/{y.stem}'
-    x = Image.open(x)
-    y = Image.open(y)
-    assert x.width == y.width and x.height == y.height, "Image size mismatch!"
+    x = Image.open(x).convert('RGB')
+    y = Image.open(y).convert('RGB')
+    if x.width != y.width or x.height != y.height:
+      # print(f"Image size mismatch {x.width}x{x.height} != {y.width}x{y.height}")
+      min_w = min(x.width, y.width)
+      min_h = min(x.height, y.height)
+      x = x.crop([0, 0, min_w, min_h])
+      y = y.crop([0, 0, min_w, min_h])
     xx = np.asarray(x, dtype=np.float) / 255.0
     yy = np.asarray(y, dtype=np.float) / 255.0
     if FLAGS.l_only:
@@ -69,14 +88,14 @@ def main():
     psnr = np.log10(1.0 / mse) * 10.0
     info = {"x": xname, "y": yname}
     if FLAGS.ssim:
-      ssim = compare_ssim(xx, yy, multichannel=True)
+      ssim = structural_similarity(xx, yy, multichannel=True)
       info.update(SSIM=ssim)
     info.update(PSNR=psnr)
     info.update(MSE=mse)
     return info
 
   if FLAGS.multithread:
-    pool = mp.pool.ThreadPool()
+    pool = ThreadPool()
     results = [pool.apply_async(action, (i, j)) for i, j in gen()]
     with tqdm.tqdm(results) as r:
       for info in r:

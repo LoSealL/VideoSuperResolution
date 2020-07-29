@@ -8,10 +8,10 @@ For ICLR 2019 Reproducibility Challenge
 """
 
 import numpy as np
-import tensorflow as tf
 import tqdm
 
 from VSR.Util import Config, to_list
+from .. import tf
 from ..Arch import Discriminator
 from ..Framework.GAN import (
   gradient_penalty, inception_score, loss_bce_gan,

@@ -1,11 +1,15 @@
 dcscn:
-  layers: 8
-  reconstruction_layers: 1
-  filters: 196
-  min_filters: 48
-  nin_filter: [64, 32]
-  reconst_filter: 32
-  filters_decay_gamma: 1.5
-  drop_out: 0.8
-  scale: 4
-  channel: 3
+    layers: 8
+    reconstruction_layers: 1
+    filters: 196
+    min_filters: 48
+    nin_filter: [64, 32]
+    reconst_filter: 32
+    filters_decay_gamma: 1.5
+    drop_out: 0.8
+    scale: 4
+    channel: 3
+
+batch: 16
+patch_size: 64
+lr: 1.0e-4

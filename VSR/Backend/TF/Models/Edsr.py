@@ -9,8 +9,7 @@ Enhanced Deep Residual Networks for Single Image Super-Resolution (CVPR 2017)
 See https://arxiv.org/abs/1707.02921
 """
 
-import tensorflow as tf
-
+from .. import tf
 from ..Framework.SuperResolution import SuperResolution
 
 

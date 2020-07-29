@@ -8,9 +8,8 @@ Updated Date: May 25th 2018
 Efficient Sub-Pixel Convolutional Neural Network
 Ref https://arxiv.org/abs/1609.05158
 """
-import tensorflow as tf
-
 from VSR.Util import to_list
+from .. import tf
 from ..Framework.SuperResolution import SuperResolution
 
 

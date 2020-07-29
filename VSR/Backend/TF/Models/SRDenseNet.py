@@ -8,8 +8,7 @@ Image Super-Resolution Using Dense Skip Connections
 See http://openaccess.thecvf.com/content_ICCV_2017/papers/Tong_Image_Super-Resolution_Using_ICCV_2017_paper.pdf
 """
 
-import tensorflow as tf
-
+from .. import tf
 from ..Arch import Dense
 from ..Framework.SuperResolution import SuperResolution
 

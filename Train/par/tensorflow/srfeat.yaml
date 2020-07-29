@@ -1,13 +1,14 @@
 ---
 srfeat:
-  glayers: 16
-  dlayers: 4
-  vgg_layer: 'block5_conv4'
-  init_epoch: 100
-  gan_weight: 1.0e-3
-  vgg_weight: 0.1569  # (1 / 12.75)^2
-  scale: 4
-  channel: 3
+    glayers: 16
+    dlayers: 4
+    vgg_layer: 'block5_conv4'
+    init_epoch: 100
+    gan_weight: 1.0e-3
+    vgg_weight: 0.1569  # (1 / 12.75)^2
+    scale: 4
+    channel: 3
 
 patch_size: 128
 batch: 16
+lr: 1.0e-4

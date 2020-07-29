@@ -1,10 +1,8 @@
 edsr:
     scale: 4
+    channel: 3
     n_resblocks: 16
     n_feats: 64
-    rgb_range: 255
-    res_scale: 1
-    n_colors: 3
 
 batch_shape: [8, 3, 48, 48]
 lr: 1.0e-4

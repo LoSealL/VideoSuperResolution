@@ -8,9 +8,9 @@ Updated Date: May 25th 2018
 SRCNN mainly for framework tests (ECCV 2014)
 Ref https://arxiv.org/abs/1501.00092
 """
-import tensorflow as tf
 
 from VSR.Util import to_list
+from .. import tf
 from ..Framework.SuperResolution import SuperResolution
 from ..Util import bicubic_rescale
 

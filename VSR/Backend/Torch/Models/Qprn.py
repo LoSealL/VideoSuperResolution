@@ -9,12 +9,13 @@ import torch.nn.functional as F
 import torchvision
 from torch import nn
 
-from .Arch import CascadeRdn, Rdb, SpaceToDepth, Upsample
 from .Crdn import Upsample as RsrUp
-from .Discriminator import DCGAN
-from .Loss import gan_bce_loss, total_variance
 from .Model import SuperResolution
-from .video.motion import STTN
+from .Ops.Blocks import CascadeRdn, Rdb
+from .Ops.Discriminator import DCGAN
+from .Ops.Loss import gan_bce_loss, total_variance
+from .Ops.Motion import STTN
+from .Ops.Scale import SpaceToDepth, Upsample
 from ..Framework.Summary import get_writer
 from ..Framework.Trainer import SRTrainer, from_tensor, to_tensor
 from ..Util import Metrics
@@ -25,19 +26,19 @@ class Fnet(nn.Module):
   def __init__(self, channel, L=2, gain=64):
     super(Fnet, self).__init__()
     self.lq_entry = nn.Sequential(
-      nn.Conv2d(channel * (L + 1), 16, 3, 1, 1),
-      SpaceToDepth(4),
-      nn.Conv2d(256, 64, 1, 1, 0),
-      Rdb(64), Rdb(64))
+        nn.Conv2d(channel * (L + 1), 16, 3, 1, 1),
+        SpaceToDepth(4),
+        nn.Conv2d(256, 64, 1, 1, 0),
+        Rdb(64), Rdb(64))
     self.hq_entry = nn.Sequential(
-      nn.Conv2d(channel * L, 16, 3, 1, 1),
-      SpaceToDepth(4),
-      nn.Conv2d(256, 64, 1, 1, 0),
-      Rdb(64), Rdb(64))
+        nn.Conv2d(channel * L, 16, 3, 1, 1),
+        SpaceToDepth(4),
+        nn.Conv2d(256, 64, 1, 1, 0),
+        Rdb(64), Rdb(64))
     self.flownet = nn.Sequential(
-      nn.Conv2d(128, 64, 1, 1, 0),
-      Rdb(64), Rdb(64), Upsample(64, 4),
-      nn.Conv2d(64, 3, 3, 1, 1), nn.Tanh())
+        nn.Conv2d(128, 64, 1, 1, 0),
+        Rdb(64), Rdb(64), Upsample(64, 4),
+        nn.Conv2d(64, 3, 3, 1, 1), nn.Tanh())
     gain = torch.as_tensor([L, gain, gain], dtype=torch.float32)
     self.gain = gain.reshape(1, 3, 1, 1)
 
@@ -56,11 +57,11 @@ class Unet(nn.Module):
   def __init__(self, channel, N=2):
     super(Unet, self).__init__()
     self.entry = nn.Sequential(
-      nn.Conv2d(channel * N, 32, 3, 1, 1),
-      SpaceToDepth(2),
-      nn.Conv2d(128, 32, 1, 1, 0))
+        nn.Conv2d(channel * N, 32, 3, 1, 1),
+        SpaceToDepth(2),
+        nn.Conv2d(128, 32, 1, 1, 0))
     self.exit = nn.Sequential(
-      Upsample(32, 2), nn.Conv2d(32, channel, 3, 1, 1))
+        Upsample(32, 2), nn.Conv2d(32, channel, 3, 1, 1))
     self.down1 = nn.Conv2d(32, 64, 3, 2, 1)
     self.up1 = RsrUp([64, 32])
     self.cb = CascadeRdn(64, 3, True)
@@ -110,7 +111,7 @@ class QPRN(SuperResolution):
     self.qprn = Composer(channel, L=2, gain=gain)
     self.adam = torch.optim.Adam(self.trainable_variables('qprn'), 1e-4)
     if self.debug.gan:
-      self.dnet = DCGAN(channel * 4, 9, 'bn', 'A')
+      self.dnet = DCGAN(channel * 4, 9, scale, 'bn', 'A')
       self.adam_d = torch.optim.Adam(self.trainable_variables('dnet'), 1e-4)
     self._trainer = _Trainer
 
@@ -240,8 +241,10 @@ class QPRN(SuperResolution):
     c = idr_lq.shape[-1] - idr_lq_.shape[-1]
     a, b = a // 2, -a // 2
     c, d = c // 2, -c // 2
-    if a == 0: a = b = None
-    if c == 0: c = d = None
+    if a == 0:
+      a = b = None
+    if c == 0:
+      c = d = None
     idr = self.qprn.refiner(idr_lq, idr_lq)
     length = self.qprn.L + 1
     windows = {
@@ -265,7 +268,7 @@ class QPRN(SuperResolution):
         windows['predict'].append(hq_warp.detach().cpu().numpy()[..., a:b, c:d])
       elif self.debug.get('see_flow'):
         windows['predict'].append(torch.stack(
-          flow[1:], dim=1).detach().cpu().numpy()[..., a:b, c:d])
+            flow[1:], dim=1).detach().cpu().numpy()[..., a:b, c:d])
       else:
         windows['predict'].append(hq.detach().cpu().numpy()[..., a:b, c:d])
       time_loss += F.mse_loss(hq, hq_warp).detach()

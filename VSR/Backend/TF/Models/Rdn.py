@@ -9,8 +9,7 @@ Architecture of Residual Dense Network (CVPR 2018)
 See https://arxiv.org/abs/1802.08797
 """
 
-import tensorflow as tf
-
+from .. import tf
 from ..Framework.SuperResolution import SuperResolution
 
 

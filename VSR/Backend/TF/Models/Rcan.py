@@ -8,8 +8,7 @@ Residual Channel Attention Networks (ECCV 2018)
 See https://arxiv.org/abs/1807.02758
 """
 
-import tensorflow as tf
-
+from .. import tf
 from ..Framework.SuperResolution import SuperResolution
 
 

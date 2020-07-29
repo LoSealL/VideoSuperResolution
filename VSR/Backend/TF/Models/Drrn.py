@@ -11,8 +11,7 @@ See http://cvlab.cse.msu.edu/pdfs/Tai_Yang_Liu_CVPR2017.pdf
 
 import logging
 
-import tensorflow as tf
-
+from .. import tf
 from ..Framework.SuperResolution import SuperResolution
 from ..Util import bicubic_rescale
 

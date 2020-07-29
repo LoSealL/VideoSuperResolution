@@ -1,5 +1,5 @@
 """
-Copyright: Wenyi Tang 2017-2018
+Copyright: Wenyi Tang 2017-2020
 Author: Wenyi Tang
 Email: wenyi.tang@intel.com
 Created Date: July 20th 2018
@@ -11,10 +11,14 @@ for generative adversarial networks
 from functools import partial
 
 import numpy as np
-import tensorflow as tf
+from .. import tf, tfc, ver_major, ver_minor
 
 _INCEPTION_BATCH = 50
-_TFGAN = tf.contrib.gan.eval
+if ver_major == 1 and ver_minor <= 14:
+  _TFGAN = tfc.gan.eval
+else:
+  raise ImportError("tfc.gan was removed since 1.15.0. "
+                    "Please downgrade to 1.14.0 or use pytorch backend.")
 
 
 def _preprocess_for_inception(images):
@@ -36,9 +40,9 @@ def _preprocess_for_inception(images):
     images = tf.identity(images)
 
   preprocessed_images = tf.map_fn(
-    fn=_TFGAN.preprocess_image,
-    elems=images,
-    back_prop=False)
+      fn=_TFGAN.preprocess_image,
+      elems=images,
+      back_prop=False)
 
   return preprocessed_images
 
@@ -51,7 +55,7 @@ def _run_inception(images, layer_name, inception_graph):
 
 
 def fid_score(real_image, gen_image, num_batches=None):
-  """FID function from tf.contrib
+  """FID function from tfc
 
   Args:
       real_image: must be 4-D tensor, ranges from [0, 255]
@@ -67,9 +71,9 @@ def fid_score(real_image, gen_image, num_batches=None):
   if not num_batches:
     num_batches = (batches + _INCEPTION_BATCH - 1) // _INCEPTION_BATCH
   graph = _TFGAN.get_graph_def_from_url_tarball(
-    'http://download.tensorflow.org/models/frozen_inception_v1_2015_12_05.tar.gz',
-    'inceptionv1_for_inception_score.pb',
-    '/tmp/frozen_inception_v1_2015_12_05.tar.gz')
+      'http://download.tensorflow.org/models/frozen_inception_v1_2015_12_05.tar.gz',
+      'inceptionv1_for_inception_score.pb',
+      '/tmp/frozen_inception_v1_2015_12_05.tar.gz')
   # make tensor batches
   real_ph = tf.placeholder(tf.float32,
                            [_INCEPTION_BATCH, *real_image.shape[1:]])
@@ -84,22 +88,22 @@ def fid_score(real_image, gen_image, num_batches=None):
   gen_image = np.split(gen_image, num_batches)
   for i in range(num_batches):
     r, g = sess.run(
-      [real_features, gen_features],
-      feed_dict={real_ph: real_image[i], gen_ph: gen_image[i]})
+        [real_features, gen_features],
+        feed_dict={real_ph: real_image[i], gen_ph: gen_image[i]})
     real_feature_np.append(r)
     gen_feature_np.append(g)
   real_feature_np = np.concatenate(real_feature_np)
   gen_feature_np = np.concatenate(gen_feature_np)
   fid_tensor = _TFGAN.frechet_classifier_distance(
-    classifier_fn=tf.identity,
-    real_images=real_feature_np,
-    generated_images=gen_feature_np,
-    num_batches=num_batches)
+      classifier_fn=tf.identity,
+      real_images=real_feature_np,
+      generated_images=gen_feature_np,
+      num_batches=num_batches)
   return fid_tensor
 
 
 def inception_score(images, num_batches=None):
-  """IS function from tf.contrib
+  """IS function from tfc
 
   Args:
       images: must be 4-D tensor, ranges from [0, 255]
@@ -110,15 +114,15 @@ def inception_score(images, num_batches=None):
   if not num_batches:
     num_batches = (batches + _INCEPTION_BATCH - 1) // _INCEPTION_BATCH
   graph = _TFGAN.get_graph_def_from_url_tarball(
-    'http://download.tensorflow.org/models/frozen_inception_v1_2015_12_05.tar.gz',
-    'inceptionv1_for_inception_score.pb',
-    '/tmp/frozen_inception_v1_2015_12_05.tar.gz')
+      'http://download.tensorflow.org/models/frozen_inception_v1_2015_12_05.tar.gz',
+      'inceptionv1_for_inception_score.pb',
+      '/tmp/frozen_inception_v1_2015_12_05.tar.gz')
   return _TFGAN.classifier_score(
-    images=images,
-    classifier_fn=partial(_run_inception,
-                          layer_name='logits:0',
-                          inception_graph=graph),
-    num_batches=num_batches)
+      images=images,
+      classifier_fn=partial(_run_inception,
+                            layer_name='logits:0',
+                            inception_graph=graph),
+      num_batches=num_batches)
 
 
 def loss_bce_gan(y_real, y_fake):
@@ -168,7 +172,7 @@ def gradient_penalty(y_true, y_pred, graph_fn, lamb=10):
   interp = y_true + alpha * diff
   gradients = tf.gradients(graph_fn(interp), [interp])[0]
   slopes = tf.sqrt(1e-4 + tf.reduce_sum(
-    tf.square(gradients), reduction_indices=[1, 2, 3]))
+      tf.square(gradients), reduction_indices=[1, 2, 3]))
   gp = tf.reduce_mean(tf.square(slopes - 1.))
   return lamb * gp
 

@@ -1,15 +1,16 @@
 ---
 srgan:
-  glayers: 16
-  dlayers: 4
-  vgg_layer: 'block2_conv2'
-  init_epoch: 100
-  vgg_weight: 1.0e-6
-  use_vgg: true
-  mse_weight: 1
-  gan_weight: 0.001
-  scale: 4
-  channel: 3
+    glayers: 16
+    dlayers: 4
+    vgg_layer: 'block2_conv2'
+    init_epoch: 100
+    vgg_weight: 1.0e-6
+    use_vgg: true
+    mse_weight: 1
+    gan_weight: 0.001
+    scale: 4
+    channel: 3
 
 patch_size: 128
 batch: 16
+lr: 1.0e-4

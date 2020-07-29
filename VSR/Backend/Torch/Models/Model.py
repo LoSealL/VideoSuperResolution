@@ -3,13 +3,15 @@
 #  Email: wenyi.tang@intel.com
 #  Update Date: 2019/4/3 下午5:10
 
-import torch
 import logging
+from collections import OrderedDict
+
+import torch
 
 from ..Framework.Trainer import SRTrainer
 
 
-class BasicModel:
+class BasicModel(object):
   """Trainable model wrapper for PyTorch nn.Module objects
 
   There are 2 built-in attributes:
@@ -19,14 +21,17 @@ class BasicModel:
       appended if a derived object assign any attribute with `optim.Optimizer`.
   """
 
-  def __init__(self, **kwargs):
-    self.modules = {}
-    self.opts = {}
+  def _setup(self):
+    self.setup = True
+    self.modules = OrderedDict()
+    self.opts = OrderedDict()
     self.name = ''
-    self._trainer = None
+    self.loaded = None
 
   def __setattr__(self, key, value):
-    if key in ('modules', 'opts',):
+    if not hasattr(self, 'setup') and key != 'setup':
+      self._setup()
+    if key in ('modules', 'opts', 'setup'):
       if hasattr(self, key):
         raise ValueError(f"Can't overwrite built-in '{key}' of BasicModel")
     if isinstance(value, torch.nn.Module):
@@ -36,7 +41,7 @@ class BasicModel:
         else:
           # TODO: why assign twice??
           raise NotImplementedError
-      else:
+      elif len(list(value.parameters())):
         self.modules[key] = value
         self.name += f'[{key}]'
     if isinstance(value, torch.optim.Optimizer):
@@ -96,6 +101,15 @@ class BasicModel:
       if torch.cuda.is_available():
         self.modules[i] = self.modules[i].cuda()
 
+  def distributed(self):
+    if torch.distributed.is_available():
+      torch.distributed.init_process_group(backend='nccl', init_method="env://")
+    for i in self.modules:
+      if torch.distributed.is_available() and torch.distributed.is_nccl_available():
+        self.modules[i] = torch.nn.parallel.DistributedDataParallel(self.modules[i])
+      else:
+        self.modules[i] = torch.nn.DataParallel(self.modules[i])
+
   def export(self, export_dir):
     """export ONNX model.
 
@@ -120,21 +134,45 @@ class BasicModel:
   def load(self, pth, map_location=None):
     for key, model in self.modules.items():
       if not isinstance(pth, dict):
-        model.load_state_dict(torch.load(str(pth), map_location=map_location))
+        self.sequential_load(model, str(pth), map_location)
         break
-      model.load_state_dict(
-          torch.load(str(pth[key]), map_location=map_location))
+      self.sequential_load(model, str(pth[key]), map_location)
+    self.loaded = True
     for key, opt in self.opts.items():
       if isinstance(pth, dict):
         opt.load_state_dict(
             torch.load(str(pth[key]), map_location=map_location))
+
+  @staticmethod
+  def sequential_load(module, pth, map_location=None):
+    state_dict = torch.load(pth, map_location=map_location)
+    p = module.state_dict()
+    while len(state_dict) and len(p):
+      saved_name, saved_data = state_dict.popitem()
+      name, buffer = p.popitem()
+      if saved_name != name:
+        logging.getLogger('VSR').warning(
+            f"unmatched name: expected {name}, got {saved_name}.")
+      if buffer.shape == saved_data.shape:
+        buffer.data.copy_(saved_data)
+      else:
+        logging.getLogger('VSR').error(
+            f"Checkpoint shape mismatch for {name}, "
+            f"expected {buffer.shape}, but got {saved_data.shape}")
+        raise ValueError
+    while len(state_dict):
+      saved_name, _ = state_dict.popitem()
+      logging.getLogger('VSR').warning(f"Unexpected keys: {saved_name}")
+    while len(p):
+      name, _ = p.popitem()
+      logging.getLogger('VSR').warning(f"Missing keys: {saved_name}")
 
 
 class SuperResolution(BasicModel):
   """A default model for (video) super-resolution"""
 
   def __init__(self, scale, channel, **kwargs):
-    super(SuperResolution, self).__init__(**kwargs)
+    super(SuperResolution, self).__init__()
     self.scale = scale
     self.channel = channel
     # Default SR trainer

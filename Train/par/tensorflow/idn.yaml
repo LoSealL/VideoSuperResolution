@@ -1,10 +1,14 @@
 idn:
-  blocks: 4
-  filters: 64
-  delta: 16
-  slice_factor: 4
-  leaky_slope: 0.05
-  weight_decay: 1.0e-4
-  fine_tune_epoch: 200
-  scale: 4
-  channel: 3
+    blocks: 4
+    filters: 64
+    delta: 16
+    slice_factor: 4
+    leaky_slope: 0.05
+    weight_decay: 1.0e-4
+    fine_tune_epoch: 200
+    scale: 4
+    channel: 3
+
+batch: 16
+patch_size: 64
+lr: 1.0e-4

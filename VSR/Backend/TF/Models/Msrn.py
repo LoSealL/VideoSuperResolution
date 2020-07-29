@@ -8,8 +8,7 @@ Multi-scale Residual Network for Image Super-Resolution
 See http://openaccess.thecvf.com/content_ECCV_2018/papers/Juncheng_Li_Multi-scale_Residual_Network_ECCV_2018_paper.pdf
 """
 
-import tensorflow as tf
-
+from .. import tf
 from ..Arch.Residual import msrb
 from ..Framework.SuperResolution import SuperResolution
 

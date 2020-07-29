@@ -28,7 +28,8 @@ class RandomCrop(Cropper):
   def call(self, img: tuple, shape: (list, tuple)) -> tuple:
     hr, lr = img
     if lr.shape[-2] < shape[-2]:
-      raise ValueError("Batch shape is too large than data")
+      raise ValueError(
+        f"Batch shape is larger than data: {lr.shape} vs {shape}")
     ind = [np.random.randint(nd + 1) for nd in lr.shape - np.array(shape)]
     slc1 = [slice(n, n + s) for n, s in zip(ind, shape)]
     slc2 = slc1.copy()

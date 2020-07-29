@@ -1,8 +1,8 @@
 ---
 msrn:
-  n_blocks: 8
-  scale: 4
-  channel: 3
+    n_blocks: 8
+    scale: 4
+    channel: 3
 
 batch: 4
 patch_size: 64

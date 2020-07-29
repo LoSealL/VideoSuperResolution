@@ -7,9 +7,9 @@
 import logging
 
 import numpy as np
-import tensorflow as tf
 
 from VSR.Util import Config
+from .. import tf
 from ..Framework import Noise, Trainer
 from ..Framework.SuperResolution import SuperResolution
 from ..Util import summary_tensor_image

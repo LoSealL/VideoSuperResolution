@@ -6,3 +6,5 @@ frvsr:
 
 depth: 10
 batch: 16
+patch_size: 64
+lr: 1.0e-4

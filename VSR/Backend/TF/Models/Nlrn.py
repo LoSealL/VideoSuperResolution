@@ -10,8 +10,7 @@ See https://arxiv.org/abs/1806.02919
 
 import logging
 
-import tensorflow as tf
-
+from .. import tf, tfc
 from ..Arch.Residual import non_local
 from ..Framework.SuperResolution import SuperResolution
 
@@ -75,7 +74,7 @@ class NLRN(SuperResolution):
       with tf.control_dependencies(update_ops):
         opt = tf.train.AdadeltaOptimizer(self.learning_rate)
         grad = opt.compute_gradients(mse)
-        grad_clip = tf.contrib.training.clip_gradient_norms(
+        grad_clip = tfc.training.clip_gradient_norms(
           grad, self.clip)
         op = opt.apply_gradients(grad_clip, self.global_steps)
         self.loss.append(op)

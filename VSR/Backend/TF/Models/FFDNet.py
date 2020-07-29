@@ -3,8 +3,7 @@
 #  Email: wenyi.tang@intel.com
 #  Update Date: 2019/4/25 下午2:13
 
-import tensorflow as tf
-
+from .. import tf
 from ..Framework.SuperResolution import SuperResolution
 
 

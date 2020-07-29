@@ -1,0 +1,10 @@
+nlrn:
+    scale: 4
+    channel: 3
+    filters: 128
+    recurrents: 12
+    clip: 2.5
+
+batch: 16
+patch_size: 64
+lr: 1.0e-4

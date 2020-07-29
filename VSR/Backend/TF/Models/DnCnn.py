@@ -8,8 +8,7 @@ Updated Date: May 23rd 2018
 Implementing Feed-forward Denoising Convolutional Neural Network
 See http://ieeexplore.ieee.org/document/7839189/
 """
-import tensorflow as tf
-
+from .. import tf
 from ..Framework.SuperResolution import SuperResolution
 
 

@@ -8,9 +8,8 @@ MemNet (ICCV 2017)
 See https://arxiv.org/abs/1708.02209
 """
 
-import tensorflow as tf
-
 from VSR.Util import to_list
+from .. import tf
 from ..Framework.SuperResolution import SuperResolution
 from ..Util import bicubic_rescale
 

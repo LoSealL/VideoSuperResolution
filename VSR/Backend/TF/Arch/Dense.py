@@ -7,8 +7,7 @@ Created Date: Dec 17th 2018
 Architectures of common dense blocks used in SR researches
 """
 
-import tensorflow as tf
-
+from .. import tf
 from ..Framework.LayersHelper import Layers
 
 

@@ -1,14 +1,14 @@
 """
-Copyright: Wenyi Tang 2017-2018
+Copyright: Wenyi Tang 2017-2020
 Author: Wenyi Tang
 Email: wenyi.tang@intel.com
 Created Date: Sep 5th 2018
 
 commonly used layers helper
 """
-import tensorflow as tf
 
 from VSR.Util import to_list
+from .. import tf
 from ..Util import (
   SpectralNorm, TorchInitializer, pixel_shift, pop_dict_wo_keyerror, prelu
 )
@@ -25,22 +25,25 @@ class Layers(object):
                                          name=name)
 
   def instance_norm(self, x, trainable=True, name=None, reuse=None):
+    from .. import tfc
     with tf.variable_scope(name, 'InstanceNorm', reuse=reuse):
-      return tf.contrib.layers.instance_norm(
+      return tfc.layers.instance_norm(
           x,
           trainable=trainable,
           variables_collections=[tf.GraphKeys.GLOBAL_VARIABLES])
 
   def layer_norm(self, x, trainable=True, name=None, reuse=None):
+    from .. import tfc
     with tf.variable_scope(name, 'LayerNorm', reuse=reuse):
-      return tf.contrib.layers.layer_norm(
+      return tfc.layers.layer_norm(
           x,
           trainable=trainable,
           variables_collections=[tf.GraphKeys.GLOBAL_VARIABLES])
 
   def group_norm(self, x, group, axis, trainable=True, name=None, reuse=None):
+    from .. import tfc
     with tf.variable_scope(name, 'GroupNorm', reuse=reuse):
-      return tf.contrib.layers.group_norm(
+      return tfc.layers.group_norm(
           x, group, axis,
           trainable=trainable,
           variables_collections=[tf.GraphKeys.GLOBAL_VARIABLES])

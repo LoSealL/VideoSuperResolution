@@ -6,9 +6,8 @@ Created Date: Dec 17th 2018
 
 Architectures of common residual blocks used in SR researches
 """
-import tensorflow as tf
-
 from VSR.Util import to_list
+from .. import tf
 from ..Framework.LayersHelper import Layers
 
 
@@ -81,8 +80,8 @@ def cascade_block(layers: Layers, inputs, depth=4,
       x = layers.resblock(inputs, f, k, activation=act)
       feat.append(x)
       inputs = layers.conv2d(
-        tf.concat(feat, axis=-1), f, 1,
-        kernel_initializer='he_uniform')
+          tf.concat(feat, axis=-1), f, 1,
+          kernel_initializer='he_uniform')
     inputs = layers.conv2d(inputs, f, k)
     return inputs
 

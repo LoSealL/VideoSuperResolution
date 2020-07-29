@@ -1,0 +1,10 @@
+realsr:
+    scale: 4
+    channel: 3
+    nf: 64
+    nb: 23
+    pixel_weight: !!float 1
+    feature_weight: !!float 0
+    gan_weight: !!float 0
+
+batch_shape: [16, 3, 64, 64]

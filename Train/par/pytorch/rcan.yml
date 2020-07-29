@@ -1,12 +1,11 @@
 rcan:
     scale: 4
+    channel: 3
     n_resgroups: 10
     n_resblocks: 20
     n_feats: 64
     reduction: 16
     rgb_range: 255
-    n_colors: 3
-    res_scale: 1.0
 
 batch_shape: [16, 3, 32, 32]
 lr: 1.0e-4

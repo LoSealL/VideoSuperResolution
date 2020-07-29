@@ -8,6 +8,7 @@ import importlib
 __all__ = ['get_model', 'list_supported_models']
 
 models = {
+  'cubic': ('Bicubic', 'BICUBIC'),
   # alias: (file, class)
   'espcn': ('Classic', 'ESPCN'),
   'srcnn': ('Classic', 'SRCNN'),
@@ -44,6 +45,9 @@ models = {
   'edrn': ('NTIRE19', 'EDRN'),
   'frn': ('NTIRE19', 'FRN'),
   'ran': ('NTIRE19', 'RAN'),
+  # NTIRE 2020
+  'realsr': ('NTIRE20', 'RealSR'),
+  'esr': ('EfficientSR', 'ESR')
 }
 
 

@@ -8,8 +8,7 @@ Cascading Residual Network (ECCV 2018)
 See https://arxiv.org/abs/1803.08664
 """
 
-import tensorflow as tf
-
+from .. import tf, tfc
 from ..Framework.SuperResolution import SuperResolution
 
 
@@ -97,7 +96,7 @@ class CARN(SuperResolution):
       with tf.control_dependencies(update_op):
         opt = tf.train.AdamOptimizer(self.learning_rate)
         var_n_grad = opt.compute_gradients(loss)
-        grad_clip = tf.contrib.training.clip_gradient_norms(
+        grad_clip = tfc.training.clip_gradient_norms(
           var_n_grad, self.clip)
         opt = opt.apply_gradients(grad_clip, self.global_steps)
         self.loss.append(opt)
