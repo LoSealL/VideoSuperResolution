@@ -1,4 +1,4 @@
-1.0.6.1
+1.0.6.2
 
 ## 1.0.6
 ## 2020-07
@@ -7,6 +7,7 @@
 - Refactor torch backend models
 - Add `--caching_dataset` to cache transformed data into memory (ignored when `memory_limit` set).
 - Fix FastMetrics multi-threads issue
+- Fix loading issue when inferring with VSR models
 
 ## 1.0.5
 ## 2020-05
