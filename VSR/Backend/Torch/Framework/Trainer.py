@@ -168,7 +168,7 @@ class SRTrainer(Env):
     """
     v = self.query_config(config, **kwargs)
     self._restore(config.epoch, v.map_location)
-    it = loader.make_one_shot_iterator([1, -1, -1, -1], -1)
+    it = loader.make_one_shot_iterator(v.batch_shape, -1)
     if hasattr(it, '__len__'):
       if len(it) == 0:
         return

@@ -56,7 +56,7 @@ def overwrite_from_env(flags):
 
 def main():
   flags, args = parser.parse_known_args()
-  opt = Config(depth=-1)
+  opt = Config(depth=1)
   for pair in flags._get_kwargs():
     opt.setdefault(*pair)
   overwrite_from_env(opt)
