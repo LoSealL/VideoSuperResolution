@@ -28,7 +28,7 @@ g2.add_argument('--memory_limit', default=None, help="limit the CPU memory usage
 
 def parse_arguments():
   flags, args = parser.parse_known_args()
-  opt = Config(depth=1)
+  opt = Config()
   # overwrite flag values into opt object
   for pair in flags._get_kwargs():
     opt.setdefault(*pair)

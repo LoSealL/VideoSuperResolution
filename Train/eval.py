@@ -8,12 +8,14 @@ from VSR.Util import Config, save_inference_images
 from common import parse_arguments, parser
 
 g1 = parser.add_argument_group("evaluating options")
+g1.add_argument("-t", "--test", nargs='*', help="specify test dataset name or data path")
 g1.add_argument("--ensemble", action="store_true")
 g1.add_argument("--video", action="store_true", help="notify load test data as video stream")
 g2 = parser.add_argument_group("advanced options")
 g2.add_argument("--output_index", default='-1', help="specify access index of output array (slicable)")
 g2.add_argument("--export", help="export ONNX (torch backend) or protobuf (tf backend) (needs support from model)")
 g2.add_argument("--overwrite", action="store_true", help="overwrite the existing predicted output files")
+g2.add_argument('--depth', type=int, default=1, help="frame sequence")
 
 
 def main():

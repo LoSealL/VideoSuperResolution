@@ -2,7 +2,6 @@
 frvsr:
     scale: 4
     channel: 3
-    depth: 7
     weights: [1, 1, 1.0e-3]
 
 batch_shape: [16, 7, 3, 32, 32]
