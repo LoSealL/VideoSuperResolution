@@ -4,6 +4,7 @@
 ## 2020-08
 - Fix loader error when inferring FRVSR
 - Group common arguments
+- Add RLSP
 
 ## 1.0.6
 ## 2020-07
