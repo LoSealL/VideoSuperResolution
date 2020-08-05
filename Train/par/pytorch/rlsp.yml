@@ -1,0 +1,13 @@
+rlsp:
+    scale: 4
+    channel: 3
+    clips: 3
+    layers: 7
+    filters: 64
+
+batch_shape: [4, 7, 3, 64, 64]
+lr: 1.0e-4
+lr_decay:
+    method: multistep
+    decay_step: [1000]
+    decay_rate: 0.1

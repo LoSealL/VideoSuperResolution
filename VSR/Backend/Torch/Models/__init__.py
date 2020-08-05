@@ -37,6 +37,7 @@ models = {
   'spmc': ('Spmc', 'SPMC'),
   'rbpn': ('Rbpn', 'RBPN'),
   'srmd': ('Srmd', 'SRMD'),
+  'rlsp': ('Rlsp', 'RLSP'),
   # NTIRE 2019 Collections
   'didn': ('NTIRE19', 'DIDN'),
   'dhdn': ('NTIRE19', 'DHDN'),
