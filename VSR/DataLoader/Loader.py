@@ -73,14 +73,15 @@ class EpochIterator:
     self.cache = caching
     t = len(self.loader.data['hr'])
     frame_nums = [len(i) for i in self.loader.data['hr']]
-    temporal_padding = not shuffle
+    temporal_padding = not shuffle and (self.depth != -1)
     self.index = []
     for i in range(t):
       depth = self.depth if self.depth >= 0 else len(self.loader.data['hr'][i])
       idx_ = [(i, np.array([j + x for x in range(depth)])) for j in
               range(-(depth // 2), frame_nums[i] - (depth // 2))]
       d2_ = depth // 2
-      self.index += idx_ if temporal_padding or d2_ == 0 else idx_[d2_: -d2_]
+      r_ = frame_nums[i] - depth + 1
+      self.index += idx_ if temporal_padding or d2_ == 0 else idx_[d2_:d2_ + r_]
     self.steps = steps if steps >= 0 else len(self.index) // shape[0]
     while len(self.index) < self.steps * shape[0] and self.index:
       self.index += self.index
