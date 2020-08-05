@@ -1,4 +1,9 @@
-1.0.6.2
+1.0.7
+
+## 1.0.7
+## 2020-08
+- Fix loader error when inferring FRVSR
+- Group common arguments
 
 ## 1.0.6
 ## 2020-07
