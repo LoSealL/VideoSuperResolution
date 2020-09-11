@@ -1,35 +1,37 @@
-#  Copyright (c) 2017-2020 Wenyi Tang.
-#  Author: Wenyi Tang
-#  Email: wenyitang@outlook.com
-#  Update: 2020 - 2 - 16
+"""
+Copyright: Wenyi Tang 2020
+Author: Wenyi Tang
+Email: wenyitang@outlook.com
+Created Date: 2020-2-6
 
-from setuptools import find_packages
-from setuptools import setup
+Setup instruction
+"""
+from setuptools import find_packages, setup
 
 # Get version from CHANGELOG
 try:
-  with open('CHANGELOG.md') as fd:
-    VERSION = fd.readline()[:-1]
+    with open('CHANGELOG.md') as fd:
+        VERSION = fd.readline()[:-1]
 except IOError:
-  VERSION = '0.0.0'
+    VERSION = '0.0.0'
 
 REQUIRED_PACKAGES = [
-  'numpy',
-  'scipy',
-  'scikit-image',
-  'matplotlib',
-  'pillow',
-  'pypng',
-  'pytest',
-  'PyYAML',
-  'psutil',
-  'tqdm',
-  'h5py',
-  'easydict >= 1.9',
+    'numpy',
+    'scipy',
+    'scikit-image',
+    'matplotlib',
+    'pillow',
+    'pypng',
+    'pytest',
+    'PyYAML',
+    'psutil',
+    'tqdm',
+    'h5py',
+    'easydict >= 1.9',
 ]
 
 with open('README.md', 'r', encoding='utf-8') as fd:
-  long_desp = fd.read()
+    long_desp = fd.read()
 
 setup(
     name='VSR',
@@ -45,9 +47,9 @@ setup(
     author_email='wenyitang@outlook.com',
     keywords="super-resolution sr vsr cnn srcnn vespcn",
     classifiers=[
-      "Programming Language :: Python :: 3",
-      "License :: OSI Approved :: MIT License",
-      "Operating System :: OS Independent",
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
 )

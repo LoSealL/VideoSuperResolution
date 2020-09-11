@@ -26,7 +26,7 @@ jobs:
     displayName: 'Install dependencies'
 
   - script: |
-      pytest -v Tests/training_test.py --disable-warnings
+      pytest -v Tests/test_utils.py --disable-warnings
     displayName: 'test with pytest'
 
   - task: PublishTestResults@2

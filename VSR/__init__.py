@@ -1,18 +1,26 @@
-#  Copyright (c) 2017-2020 Wenyi Tang.
-#  Author: Wenyi Tang
-#  Email: wenyitang@outlook.com
-#  Update: 2020 - 2 - 7
-#  Collect and reproduce Image/Video Super-Resolution Algorithms.
+"""
+Copyright: Wenyi Tang 2020
+Author: Wenyi Tang
+Email: wenyitang@outlook.com
 
-from __future__ import absolute_import
-from __future__ import print_function
+Video/Single-Image Super-Resolution Framework
+- Support multiple backends, such as `tensorflow`, `tensorflow v2 (keras)` and `pytorch`
+- Support many state-of-the-art SISR/VSR models, networks and architectures
+- Provides highly comprehensive API to load dataset and training models
+- Detailed documents and sample codes
+"""
+from __future__ import absolute_import, print_function
 
-import VSR.Backend
-import VSR.DataLoader
+from . import Backend
+from . import DataLoader
+from . import Model
+from . import Util
 
 __all__ = [
-  'Backend',
-  'DataLoader',
-  'Model',
-  'Util',
+    'Backend',
+    'DataLoader',
+    'Model',
+    'Util',
 ]
+
+__version__ = '1.0.8'
