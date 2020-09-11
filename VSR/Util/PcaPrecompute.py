@@ -1,9 +1,11 @@
-#  Copyright (c) 2017-2020 Wenyi Tang.
-#  Author: Wenyi Tang
-#  Email: wenyitang@outlook.com
-#  Update: 2020 - 6 - 15
+"""
+Copyright: Wenyi Tang 2020
+Author: Wenyi Tang
+Email: wenyitang@outlook.com
+Created Date: 2020-6-15
 
-
+Precomputed PCA array, see SRMD
+"""
 import numpy as np
 
 # Pre-calculated PCA array
@@ -3388,5 +3390,5 @@ _PCA = np.array(
 
 
 def get_degradation(kernel: np.ndarray):
-  ret = np.matmul(_PCA, kernel.reshape([-1, 1]))
-  return ret
+    ret = np.matmul(_PCA, kernel.reshape([-1, 1]))
+    return ret

@@ -3,6 +3,7 @@
 ## 1.0.8
 ## 2020-09
 - Refactor unit tests and tools
+- Refactor codes by pylint
 
 ## 1.0.7
 ## 2020-08
